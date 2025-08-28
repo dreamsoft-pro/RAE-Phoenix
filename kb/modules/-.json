@@ -1,0 +1,14 @@
+{
+  "module": "-",
+  "services": [],
+  "controllers": [
+    "SliderCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/SliderCtrl.js"
+  ]
+}

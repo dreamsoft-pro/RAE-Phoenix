@@ -1,0 +1,20 @@
+{
+  "module": "layout",
+  "services": [],
+  "controllers": [
+    "ContactFormCtrl",
+    "CurrencyCtrl",
+    "LangCtrl",
+    "SearchFormCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/ContactFormCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/CurrencyCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/LangCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/SearchFormCtrl.js"
+  ]
+}
