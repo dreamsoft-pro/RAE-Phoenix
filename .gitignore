@@ -9,10 +9,7 @@ npm-debug.log*
 .yarn/
 .pnpm-store/
 
-# Artefakty Feniksa / generowane
-data/
-kb/
-scripts/feniks/
+# logi
 **/*.log
 
 # Inne ciężkie / zbędne
