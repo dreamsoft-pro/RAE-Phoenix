@@ -5,3 +5,7 @@ numpy
 tqdm
 joblib
 python-dotenv
+pytest
+pytest-mock
+langdetect
+deep-translator

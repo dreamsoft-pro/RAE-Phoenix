@@ -1,11 +1,6 @@
 {
   "modules": [
-    "-",
-    "category",
-    "photo-folders",
-    "client-zone",
     "index",
-    "layout",
-    "cart"
+    "-"
   ]
 }

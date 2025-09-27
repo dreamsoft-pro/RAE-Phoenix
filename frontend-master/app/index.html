@@ -1,0 +1,389 @@
+<!doctype html>
+<html class="no-js" ng-app="dpClient.app">
+<head>
+    <base href="/" />
+    <meta charset="utf-8" />
+
+    <!-- build:remove -->
+    <title></title>
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+
+    <script src="/assets/node_modules/angular/angular.js"></script>
+    <script src="http://127.0.0.1:35729/livereload.js"></script>
+    <!-- /build -->
+    <!-- build:remove -->
+    <script type="text/javascript" src="http://localtest.me/static/25/routing/2/states.js"></script>
+    <!-- /build -->
+
+    <!-- build:template
+    <script src="<%= staticUrl %><%= id %>/routing/<%= domainID %>/states.js"></script>
+    /build -->
+
+    <!-- build:template
+    <title><%= seoTitle %></title>
+    <meta name="description" content="<%= seoDescription %>" />
+    <meta name="keywords" content="<%= seoKeywords %>" />
+    /build -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="google-signin-client_id" content="345059472892-1fae8hutprcgcg3gk0i1dvdconjarcr0.apps.googleusercontent.com">
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+    <meta name="og:title" property="og:title" content="" />
+    <meta name="og:url" property="og:url" content="" />
+    <meta name="og:site_name" property="og:site_name" content="" />
+    <meta name="og:description" property="og:description" content="" />
+    <meta name="og:locale" property="og:locale" content="" />
+    <meta name="og:image" property="og:image" content="" />
+    <meta name="og:image:secure_url" property="og:image:secure_url" content="" />
+    <meta name="og:image:width" property="og:image:width" content="" />
+    <meta name="og:image:height" property="og:image:height" content="" />
+    <meta name="og:image:alt" property="og:image:alt" content="" />
+    <meta name="twitter:card"  content="" />
+    <meta name="twitter:site"  content="" />
+    <meta name="twitter:creator"  content="" />
+    <!-- build:template
+    <meta name="robots" content="<%= robots %>" />
+    /build -->
+
+    <!-- build:remove -->
+    <link href="http://localtest.me/static/35/styles/pre-loader.css" rel="stylesheet" />
+    <link href="/css/skins/style.css" rel="stylesheet" />
+    <!-- /build -->
+
+    <!-- build:template
+     <link href="<%= staticUrl %><%= id %>/styles/pre-loader.css" rel="stylesheet" />
+     <link ng-if="skinName" ng-href="/css/skins/{{skinName}}/style-<%= message %>.css" rel="stylesheet" />
+    /build -->
+
+    <script src="/assets/libraries/socket/socket.io.slim.js"></script>
+    <script src="/assets/libraries/ulog.min.js"></script>
+
+    <!-- build:remove -->
+    <meta name="google-site-verification" content="8vFjBFykaB6iFex6D3vxJMHkX3wgnRCh-ceGVIkDv5I" />
+    <!-- /build -->
+
+    <!-- build:template
+    <meta name="google-site-verification" content="<%= googleToolId %>" />
+    /build -->
+
+    <!-- Google Tag Manager -->
+    <!-- build:template
+
+     <script async src="https://www.googletagmanager.com/gtag/js?id=<%= gaCode %>"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+      gtag('config', '<%= gaCode %>');
+    </script>
+
+    /build -->
+    <!-- End Google Tag Manager -->
+    <meta id="meta-og-image" property="og:image" content="" />
+    <link rel="icon" id="favicon-link" />
+
+    <!-- build:remove -->
+    <link rel="stylesheet" href="http://localtest.me/static/35/styles/main.css" />
+    <!-- /build -->
+
+    <!-- build:template
+     <link rel="stylesheet" href="<%= staticUrl %><%= id %>/styles/main.css" />
+    /build -->
+
+    <link rel="stylesheet" href="/assets/libraries/turnjs/basic.css" />
+    <link rel="stylesheet" href="/assets/node_modules/textangular/src/textAngular.css" />
+    <link rel="stylesheet" href="/assets/node_modules/angularjs-slider/dist/rzslider.min.css" />
+    <link rel="stylesheet" href="/assets/libraries/cropperjs/cropper.css" />
+    <link rel="stylesheet" href="/assets/node_modules/klaro/dist/klaro.css" />
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<!-- build:template
+<noscript ng-if="googleTagManager"><iframe src="https://www.googletagmanager.com/ns.html?id=<%= gaCode %>"
+                  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+/build -->
+<!-- End Google Tag Manager (noscript) -->
+
+<!-- build:template
+    <script>
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '153893531966899',
+          xfbml      : true,
+          version    : 'v12.0'
+        });
+        FB.AppEvents.logPageView();
+      };
+
+      (function(d, s, id){
+         var js, fjs = d.getElementsByTagName(s)[0];
+         if (d.getElementById(id)) {return;}
+         js = d.createElement(s); js.id = id;
+         js.src = "https://connect.facebook.net/en_US/sdk.js";
+         fjs.parentNode.insertBefore(js, fjs);
+       }(document, 'script', 'facebook-jssdk'));
+    </script>
+    /build -->
+
+<! button for cookie edit displayd in right bottom corner -->
+<div  style="position: fixed; bottom: 20px; left: 20px; z-index: 9999;cursor: pointer" onclick="klaro.show()">
+    <svg fill="#000000" height="40px" width="40px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 470" xmlns:xlink="http://www.w3.org/1999/xlink" enable-background="new 0 0 470 470">
+  <g>
+    <circle cx="190.864" cy="62.046" r="7.5"/>
+    <path d="m99.366,119.48c-5.194-5.193-12.1-8.054-19.445-8.054s-14.251,2.86-19.445,8.054c-10.723,10.723-10.723,28.17 0,38.893 5.194,5.193 12.1,8.054 19.445,8.054s14.251-2.86 19.445-8.054c10.723-10.723 10.723-28.17 1.42109e-14-38.893zm-10.606,28.286c-2.361,2.361-5.5,3.661-8.839,3.661s-6.478-1.3-8.839-3.661c-4.874-4.874-4.874-12.804 0-17.678 2.361-2.36 5.5-3.661 8.839-3.661s6.478,1.301 8.839,3.661c4.874,4.874 4.874,12.804 0,17.678z"/>
+    <path d="M15,194.432C15,95.493,95.493,15,194.432,15c49.532,0,95.646,19.744,129.848,55.596c2.859,2.998,7.607,3.11,10.604,0.25   c2.997-2.859,3.109-7.606,0.25-10.604c-17.968-18.835-39.121-33.65-62.871-44.036C247.672,5.452,221.486,0,194.432,0   C87.222,0,0,87.222,0,194.432c0,27.054,5.453,53.24,16.206,77.831c10.386,23.75,25.202,44.903,44.037,62.871   c1.452,1.386,3.315,2.073,5.176,2.073c1.979,0,3.954-0.778,5.428-2.323c2.859-2.997,2.747-7.744-0.25-10.604   C34.745,290.078,15,243.964,15,194.432z"/>
+    <circle cx="230.5" cy="203.182" r="7.5"/>
+    <circle cx="292.876" cy="297.5" r="7.5"/>
+    <path d="m357.876,203.182c0-26.191-21.309-47.5-47.5-47.5s-47.5,21.309-47.5,47.5 21.309,47.5 47.5,47.5 47.5-21.309 47.5-47.5zm-47.5,32.5c-17.921,0-32.5-14.579-32.5-32.5s14.579-32.5 32.5-32.5 32.5,14.579 32.5,32.5-14.579,32.5-32.5,32.5z"/>
+    <path d="m220.558,300.453c-26.191,0-47.5,21.309-47.5,47.5s21.309,47.5 47.5,47.5 47.5-21.309 47.5-47.5-21.309-47.5-47.5-47.5zm0,80c-17.92,0-32.5-14.579-32.5-32.5s14.58-32.5 32.5-32.5c17.921,0 32.5,14.579 32.5,32.5s-14.579,32.5-32.5,32.5z"/>
+    <path d="m344.146,329.979c-15.163,0-27.5,12.337-27.5,27.5s12.337,27.5 27.5,27.5 27.5-12.337 27.5-27.5-12.337-27.5-27.5-27.5zm0,40c-6.893,0-12.5-5.607-12.5-12.5s5.607-12.5 12.5-12.5 12.5,5.607 12.5,12.5-5.608,12.5-12.5,12.5z"/>
+    <path d="m390.146,258.67c-15.163,0-27.5,12.337-27.5,27.5s12.337,27.5 27.5,27.5 27.5-12.337 27.5-27.5-12.337-27.5-27.5-27.5zm0,40c-6.893,0-12.5-5.607-12.5-12.5s5.607-12.5 12.5-12.5 12.5,5.607 12.5,12.5-5.608,12.5-12.5,12.5z"/>
+    <path d="m188.49,232.479c0-15.163-12.336-27.5-27.5-27.5s-27.5,12.337-27.5,27.5 12.336,27.5 27.5,27.5 27.5-12.336 27.5-27.5zm-27.5,12.5c-6.893,0-12.5-5.607-12.5-12.5s5.607-12.5 12.5-12.5 12.5,5.607 12.5,12.5-5.608,12.5-12.5,12.5z"/>
+    <path d="M275.567,81.136c-107.21,0-194.432,87.222-194.432,194.432C81.136,382.778,168.357,470,275.567,470   C382.778,470,470,382.778,470,275.567C470,168.357,382.778,81.136,275.567,81.136z M275.567,455   c-98.939,0-179.432-80.493-179.432-179.433c0-98.938,80.493-179.432,179.432-179.432C374.507,96.136,455,176.629,455,275.567   C455,374.507,374.507,455,275.567,455z"/>
+  </g>
+</svg>
+</div>
+<div ng-main-pre-loader ></div>
+
+<div ui-view=""></div>
+
+
+
+<!-- build:template
+     <script src="/scripts/scripts.extras-<%= message %>.min.js"></script>
+/build -->
+
+<!-- build:remove -->
+<!-- EXTERNAL -->
+<script src="/assets/node_modules/jquery/dist/jquery.js"></script>
+<script src="/assets/libraries/jquery-ui/jquery-ui.js"></script>
+<script src="/assets/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="/assets/node_modules/lodash/index.js"></script>
+<script src="/assets/node_modules/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js"></script>
+<script src="/assets/node_modules/clipboard/dist/clipboard.js"></script>
+<script src="/assets/node_modules/klaro/dist/klaro.js"></script>
+<!--EXTERNAL END-->
+<!-- ANGULAR -->
+<script src="/assets/node_modules/angular-ui-router/release/angular-ui-router.js"></script>
+<script src="/assets/node_modules/restangular/src/restangular.js"></script>
+<script src="/assets/node_modules/angular-local-storage/dist/angular-local-storage.js"></script>
+<script src="/assets/node_modules/angular-bootstrap/ui-bootstrap.js"></script>
+<script src="/assets/node_modules/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+<script src="/assets/node_modules/angular-animate/angular-animate.js"></script>
+<script src="/assets/node_modules/angular-breadcrumb/dist/angular-breadcrumb.js"></script>
+<script src="/assets/node_modules/angular-translate/dist/angular-translate.js"></script>
+<script src="/assets/node_modules/angular-cookies/angular-cookies.js"></script>
+<script src="/assets/node_modules/angular-translate/dist/angular-translate-loader-static-files/angular-translate-loader-static-files.js"></script>
+<script src="/assets/node_modules/rangy/lib/rangy-core.js"></script>
+<script src="/assets/node_modules/rangy/lib/rangy-selectionsaverestore.js"></script>
+<script src="/assets/node_modules/textangular/dist/textAngular-sanitize.min.js"></script>
+<script src="/assets/node_modules/textangular/dist/textAngular.min.js"></script>
+<script src="/assets/node_modules/angular-ui-sortable/dist/sortable.js"></script>
+<script src="/assets/node_modules/angular-socket-io/socket.js"></script>
+<script src="/assets/node_modules/angular-file-upload/angular-file-upload.js"></script>
+<script src="/assets/node_modules/angular-carousel/dist/angular-carousel.min.js"></script>
+<script src="/assets/node_modules/angular-touch/angular-touch.js"></script>
+<script src="/assets/node_modules/angular-ui-notification/dist/angular-ui-notification.min.js"></script>
+<script src="/assets/node_modules/angular-paging/src/paging.js"></script>
+<script src="/assets/node_modules/angular-responsive-tables/release/angular-responsive-tables.js"></script>
+
+<script src="/assets/node_modules/moment/min/moment-with-locales.js"></script>
+<script src="/assets/node_modules/bootstrap-daterangepicker/daterangepicker.js"></script>
+
+<script src="/assets/node_modules/malihu-custom-scrollbar-plugin/jquery.mCustomScrollbar.concat.min.js"></script>
+<script src="/assets/node_modules/ng-scrollbars/dist/scrollbars.min.js"></script>
+<script src="/assets/node_modules/angularjs-slider/dist/rzslider.min.js"></script>
+<script src="/assets/node_modules/angular-recaptcha/release/angular-recaptcha.min.js"></script>
+<script src="/assets/node_modules/angular-update-meta/dist/update-meta.min.js"></script>
+<!-- ANGULAR END -->
+
+<!-- HELPERS -->
+<script src="/assets/helpers/angular-api-collection/angular-api-collection.js"></script>
+<script src="/assets/helpers/angular-api-collection/angular-api-pagination.js"></script>
+<!-- HELPERS END -->
+<!-- libraries -->
+<script src="/assets/libraries/uploaderStandalone.min.js"></script>
+<script type="text/javascript" src="/assets/libraries/turnjs/modernizr.2.5.3.min.js"></script>
+<script src="/assets/libraries/turnjs/turn.min.js"></script>
+<script type="text/javascript" src="/assets/libraries/ngGallery/src/js/ngGallery.js"></script>
+<script type="text/javascript" src="/assets/libraries/cropperjs/cropper.js"></script>
+<script type="text/javascript" src="/assets/libraries/caman/caman.full.min.js"></script>
+<!-- libraries END -->
+<!-- /build -->
+
+<!-- build:template
+     <script src="/scripts/scripts-<%= message %>.min.js"></script>
+/build -->
+
+<!-- build:remove -->
+<script src="/app.js"></script>
+
+<!-- ROUTES -->
+<script src="/routes/main.js"></script>
+<!-- ROUTES END -->
+
+<!--MODULES-->
+<script src="/src/cart/CartCtrl.js"></script>
+<script src="/src/cart/CartSummaryCtrl.js"></script>
+<script src="/src/cart/CartVerifyCtrl.js"></script>
+<script src="/src/cart/UploadCtrl.js"></script>
+<script src="/src/category/CalcCtrl.js"></script>
+<script src="/src/category/CategoriesCtrl.js"></script>
+<script src="/src/category/ConfigureProjectCtrl.js"></script>
+<script src="/src/category/CustomProductCtrl.js"></script>
+<script src="/src/category/GroupsCtrl.js"></script>
+<script src="/src/category/SelectProjectCtrl.js"></script>
+<script src="/src/client-zone/ChangePasswordCtrl.js"></script>
+<script src="/src/client-zone/ClientZoneCtrl.js"></script>
+<script src="/src/client-zone/ClientZoneDataCtrl.js"></script>
+<script src="/src/client-zone/CreateReclamation.js"></script>
+<script src="/src/client-zone/DeliveryDataCtrl.js"></script>
+<script src="/src/client-zone/InvoiceDataCtrl.js"></script>
+<script src="/src/client-zone/MyFoldersCtrl.js"></script>
+<script src="/src/client-zone/MyPhotosCtrl.js"></script>
+<script src="/src/client-zone/MyProjectsCtrl.js"></script>
+<script src="/src/client-zone/OffersCtrl.js"></script>
+<script src="/src/client-zone/OrdersCtrl.js"></script>
+<script src="/src/client-zone/OrdersFinishedCtrl.js"></script>
+<script src="/src/client-zone/OrdersNotPaidCtrl.js"></script>
+<script src="/src/client-zone/QuestionsCtrl.js"></script>
+<script src="/src/client-zone/ReclamationsCtrl.js"></script>
+<script src="/src/client-zone/SearchCtrl.js"></script>
+<script src="/src/index/AttributeDetailsCtrl.js"></script>
+<script src="/src/index/AttributeFiltersCtrl.js"></script>
+<script src="/src/index/ConfrimNewsletterCtrl.js"></script>
+<script src="/src/index/FooterCtrl.js"></script>
+<script src="/src/index/HomeCtrl.js"></script>
+<script src="/src/index/LoginCtrl.js"></script>
+<script src="/src/index/LogoutCtrl.js"></script>
+<script src="/src/index/MainCtrl.js"></script>
+<script src="/src/index/NewsCtrl.js"></script>
+<script src="/src/index/PassForgetCtrl.js"></script>
+<script src="/src/index/RegisterCtrl.js"></script>
+<script src="/src/index/SearchCtrl.js"></script>
+<script src="/src/index/SitemapCtrl.js"></script>
+<script src="/src/index/WCGA.js"></script>
+<script src="/src/layout/ContactFormCtrl.js"></script>
+<script src="/src/layout/CurrencyCtrl.js"></script>
+<script src="/src/layout/LangCtrl.js"></script>
+<script src="/src/layout/SearchFormCtrl.js"></script>
+<script src="/src/photo-folders/SharedFolderCtrl.js"></script>
+<script src="/src/photo-folders/SharedPhotoCtrl.js"></script>
+<script src="/src/photo-folders/SharedProjectCtrl.js"></script>
+<script src="/src/SliderCtrl.js"></script>
+<!--MODULES END-->
+
+<!--HELPERS-->
+<script src="/assets/helpers/angular-api-collection/angular-api-collection.js"></script>
+<script src="/assets/helpers/angular-api-collection/angular-api-pagination.js"></script>
+<script src="/assets/helpers/angular-canvas/angularCanvas.js"></script>
+<script src="/assets/helpers/btn-list/btn-list.js"></script>
+<script src="/assets/helpers/config.js"></script>
+<script src="/assets/helpers/deliveries/deliveries.js"></script>
+<script src="/assets/helpers/global.js"></script>
+<script src="/assets/helpers/lang-conditional/lang-conditional.js"></script>
+<script src="/assets/helpers/LangLoader.js"></script>
+<script src="/assets/helpers/ng-action/ngAction.js"></script>
+<script src="/assets/helpers/ng-confirm-click/ngConfirmClick.js"></script>
+<script src="/assets/helpers/ng-cookie-information/ngCookieInformation.js"></script>
+<script src="/assets/helpers/ng-init-bind/ngInitBind.js"></script>
+<script src="/assets/helpers/ng-main-pre-loader/ngMainPreLoader.js"></script>
+<script src="/assets/helpers/ng-pre-loader/ngPreLoader.js"></script>
+<script src="/assets/helpers/ng-price/ngPrice.js"></script>
+<script src="/assets/helpers/ng-star-rating/ngStarRating.js"></script>
+<script src="/assets/helpers/ng-static-contents/ngStaticContants.js"></script>
+<script src="/assets/helpers/product-files/productFiles.js"></script>
+<!--HELPERS END-->
+<!--SERVICES-->
+<script src="/services/AddressService.js"></script>
+<script src="/services/AddressWidgetService.js"></script>
+<script src="/services/AttributeFiltersService.js"></script>
+<script src="/services/AuthService.js"></script>
+<script src="/services/CacheService.js"></script>
+<script src="/services/CalcFileService.js"></script>
+<script src="/services/CalcSimplifyWidgetService.js"></script>
+<script src="/services/CalculateDataService.js"></script>
+<script src="/services/CalculationService.js"></script>
+<script src="/services/CanvasService.js"></script>
+<script src="/services/CartService.js"></script>
+<script src="/services/CartWidgetService.js"></script>
+<script src="/services/CategoryDescriptionService.js"></script>
+<script src="/services/ClientZoneWidgetService.js"></script>
+<script src="/services/CommonService.js"></script>
+<script src="/services/CountriesService.js"></script>
+<script src="/services/CountService.js"></script>
+<script src="/services/CouponService.js"></script>
+<script src="/services/CurrencyRootService.js"></script>
+<script src="/services/CurrencyService.js"></script>
+<script src="/services/CustomProductService.js"></script>
+<script src="/services/DeliveryService.js"></script>
+<script src="/services/DeliveryWidgetService.js"></script>
+<script src="/services/DomainService.js"></script>
+<script src="/services/DomWidgetService.js"></script>
+<script src="/services/DpAddressService.js"></script>
+<script src="/services/DpCartsDataService.js"></script>
+<script src="/services/DpCategoryService.js"></script>
+<script src="/services/DpOrderService.js"></script>
+<script src="/services/DpOrderStatusService.js"></script>
+<script src="/services/DpProductService.js"></script>
+<script src="/services/DynamicCssService.js"></script>
+<script src="/services/EditorProjectService.js"></script>
+<script src="/services/HomepageBannerService.js"></script>
+<script src="/services/InvoiceService.js"></script>
+<script src="/services/LangRootService.js"></script>
+<script src="/services/LangService.js"></script>
+<script src="/services/LangSettingsRootService.js"></script>
+<script src="/services/LangSettingsService.js"></script>
+<script src="/services/LoadingService.js"></script>
+<script src="/services/LoginWidgetService.js"></script>
+<script src="/services/LogoutService.js"></script>
+<script src="/services/MainWidgetService.js"></script>
+<script src="/services/MenuTypesService.js"></script>
+<script src="/services/NewsService.js"></script>
+<script src="/services/OrderMessagesService.js"></script>
+<script src="/services/PaymentService.js"></script>
+<script src="/services/PhotoFolderService.js"></script>
+<script src="/services/ProductFileService.js"></script>
+<script src="/services/PsAttributeService.js"></script>
+<script src="/services/PsCalculateServie.js"></script>
+<script src="/services/PsComplexService.js"></script>
+<script src="/services/PsFormatService.js"></script>
+<script src="/services/PsGroupDescriptionService.js"></script>
+<script src="/services/PsGroupService.js"></script>
+<script src="/services/PsPageService.js"></script>
+<script src="/services/PsTooltipService.js"></script>
+<script src="/services/PsTypeDescriptionService.js"></script>
+<script src="/services/PsTypeService.js"></script>
+<script src="/services/RealizationTimeService.js"></script>
+<script src="/services/ReclamationService.js"></script>
+<script src="/services/RegisterWidget.js"></script>
+<script src="/services/SettingService.js"></script>
+<script src="/services/SocialWidgetService.js"></script>
+<script src="/services/socket.js"></script>
+<script src="/services/StaticContentService.js"></script>
+<script src="/services/SubCategoryDescriptionService.js"></script>
+<script src="/services/TaxService.js"></script>
+<script src="/services/TemplateRootService.js"></script>
+<script src="/services/TextWidgetService.js"></script>
+<script src="/services/TokenService.js"></script>
+<script src="/services/TypePatternService.js"></script>
+<script src="/services/UserAddressService.js"></script>
+<script src="/services/UserService.js"></script>
+<!--SERVICES END-->
+<!--FILTERS-->
+<script src="/filters/MenuTypesFilter.js"></script>
+<!--FILTERS END-->
+<!--DIRECTIVES-->
+<!--DIRECTIVES END-->
+
+<!-- /build -->
+<!-- build:template
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAouaAzituCkPK5Dsvz_lyFCtNpDrRgTrs" async defer></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-marker-clusterer/1.0.0/markerclusterer_compiled.js"></script>
+    <script type="text/javascript" src="https://cdn-creativesdk.adobe.io/v1/csdk.js"></script>
+/build -->
+</body>
+</html>

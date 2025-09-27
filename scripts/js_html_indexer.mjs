@@ -114,21 +114,26 @@ async function indexJS(files, out) {
             templateUrl = findTemplateUrlInDirective(node, code);
           }
 
-          // Wytnij fragment kodu (node.loc wymaga sourceLocations)
+          // Wytnij fragment kodu i komentarze (sprawdzając też węzeł nadrzędny)
           const { start, end } = node;
           const snippet = code.slice(start, end);
+          const parentNode = pathNode.parentPath.node;
+          const allComments = (parentNode.leadingComments || []).concat(node.leadingComments || []);
+          const comments = allComments.map(c => ` * ${c.value.trim()}`).join("\n");
+          const fullSnippet = (comments ? `/**\n${comments}\n */\n` : "") + snippet;
 
           const chunk = {
             chunk_id: uuidv4(),
             file_path: rel,
             ast_node_type: "CallExpression",
             chunk_name: chunkName || methodName,
-            code_snippet: snippet,
+            code_snippet: fullSnippet,
             start_line: node.loc?.start?.line || null,
             end_line: node.loc?.end?.line || null,
             dependencies_di: deps,
             template_url: templateUrl,
-            tags: []
+            tags: [],
+            comments: allComments.map(c => c.value.trim()).join("\n"),
           };
           fs.appendFileSync(out, JSON.stringify(chunk) + "\n");
         }
@@ -137,35 +142,49 @@ async function indexJS(files, out) {
   }
 }
 
-// Przebieg: HTML (lekka heurystyka — linie z ng-* i {{ }})
+// Przebieg: HTML (ulepszona heurystyka semantyczna)
 async function indexHTML(files, out) {
-  const NG_ATTR = /(data-)?ng-([a-zA-Z0-9-]+)/g;
-  const NG_BIND = /\{\{[^}]+\}\}/g;
-
   for (const f of files) {
     const rel = path.relative(ROOT, f);
     const content = fs.readFileSync(f, "utf8");
-    const lines = content.split(/\r?\n/);
-    lines.forEach((line, i) => {
-      if (NG_ATTR.test(line) || NG_BIND.test(line)) {
-        const snippet = line.trim().slice(0, 2000);
-        const m = line.match(NG_ATTR);
-        const attrs = m ? Array.from(new Set(m.map(x => x.replace(/^data-/, "")))) : [];
-        const chunk = {
-          chunk_id: uuidv4(),
-          file_path: rel,
-          ast_node_type: "NgTemplate",
-          chunk_name: attrs?.[0] || "ng-binding",
-          code_snippet: snippet,
-          start_line: i+1,
-          end_line: i+1,
-          dependencies_di: [],
-          template_url: null,
-          tags: []
-        };
-        fs.appendFileSync(out, JSON.stringify(chunk) + "\n");
+
+    // Dziel na większe bloki, np. po <form>, <section>, lub div z klasą "container" lub "row"
+    const chunks = content.split(/(?=<form|<section|<div\s+(?:class|ng-class)\s*=\s*['"][^'"]*\b(?:container|row|page|modal-body)\b[^'"]*['"])/);
+
+    let currentLine = 1;
+    for (const part of chunks) {
+      if (!part.trim()) continue;
+
+      const lines = part.split(/\r?\n/);
+      const startLine = currentLine;
+      const endLine = currentLine + lines.length - 1;
+
+      let chunkName = "html_section";
+      const idMatch = part.match(/id="([^"]+)"/);
+      if (idMatch) {
+        chunkName = idMatch[1];
+      } else {
+        const classMatch = part.match(/class="([^"]+)"/);
+        if (classMatch) chunkName = classMatch[1].split(" ")[0];
       }
-    });
+
+      const chunk = {
+        chunk_id: uuidv4(),
+        file_path: rel,
+        ast_node_type: "NgTemplate",
+        chunk_name: chunkName,
+        code_snippet: part.trim(),
+        start_line: startLine,
+        end_line: endLine,
+        dependencies_di: [],
+        template_url: null,
+        tags: [],
+        comments: ""
+      };
+      fs.appendFileSync(out, JSON.stringify(chunk) + "\n");
+
+      currentLine = endLine + 1;
+    }
   }
 }
 
