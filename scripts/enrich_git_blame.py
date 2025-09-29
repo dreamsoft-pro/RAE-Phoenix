@@ -45,7 +45,9 @@ def blame_slice(repo_root: Path, file_path: str, start: int, end: int):
               last_commit = current.copy()
           except Exception:
             pass
-  return last_commit
+  if last_commit and all(k in last_commit for k in ["hash", "author", "date", "message"]):
+      return last_commit
+  return None
 
 def main():
   import argparse

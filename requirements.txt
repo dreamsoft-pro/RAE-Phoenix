@@ -10,3 +10,4 @@ pytest-mock
 langdetect
 deep-translator
 pytest-cov
+jsonschema
