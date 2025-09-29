@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import json
 from pathlib import Path
@@ -213,3 +214,24 @@ def test_load_chunks_with_missing_key(tmp_path: Path, caplog):
     chunks = load_chunks_from_jsonl(jsonl_path)
     assert chunks == []
     assert "Could not parse line" in caplog.text
+
+
+def test_logger_avoids_duplicate_handlers():
+    """Ensures the logger setup is truly idempotent by pre-adding a handler."""
+    # Get the logger and manually add a handler
+    logger = logging.getLogger("feniks_kb")
+    # Clear existing handlers from previous tests if any
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    
+    dummy_handler = logging.NullHandler()
+    logger.addHandler(dummy_handler)
+    assert len(logger.handlers) == 1
+
+    # Run the setup function again
+    setup_logger()
+
+    # It should not add a new handler
+    assert len(logger.handlers) == 1
+    # Clean up
+    logger.removeHandler(dummy_handler)
