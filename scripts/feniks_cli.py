@@ -11,6 +11,7 @@ from feniks.logger import log
 from feniks.config import settings
 from feniks.parser import run_ast_indexer, load_chunks_from_jsonl
 from feniks.kb_builder import build_module_cards_from_chunks, write_module_cards
+from feniks.git_utils import get_blame_for_chunk
 from feniks.embed import get_embedding_model, create_dense_embeddings, build_tfidf
 from feniks.qdrant import ensure_collection, upsert_points
 from qdrant_client import QdrantClient
@@ -33,6 +34,12 @@ def run_build_process(reset_collection: bool = False):
             log.error("No chunks were loaded. Aborting.")
             sys.exit(1)
         log.info(f"Loaded {len(chunks)} chunks from AST data.")
+
+        # --- 2a. Enrich with Git Blame --- 
+        log.info("Step 2a: Enriching chunks with git blame information...")
+        for chunk in chunks:
+            chunk.git_info = get_blame_for_chunk(chunk, repo_root=settings.FRONTEND_ROOT)
+
 
         # --- 2. Module Cards ---
         log.info("Step 2: Building and writing module cards...")

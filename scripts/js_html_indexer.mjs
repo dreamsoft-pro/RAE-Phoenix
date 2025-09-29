@@ -114,6 +114,43 @@ async function indexJS(files, out) {
             templateUrl = findTemplateUrlInDirective(node, code);
           }
 
+          // --- Nowe funkcjonalności ---
+
+          // 1. Wyszukiwanie endpointów API w ciele funkcji
+          const apiEndpoints = [];
+          const functionBody = pathNode.get("arguments.1.body");
+          if (functionBody) {
+            functionBody.traverse({
+              CallExpression(innerPath) {
+                const callee = innerPath.get("callee");
+                if (callee.isMemberExpression() && callee.get("object").isIdentifier({ name: "$http" })) {
+                  const firstArg = innerPath.get("arguments.0");
+                  if (firstArg && firstArg.isStringLiteral()) {
+                    apiEndpoints.push(firstArg.node.value);
+                  }
+                }
+              }
+            });
+          }
+
+          // 2. Generowanie sugestii migracyjnych
+          let migrationSuggestion = {};
+          switch (methodName) {
+            case "service":
+            case "factory":
+              migrationSuggestion = { target: "Custom Hook (e.g., useSWR)", notes: "Replace $http with fetch/axios and wrap logic in a reusable data-fetching hook." };
+              break;
+            case "controller":
+              migrationSuggestion = { target: "Functional React Component", notes: "State logic should be managed by hooks like useState, useReducer, or a state management library." };
+              break;
+            case "directive":
+              migrationSuggestion = { target: "React Component", notes: "Can be a functional component. DOM manipulations should be replaced with declarative JSX and state." };
+              break;
+            case "filter":
+              migrationSuggestion = { target: "Utility Function", notes: "Can be a simple exported JavaScript function that takes a value and returns a transformed value." };
+              break;
+          }
+
           // Wytnij fragment kodu i komentarze (sprawdzając też węzeł nadrzędny)
           const { start, end } = node;
           const snippet = code.slice(start, end);
@@ -132,6 +169,10 @@ async function indexJS(files, out) {
             end_line: node.loc?.end?.line || null,
             dependencies_di: deps,
             template_url: templateUrl,
+            // Nowe pola
+            api_endpoints: apiEndpoints,
+            migration_suggestion: migrationSuggestion,
+            // Stare pola
             tags: [],
             comments: allComments.map(c => c.value.trim()).join("\n"),
           };
