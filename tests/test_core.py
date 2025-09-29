@@ -8,7 +8,9 @@ from feniks.parser import (
     run_ast_indexer,
     load_chunks_from_jsonl
 )
+from feniks.types import Chunk
 from feniks.kb_builder import build_module_cards_from_chunks
+from feniks.git_utils import get_blame_for_chunk
 from feniks.logger import setup_logger
 from unittest.mock import patch, MagicMock
 
@@ -27,6 +29,8 @@ def mock_chunks_jsonl(tmp_path: Path) -> Path:
             "code_snippet": "angular.module('cart').service('CartService', ...)",
             "start_line": 10,
             "end_line": 25,
+            "api_endpoints": ["/api/cart/items"],
+            "migration_suggestion": { "target": "Custom Hook" }
         },
         {
             "chunk_id": "2",
@@ -97,6 +101,8 @@ def test_load_chunks_from_jsonl(mock_chunks_jsonl: Path):
     assert "$http" in cart_service_chunk.dependencies_di
     assert "API" in cart_service_chunk.dependencies_di
     assert cart_service_chunk.start_line == 10
+    assert cart_service_chunk.api_endpoints == ["/api/cart/items"]
+    assert cart_service_chunk.migration_suggestion["target"] == "Custom Hook"
 
     # Test the html chunk
     html_chunk = chunks[3]
@@ -214,6 +220,59 @@ def test_load_chunks_with_missing_key(tmp_path: Path, caplog):
     chunks = load_chunks_from_jsonl(jsonl_path)
     assert chunks == []
     assert "Could not parse line" in caplog.text
+
+
+# --- Tests for git_utils.py ---
+
+@patch('scripts.feniks.git_utils.subprocess.run')
+def test_get_blame_for_chunk_success(mock_run):
+    """Tests successful parsing of git blame output."""
+    mock_output = (
+        "a1b2c3d4 (John Doe 2023-10-27 10:00:00 +0200 1)\n"
+        "author John Doe\n"
+        "summary fix: handle null price\n"
+    )
+    mock_run.return_value = MagicMock(stdout=mock_output, check_returncode=lambda: None)
+    
+    mock_chunk = Chunk(
+        id='1', file_path='app/app.js', start_line=1, end_line=10, text='',
+        module='test', chunk_name='test', kind='service', ast_node_type='CallExpression',
+        dependencies_di=[], anti_patterns=[]
+    )
+    # Create a dummy file for the exists() check
+    with patch.object(Path, 'exists', return_value=True):
+        git_info = get_blame_for_chunk(mock_chunk, repo_root=Path("/fake/repo"))
+
+    assert git_info is not None
+    assert git_info["hash"] == "a1b2c3d4"
+    assert git_info["author"] == "John Doe"
+    assert git_info["summary"] == "fix: handle null price"
+
+@patch('scripts.feniks.git_utils.subprocess.run')
+def test_get_blame_for_chunk_error(mock_run, caplog):
+    """Tests that blame failure is handled gracefully."""
+    mock_run.side_effect = subprocess.CalledProcessError(1, "cmd", stderr="error")
+    mock_chunk = Chunk(
+        id='1', file_path='app/app.js', start_line=1, end_line=10, text='',
+        module='test', chunk_name='test', kind='service', ast_node_type='CallExpression',
+        dependencies_di=[], anti_patterns=[]
+    )
+    with patch.object(Path, 'exists', return_value=True):
+        git_info = get_blame_for_chunk(mock_chunk, repo_root=Path("/fake/repo"))
+    
+    assert git_info is None
+    assert "Could not run git blame" in caplog.text
+
+def test_get_blame_for_chunk_no_file():
+    """Tests that no blame is attempted for a non-existent file."""
+    mock_chunk = Chunk(
+        id='1', file_path='nonexistent.js', start_line=1, end_line=1, text='',
+        module='test', chunk_name='test', kind='service', ast_node_type='CallExpression',
+        dependencies_di=[], anti_patterns=[]
+    )
+    with patch.object(Path, 'exists', return_value=False):
+        git_info = get_blame_for_chunk(mock_chunk, repo_root=Path("/fake/repo"))
+    assert git_info is None
 
 
 def test_logger_avoids_duplicate_handlers():

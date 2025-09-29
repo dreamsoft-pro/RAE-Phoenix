@@ -32,7 +32,8 @@ def test_full_build_pipeline(mock_frontend_repo: Path, monkeypatch):
 
     with patch('scripts.feniks.qdrant.QdrantClient') as mock_qdrant_client_constructor, \
          patch('scripts.feniks.embed.SentenceTransformer') as mock_st_constructor, \
-         patch('scripts.feniks.parser.run_ast_indexer') as mock_run_ast_indexer:
+         patch('scripts.feniks.parser.run_ast_indexer') as mock_run_ast_indexer, \
+         patch('scripts.feniks_cli.get_blame_for_chunk') as mock_get_blame:
 
         # Mock instances
         mock_qdrant_instance = MagicMock()
@@ -66,6 +67,9 @@ def test_full_build_pipeline(mock_frontend_repo: Path, monkeypatch):
         # Check if upsert was called with 2 points
         _, kwargs = mock_qdrant_instance.upsert.call_args
         assert len(kwargs['points']) == 2
+
+        # Check if git blame was called for each chunk
+        assert mock_get_blame.call_count == 2
 
 
 def test_ensure_collection_with_reset():
