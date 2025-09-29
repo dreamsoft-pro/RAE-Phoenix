@@ -1,0 +1,100 @@
+<table class="table table-file-list" wt-responsive-table>
+    <caption>{{ 'files' | translate }}
+        <label ng-if="fixFile && product.availableFilesToFix" style="float:right">
+            <input type="checkbox"
+                   ng-model="product.sendToFix"
+                   ng-change="saveProductProps(product)"
+                   ng-true-value="1" ng-false-value="0">
+            {{'send_files_to_fix'|translate}}
+        </label>
+        <div ng-if="isAllowDivideText(product,filesVolume)" class="has-error-text">
+            {{'volume_to_divide'|translate}}: {{product.volume-filesVolume}}
+        </div>
+
+    </caption>
+    <thead>
+    <tr>
+        <th></th>
+        <th>{{ 'preview' | translate }}</th>
+        <th>{{ 'name' | translate }}</th>
+        <th ng-if="product.allowVolumeDivide && isMoreFiles(product)">{{ 'volume' | translate }}</th>
+        <th>{{ 'details' | translate }}</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody ng-repeat="attrData in product.fileList">
+    <tr ng-repeat="file in attrData.files">
+        <td>
+            <span ng-if="product.calcProducts.length>1">{{attrData.typeLangs[currentLang.code].name}}</span> {{attrData.langs[currentLang.code].name}} {{attrData.optLangs[currentLang.code].name}}
+            <select ng-if="file.minUrl && isSideAssign(attrData, file, product)"
+                    ng-change="selectFileTarget(product, file)"
+                    ng-model="file.backSideTarget">
+                <option value="0">{{'front_side'|translate}}</option>
+                <option value="1">{{'back_side'|translate}}</option>
+            </select>
+        </td>
+        <td class="image-prev">
+            <img loading="lazy"  ng-src="{{file.minUrl}}" alt="" class="img-responsive">
+        </td>
+        <td class="file-name">
+            <a ng-if="file.url" target="_blank" href="{{file.url}}" title="{{ 'view' | translate}}">
+                {{ file.name }}
+            </a>
+        </td>
+        <td>
+            <input ng-if="product.allowVolumeDivide && attrData.files.length>1"
+                   ng-model="file.volume"
+                   ng-change="checkMultivolume(file,product)"
+                   ng-init="updateVolumeNumber(product)"
+                   type="number"
+                   min="1"
+                   placeholder="{{ 'volume_to_divide_placeholder' | translate }}">
+        </td>
+        <td class="file-size"><span ng-if="file.minUrl">
+                                {{ formatSizeUnits(file.size) }}
+            <span ng-if="file.type=='pdf'" ng-class="{'has-error-text':!dimensionsValid(file,product,'net')}"><br/>{{'net_dimensions' | translate}} {{file.widthNet}}x{{file.heightNet}} mm
+                                <span ng-if="!dimensionsValid(file,product,'net')"> - {{product.calcProducts[0].formatWidth-2*product.calcProducts[0].slope}}x{{product.calcProducts[0].formatHeight-2*product.calcProducts[0].slope}}</span>
+                                </span>
+                                <span ng-if="file.type!='bin'" ng-class="{'has-error-text':!dimensionsValid(file,product,'gross')}"><br/>{{'gross_dimensions' | translate}} {{file.width}}x{{file.height}} mm
+                                <span ng-if="!dimensionsValid(file,product,'gross')"> - {{product.calcProducts[0].formatWidth}}x{{product.calcProducts[0].formatHeight}}</span>
+                                </span>
+                                <span ng-if="file.type=='pdf' && file.pagesDiff>0" class="has-error-text"><br/>{{'to_many_pages' | translate}}: {{file.pagesDiff}}</span>
+                                <span ng-if="file.type=='pdf' && file.pagesDiff<0" class="has-error-text"><br/>{{'absence_of_pages' | translate}}: {{file.pagesDiff * -1}}</span>
+                                <span ng-if="file.type=='pdf' && file.pagesDiff==0" ><br/>{{'pages_count' | translate}} {{product.calcProducts[0].pages}}</span>
+                                <span ng-if="file.type!='bin'"><br/>{{'color_space' | translate}} {{file.colorSpace}}</span>
+                            </span></td>
+
+        <td class="action-buttons">
+
+            <button ng-if="file.minUrl && file.dimensionsValid && !file.accept"
+                    ng-confirm-click="acceptFile( attrData.calcProductID, file.ID )" confirm-text="{{ 'confirm_accept_file' | translate }}"
+                    tooltip="{{ 'confirm_accept_file_tooltip' | translate }}" class="btn btn-s btn-block btn-info" >
+                <i class="fa fa-check-circle-o"></i> {{ 'accept_file' | translate }}
+            </button>
+            <div ng-if="file.minUrl && file.dimensionsValid && file.accept===1">
+                {{ 'accept_date' | translate }}: <b>{{ file.acceptChangeDate }}</b>
+            </div>
+
+
+            <button ng-if="file.minUrl && !file.dimensionsValid && !product.sendToFix && file.type=='image'"
+                    ng-confirm-click="fixFileDimensions( attrData.calcProductID, file.ID )" confirm-text="confirm_change_dimensions_unreversible"
+                    tooltip="{{ 'fix_file_size_tooltip' | translate }}" class="btn btn-s btn-block btn-warning" >
+                <i class="fa fa-wrench"></i> {{ 'fix_size' | translate }}
+            </button>
+
+            <button ng-if="file.minUrl"
+                    ng-confirm-click="removeFile( attrData.calcProductID, file.ID )"
+                    type="button" class="btn btn-s btn-block btn-danger">
+                <i class="fa fa-trash"></i> {{ 'remove_file' | translate }}
+            </button>
+
+            <button ng-if="!file.minUrl"
+                    ng-click="uploadFiles( attrData.calcProductID, attrData.cpAttrID, product, file.volume )"
+                    class="btn btn-s btn-block btn-info" tooltip="{{ 'files' | translate }}">
+                <i class="fa fa-plus"></i> {{ 'add_file' | translate }}
+            </button>
+        </td>
+    </tr>
+    </tbody>
+</table>
+

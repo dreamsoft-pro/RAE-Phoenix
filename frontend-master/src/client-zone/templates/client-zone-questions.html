@@ -1,0 +1,145 @@
+<div class="panel panel-default order-list">
+    <div class="panel-heading">
+        <h2 class="panel-title">{{ 'orders' | translate }}</h2>
+    </div>
+    <div class="panel-body">
+        <div class="row">
+            <div class="col-md-12">
+                <ul class="nav nav-tabs">
+                    <li class="pull-left">
+                        <form class="form-inline">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <span class="input-group-addon">
+                                                <i class="fa fa-calendar"></i>
+                                            </span>
+                                            <input type="date" ng-model="offerFilters.dateFrom" ng-change="filterOffersDate()" class="form-control" />
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <span class="input-group-addon">
+                                                <i class="fa fa-calendar"></i>
+                                            </span>
+                                            <input type="date" ng-model="offerFilters.dateTo" ng-change="filterOffersDate()" class="form-control" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row" style="margin: 5px 0;">
+                                <div class="col-md-12" style="padding: 0;">
+                                    <div class="form-group">
+                                        <div class="input-group">
+                                            <span class="input-group-addon">
+                                                <i class="fa fa-search"></i>
+                                            </span>
+                                            <input class="orderFilterSearchInput form-control" ng-model="offerFilters.text" ng-change="filterOffersText()"
+                                                placeholder="{{ 'search' | translate }}..." type="text">
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </li>
+                    <button type="button" class="btn btn-xs btn-default pull-right" ng-click="clearFilters()">
+                        <i class="fa fa-trash"></i> {{ 'clear_filters' | translate }}
+                    </button>
+                    <li class="dropdown pull-right">
+                        <a data-toggle="dropdown" class="dropdown-toggle" href="#"><i class="fa fa-list-ol"></i>
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li ng-repeat="oneLimit in pageSizeSelect">
+                                <a class="fa33" ng-click="changeLimit(oneLimit);">
+                                    {{ oneLimit }}
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <paging page="pagingSettings.currentPage" page-size="pagingSettings.pageSize" total="pagingSettings.total" paging-action="getNextPage(page)" show-prev-next="true" show-first-last="true" hide-if-empty="true" ul-class="pagination"></paging>
+            </div>
+        </div>
+        <div ng-repeat="order in customProductsCtrl.items" class="roundborder margintop">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <button type="button" class="btn btn-xs btn-default pull-right" ng-click="order.isCollapsed = !order.isCollapsed">
+                        <span ng-show="!order.isCollapsed">{{ 'less' | translate }}</span>
+                        <span ng-show="order.isCollapsed">{{ 'more' | translate }}</span>
+                        <i class="fa" ng-class="{' fa-chevron-circle-up': !order.isCollapsed, ' fa-chevron-circle-down': order.isCollapsed}"></i>
+                    </button>
+
+                    <h3 class="panel-title">
+                        {{ 'question_id' | translate }} {{ order.ID }}
+                    </h3>
+
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>{{ 'name' | translate }}</th>
+                                <th>{{ 'date_time' | translate }}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                </td>
+                                <td>{{ order.name }}</td>
+                                <td>{{ order.created }}</td>
+                                <td class="status-color"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="panel-body">
+                    <div collapse="order.isCollapsed">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <div class="bg-default">
+                                    <h3>
+                                        {{ order.name }}
+                                    </h3>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <b>{{ 'name' | translate }}</b>
+                                        <br>
+                                        {{ order.name }}
+                                    </div>
+
+                                    <div class="col-md-2">
+                                        <b>{{ 'calc_number' | translate }}</b>
+                                        <br>
+                                        {{ order.calcID }}
+                                    </div>
+
+                                    <div class="col-md-8">
+                                        <b>{{ 'specifications' | translate }}</b>
+                                        <br>
+                                        <div class="well well-sm">
+                                            <div ng-repeat="content in order.contentArray track by $index" style="overflow-wrap: break-word;">
+                                                <span>{{ content }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </div>
+    </div>
+</div>

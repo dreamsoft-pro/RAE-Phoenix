@@ -1,0 +1,33 @@
+<style>
+    .alternateOption {
+        background-color: #f8e6d4;
+        padding: 5px 15px;
+        cursor: pointer;
+        display: inline-block;
+        margin: 5px;
+    }
+
+    .alternateOption:hover{
+        background-color: #f7be85;
+    }
+</style><div class="modal-header">
+    <h4 class="modal-title">
+        {{ 'alternative_options' | translate }}: {{ selectedOptionInstance[0].name }}
+    </h4>
+</div>
+
+<div class="modal-body">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-body">
+                <div class="alternateOption" ng-repeat="option in altOptions" ng-click="chooseAltOption(option)">
+                    {{ option.name }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-footer">
+    <button class="btn btn-default" ng-click="$dismiss()">{{ 'close' | translate }}</button>
+</div>

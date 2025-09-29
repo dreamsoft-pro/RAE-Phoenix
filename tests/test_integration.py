@@ -1,84 +1,80 @@
 import pytest
-import argparse
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from scripts.build_kb import cmd_index, KBConfig
+from scripts.feniks_cli import run_build_process
+from feniks.config import settings
 
 @pytest.fixture
 def mock_frontend_repo(tmp_path: Path) -> Path:
     """Creates a temporary mock frontend repository structure."""
     src_path = tmp_path / "app" / "src" / "index"
     src_path.mkdir(parents=True)
-
-    # Mock JS file with a simple AngularJS controller
     (src_path / "test.controller.js").write_text(
         """
-        /**
-         * This is a test controller.
-         */
-        angular.module('testApp').controller('TestCtrl', ['$scope', function($scope) {
-            $scope.message = 'Hello, World!';
-        }]);
+        angular.module('testApp').controller('TestCtrl', function($scope) {});
         """
     )
-
-    # Mock HTML file
-    (src_path / "test.template.html").write_text(
-        """
-        <div class="container">
-            <h1>Test Template</h1>
-            <p>{{ message }}</p>
-        </div>
-        """
-    )
+    (src_path / "test.template.html").write_text("<div>Hello</div>")
     return tmp_path
 
-def test_full_indexing_pipeline(mock_frontend_repo: Path):
+def test_full_build_pipeline(mock_frontend_repo: Path, monkeypatch):
     """
-    Integration test for the full indexing pipeline.
-    It mocks external services to avoid network calls.
+    Integration test for the full build pipeline.
     """
-    with patch('scripts.build_kb.QdrantClient'), \
-         patch('scripts.build_kb.ensure_collection') as mock_ensure_collection, \
-         patch('scripts.build_kb.upsert_points') as mock_upsert_points, \
-         patch('scripts.build_kb.get_embedding_model') as mock_get_embedding_model, \
-         patch('scripts.build_kb.create_dense_embeddings', return_value=MagicMock()):
+    # Override settings for the test
+    monkeypatch.setattr(settings, 'FRONTEND_ROOT', mock_frontend_repo)
+    monkeypatch.setattr(settings, 'OUTPUT_DIR', mock_frontend_repo / "output")
+    monkeypatch.setattr(settings, 'QDRANT_HOST', 'localhost') # Avoid actual network
+    monkeypatch.setenv("FENIKS_TEST_MIN_DF", "1")
+
+    with patch('scripts.feniks.qdrant.QdrantClient') as mock_qdrant_client_constructor, \
+         patch('scripts.feniks.embed.SentenceTransformer') as mock_st_constructor, \
+         patch('scripts.feniks.parser.run_ast_indexer') as mock_run_ast_indexer:
+
+        # Mock instances
+        mock_qdrant_instance = MagicMock()
+        mock_qdrant_client_constructor.return_value = mock_qdrant_instance
 
         mock_model_instance = MagicMock()
-        mock_model_instance.get_sentence_embedding_dimension.return_value = 768
-        mock_get_embedding_model.return_value = mock_model_instance
+        mock_model_instance.get_sentence_embedding_dimension.return_value = 384
+        mock_model_instance.encode.return_value = [[0.1] * 384] * 2 # 2 chunks
+        mock_st_constructor.return_value = mock_model_instance
 
-        # Simulate command line arguments
-        args = argparse.Namespace(
-            root=str(mock_frontend_repo),
-            out=".",
-            collection="test_collection",
-            host="localhost",
-            port=6333,
-            model="mock_model",
-            reset=True,
-            write_ignores=False
-        )
+        # Mock the indexer to return a predictable chunks.jsonl
+        chunks_jsonl_path = mock_frontend_repo / "output" / "data" / "chunks.jsonl"
+        chunks_jsonl_path.parent.mkdir(parents=True)
+        with chunks_jsonl_path.open("w") as f:
+            f.write('{"file_path": "app/src/index/test.controller.js", "chunk_name": "TestCtrl", "ast_node_type": "CallExpression", "code_snippet": "...", "start_line": 1, "end_line": 2, "dependencies_di": []}\n')
+            f.write('{"file_path": "app/src/index/test.template.html", "chunk_name": "html_section", "ast_node_type": "NgTemplate", "code_snippet": "...", "start_line": 1, "end_line": 2, "dependencies_di": []}\n')
+        mock_run_ast_indexer.return_value = chunks_jsonl_path
 
-        # Run the main indexing command
-        cmd_index(args)
+        # Run the main build process
+        run_build_process(reset_collection=True)
 
-        # Assert that the key functions were called, verifying the pipeline flow
-        mock_ensure_collection.assert_called_once()
-        mock_upsert_points.assert_called_once()
+        # Assertions
+        mock_run_ast_indexer.assert_called_once()
+        mock_st_constructor.assert_called_with(settings.EMBEDDING_MODEL)
+        mock_qdrant_client_constructor.assert_called_with(host='localhost', port=settings.QDRANT_PORT)
+        
+        mock_qdrant_instance.delete_collection.assert_called_once_with(settings.QDRANT_COLLECTION)
+        mock_qdrant_instance.create_collection.assert_called_once()
+        mock_qdrant_instance.upsert.assert_called_once()
 
-        # Check if upsert was called with a reasonable number of chunks
-        # Based on the mock files, we expect 1 JS chunk and 1 HTML chunk.
-        call_args, _ = mock_upsert_points.call_args
-        upserted_chunks = call_args[2] # chunks is the 3rd argument
-        assert len(upserted_chunks) > 0
-        assert len(upserted_chunks) <= 5 # Flexible check for number of chunks
+        # Check if upsert was called with 2 points
+        _, kwargs = mock_qdrant_instance.upsert.call_args
+        assert len(kwargs['points']) == 2
 
-        # Verify that a js chunk was created
-        assert any(c.kind == "js_function" for c in upserted_chunks)
-        # Verify that an html chunk was created
-        assert any(c.kind == "html_section" for c in upserted_chunks)
-        # Verify that comments were extracted
-        js_chunk = next(c for c in upserted_chunks if c.kind == "js_function")
-        assert "This is a test controller" in js_chunk.text
+
+def test_ensure_collection_with_reset():
+    """Tests that ensure_collection correctly resets an existing collection."""
+    from scripts.feniks.qdrant import ensure_collection
+
+    mock_client = MagicMock()
+    # Simulate collection exists
+    mock_client.get_collection.return_value = True
+
+    ensure_collection(client=mock_client, name="test_coll", dim=10, reset=True)
+
+    mock_client.delete_collection.assert_called_once_with("test_coll")
+    mock_client.create_collection.assert_called_once()

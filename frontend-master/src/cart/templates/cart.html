@@ -1,0 +1,1334 @@
+<style>
+    .action-buttons > * {
+        margin:3px;
+    }
+</style>
+<script type="text/ng-template" id="products">
+    <div ng-repeat="product in cart.products" class="row cart-row">
+        <div class="col-xs-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+
+                    <button class="btn btn-xs btn-danger pull-right" ng-confirm-click="deleteProduct( product )"
+                            tooltip="{{ 'remove' | translate }}">
+                        <i class="fa fa-trash"></i> {{ 'remove_product' | translate }}
+                    </button>
+
+                    <button ng-if="logged" ng-click="copyProduct(product);"
+                            class="btn btn-xs btn-info pull-right margin-right-20"
+                            tooltip="{{ 'copy_product' | translate }}"
+                            >
+                        <i class="fa fa-copy"></i> {{ 'copy_product' | translate }}
+                    </button>
+
+                    <button ng-if="logged"
+                            ng-click="editProduct(product);"
+                            class="btn btn-xs btn-warning pull-right margin-right-20"
+                            tooltip="{{ 'edit_product' | translate }}"
+                            >
+                        <i class="fa fa-edit"></i> {{ 'edit_product' | translate }}
+                    </button>
+
+                    <h3 class="panel-title">
+                        <label tooltip="{{ 'product_number' | translate }} {{product.ID}}">({{$index + 1}}) {{ product.names[currentLang.code] }}</label>
+                        <span class="coupon-info alert alert-info" tooltip="{{ 'coupon' | translate }}"
+                              ng-if="product.coupons.length > 0" ng-init="actualCoupon = _.first(product.coupons);">
+                            <span>
+                                <i class="fa fa-gift" aria-hidden="true"></i>
+                                <span>{{ actualCoupon.couponID + ' - ' + actualCoupon.value }}</span>
+                                <span ng-if="actualCoupon.percent == 1">%</span>
+                                <span ng-if="actualCoupon.percent == 0">{{ cart.currencySymbol }}</span>
+                            </span>
+
+                        </span>
+                    </h3>
+                </div>
+                <div class="panel-body">
+
+                    <table class="table" wt-responsive-table>
+                        <thead>
+                        <tr>
+
+                            <th class="header-cell" style="width: 25%">{{ 'own_name' | translate }}</th>
+                            <th class="header-cell">{{ 'specifications' | translate }}</th>
+
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+
+                            <td>
+                                <input class="form-control" placeholder="{{ 'can_add_own_name' | translate }}"
+                                       ng-change="editName(product)" ng-model="product.name"/>
+                                <div ng-if="product.projectName">
+
+                                </div>
+
+                                <div ng-if="product.projectName" class="row-margin-top panel panel-default">
+                                    <div class="panel-body">
+                                        <small class="text-muted">{{ 'project_name' | translate }}</small><br>
+                                        {{ product.projectName }}
+                                    </div>
+                                </div>
+
+                                <div class="preview-image" ng-if="product.projectID">
+                                    <a ng-click="displayFlipBook(product)"><img loading="lazy" class="img-responsive"
+                                                                                ng-src="{{product.prevPages[0]}}"/></a>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div ng-repeat="calcProduct in product.calcProducts" class="pb-2 fontcolor addfile">
+
+                                    <div ng-if="$index > 0" class="product-margin-top"></div>
+
+                                    <div
+                                        ng-if="calcProduct.names[currentLang.code] && product.calcProducts.length > 1">
+                                        <b>{{ calcProduct.names[currentLang.code] }}</b></div>
+                                    <div
+                                        ng-if="!calcProduct.names[currentLang.code] && product.calcProducts.length > 1">
+                                        <b>{{ calcProduct.typeName }}</b></div>
+
+                                    <span
+                                        ng-if="calcProduct.customFormatName[currentLang.code]">{{calcProduct.customFormatName[currentLang.code]}}
+                                            :</span>
+                                    <span
+                                        ng-if="!calcProduct.customFormatName[currentLang.code]">{{ 'format' | translate  }}
+                                            :</span>
+                                    <span
+                                        ng-if="!calcProduct.formatLangs[currentLang.code].name">{{ calcProduct.formatName }}</span>
+                                    <span
+                                        ng-if="calcProduct.formatLangs[currentLang.code].name">{{ calcProduct.formatLangs[currentLang.code].name }}</span>
+                                    <span ng-if="calcProduct.customFormat">
+                                            {{ calcProduct.formatWidth }}
+                                            x {{ calcProduct.formatHeight }} {{ calcProduct.formatUnit == 2 ? 'cm' : 'mm' }}
+                                        </span>
+
+                                    <span ng-if="calcProduct.customPageName[currentLang.code]"
+                                          class="property-label">{{calcProduct.customPageName[currentLang.code]}}
+                                            :</span>
+                                    <span ng-if="!calcProduct.customPageName[currentLang.code]"
+                                          class="property-label">{{ 'pages' | translate  }}:</span>
+                                    <span>{{ calcProduct.pages }}</span>
+
+                                    <span
+                                        ng-repeat="attribute in calcProduct.attributes | filter:{ emptyChoice: 0, invisible: 0 }">
+                                        <span ng-if="attribute.langs[currentLang.code].name"
+                                              class="property-label">{{attribute.langs[currentLang.code].name}}:</span>
+                                        <span ng-if="!attribute.langs[currentLang.code].name"
+                                              class="property-label">{{attribute.attrName}}:</span>
+                                        <span
+                                            ng-if="attribute.optLangs[currentLang.code].name">{{ attribute.optLangs[currentLang.code].name }}</span>
+                                        <span
+                                            ng-if="!attribute.optLangs[currentLang.code].name">{{attribute.optName}}</span>
+                                        <span ng-if="attribute.attrPages">({{ attribute.attrPages }})</span>
+                                    </span>
+                                </div>
+                            </td>
+
+                        </tr>
+                        </tbody>
+                    </table>
+
+
+                    <table class="table table-pricelist" wt-responsive-table>
+                        <thead>
+                        <tr class="table-row-smaller">
+                            <th class="header-cell">{{ 'volume' | translate }}</th>
+                            <th class="header-cell">{{ 'shiping_time' | translate }}</th>
+                            <th class="header-cell">{{ 'net_price' | translate }}</th>
+                            <th class="header-cell">{{ 'gross_price' | translate }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr class="table-row-bigger">
+                            <td>
+                                <span ng-if="product.amount > 1">{{ product.amount }} x</span> {{ product.volume }}
+                                <span ng-if="product.calcFilesCount > 0"><b>{{ 'uploaded_calc_files' | translate }}
+                                        : {{ product.calcFilesCount }}</b></span>
+                                <button ng-if="logged && !product.calcFilesCount" class="btn btn-default"
+                                        ng-click="changeOnlyVolume(product);">{{ 'change' | translate }}</button>
+                            </td>
+                            <td>
+                                {{ product.realisationDate | date: 'dd-MM-yyyy' }}
+                            </td>
+                            <td class="price">
+                                <span class="price-old" ng-show="showOldPrice(product.calcPrice, product.price)">
+                                    {{ product.calcPrice | priceFilter }} {{ cart.currencySymbol }}
+                                </span>
+                                <span ng-class="{'price-special': showOldPrice(product.calcPrice, product.price),
+                                'bg-info': product.beforeReCountPriceID > 0}"
+                                      class="price-regular">
+                                    {{ product.price | priceFilter }} {{ cart.currencySymbol }}
+                                </span>
+                            </td>
+                            <td class="price">
+                                <span class="price-old"
+                                      ng-show="showOldPrice(product.calcGrossPrice, product.grossPrice)">
+                                    {{ product.calcGrossPrice }} {{ cart.currencySymbol }}
+                                </span>
+                                <span ng-class="{'price-special': showOldPrice(product.calcGrossPrice, product.grossPrice),
+                                'bg-info': product.beforeReCountPriceID > 0}"
+                                      class="price-regular">
+                                    {{ product.grossPrice | priceFilter }} {{ cart.currencySymbol }}
+                                </span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <div ng-show="product.fileList.length" class="row">
+                        <div class="col-xs-12">
+                            <product-files></product-files>
+                        </div>
+                    </div>
+                   <!-- <div ng-if="product.prevUrl" class="row">
+                        <img loading="lazy"  ng-src="{{product.prevUrl}}"/>
+                    </div>-->
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    </script>
+<script src="https://connect.facebook.net/en_US/all.js"></script>
+<div class="container" id="cart">
+    <div class="row">
+        <div class="col-xs-12">
+            <h1 class="page-header">{{ 'cart' | translate }}</h1>
+        </div>
+    </div>
+    <div ng-if="dataLoading" class="row">
+        <div class="col-md-12">
+            <p class="well well-lg lead">
+                <i class="fa fa-shopping-cart fa-2x"></i>
+                {{ 'waiting_for_cart' | translate }} </p>
+        </div>
+    </div>
+
+    <div ng-if="!dataLoading && !cart.products.length" class="row">
+        <div class="col-md-12">
+            <p class="well well-lg lead">
+                <i class="fa fa-shopping-cart fa-2x"></i>
+                {{ 'your_cart_empty' | translate }} </p>
+        </div>
+    </div>
+    <div ng-if="!dataLoading && logged && cart.products.length" class="menu">
+        <a href="#products_cart" ng-click="sectionLinkClick($event)" class="btn btn-default">
+            <i class="fa fa-cubes fa-lg"></i>{{'products_cart'|translate}}</a>
+        <a href="#delivery_cart" ng-click="sectionLinkClick($event)" class="btn btn-default">
+            <i class="fa fa-truck fa-lg"></i>{{'delivery_cart'|translate}}</a>
+        <a href="#summary_cart" ng-click="sectionLinkClick($event)" class="btn btn-default">
+            <i class="fa fa-shopping-cart fa-lg"></i>{{'summary_cart'|translate}}</a>
+        <a href="#payment_cart" ng-click="sectionLinkClick($event)" class="btn btn-default">
+            <i class="fa fa-credit-card fa-lg"></i>{{'payment_cart'|translate}}</a>
+    </div>
+
+    <div ng-if="!dataLoading && !logged && cart.products.length" class="no-login container" >
+        <div class="row">
+            <div class="col-md-10 col-md-offset-1 col-sm-12">
+                <ul class="nav nav-tabs nav-justified" role="tablist">
+                    <li role="presentation" class="active">
+                        <a href="#products_cart" aria-controls="home" role="tab" data-toggle="tab">
+                            <i class="fa fa-cubes"></i>{{'products_cart'|translate}}
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#login" aria-controls="home" role="tab" data-toggle="tab">
+                            <i class="fa fa-sign-in"></i>{{ 'log_in' | translate }}
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#register" aria-controls="profile" role="tab" data-toggle="tab">
+                            <i class="fa fa-user-plus"></i>{{ 'register' | translate }}
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#without_registration" aria-controls="messages" role="tab" data-toggle="tab">
+                            <i class="fa fa-user-secret"></i>{{ 'order_without_registration' | translate }}
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="products_cart">
+                        <div ng-include="'products'"></div>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="login">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h2 class="page-header">{{ 'login_with_system_account' | translate }} </h2>
+                                <form class="form-horizontal" ng-submit="login(credentials)" method="post">
+                                    <div class="form-group">
+                                        <label class="col-md-4 control-label"
+                                               for="user-email">{{ 'login' | translate }}</label>
+                                        <div class="col-md-8">
+                                            <input ng-keyup="$event.keyCode == 13 ? login(credentials) : null"
+                                                   class="form-control"
+                                                   type="text" placeholder="{{ 'login' | translate }}" name="email"
+                                                   ng-model="credentials.email" required id="user-email">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-md-4 control-label"
+                                               for="user-password">{{ 'password' | translate }}</label>
+                                        <div class="col-md-8">
+                                            <input ng-keyup="$event.keyCode == 13 ? login(credentials) : null"
+                                                   class="form-control"
+                                                   type="password" placeholder="{{ 'password' | translate }}"
+                                                   name="password"
+                                                   ng-model="credentials.password" required id="user-password">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-md-offset-4 col-md-8">
+                                            <button data-toggle="submit" type="submit"
+                                                    class="btn btn-success btn-block btn-submit btn-login">
+                                                {{ 'log_in' | translate }}
+                                            </button>
+                                            <hr>
+                                            {{ 'did_you_forget_your_password' | translate }}
+                                            <a ui-sref="password-remind"
+                                               tooltip="{{ 'forgot_password' | translate }}">{{ 'password_remind' | translate }}</a>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-md-4">
+                                <h2 class="page-header">{{ 'or_by_other_account' | translate }} </h2>
+                                <ul class="list-unstyled list-social">
+                                    <li>
+                                        <a class="btn btn-block btn-social btn-lg btn-google" ng-click="loginGoogle()">
+                                            <span class="fa fa-google"></span>
+                                            Sign in with Google
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="btn btn-block btn-social btn-lg btn-facebook" ng-click="loginFacebook()">
+                                            <span class="fa fa-facebook"></span>
+                                            Sign in with Facebook
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="register">
+                        <h2 class="page-header">{{ 'create_account' | translate }}</h2>
+                        <form class="form-horizontal" role="form" ng-submit="addUser()" data-toggle="validator">
+                            <fieldset>
+                                <legend>{{ 'login_details' | translate }}</legend>
+                                <div class="form-group email">
+                                    <label class="col-sm-3 control-label" for="account-email">
+                                        {{ 'email' | translate }} *
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="email" ng-model="form.user" class="form-control"
+                                               placeholder="{{ 'email' | translate }}"
+                                               name="form.user" required id="account-email">
+                                    </div>
+                                </div>
+                                <div class="form-group password">
+                                    <label class="col-sm-3 control-label" for="inputPassword">
+                                        {{ 'password' | translate }} *
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="password" tooltip-placement="right" ng-model="form.pass"
+                                               id="inputPassword"
+                                               class="form-control" placeholder="{{ 'password' | translate }}" required>
+                                    </div>
+                                </div>
+                                <div class="form-group password-confirm">
+                                    <label class="col-sm-3 control-label" for="account-password-confirm">
+                                        {{ 'repeat_password' | translate }} *
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="password" ng-model="form.pass_confirm" data-match="#inputPassword"
+                                               class="form-control"
+                                               placeholder="{{ 'repeat_password' | translate }}" required
+                                               id="account-password-confirm">
+                                    </div>
+                                    <div class="col-sm-10 text-right text-danger">
+                                    <span
+                                        data-ng-show="form.pass !== form.pass_confirm">{{ 'emails_must_match' | translate }}</span>
+                                    </div>
+                                </div>
+                            </fieldset>
+                            <fieldset>
+                                <legend>{{ 'default_address' | translate }}</legend>
+                                <span class="help-block">
+            <!--Rejestracja w koszyku-->
+        </span>
+
+                                <div class="form-group firstname">
+                                    <label class="col-sm-3 control-label" for="user-firstname">
+                                        {{ 'firstname' | translate }} *<span
+                                        ng-show="!onlyForCompanies || (onlyForCompanies && _.isEmpty(form.companyName))"></span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.name" class="form-control"
+                                               placeholder="{{ 'firstname' | translate }}"
+                                               name="form.name"
+                                               ng-required="!onlyForCompanies || (onlyForCompanies && _.isEmpty(form.companyName))"
+                                               id="user-firstname">
+                                    </div>
+                                </div>
+
+                                <div class="form-group lastname">
+                                    <label class="col-sm-3 control-label" for="user-lastname">
+                                        {{ 'lastname' | translate }} *<span
+                                        ng-show="onlyForCompanies && _.isEmpty(form.companyName)"></span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.lastname" class="form-control"
+                                               placeholder="{{ 'lastname' | translate }}" name="form.lastname"
+                                               id="user-lastname"
+                                               ng-required="onlyForCompanies && _.isEmpty(form.companyName)">
+                                    </div>
+                                </div>
+
+                                <div ng-if="onlyForCompanies" class="form-group companyName">
+                                    <label class="col-sm-3 control-label" for="user-lastname">
+                                        {{ 'company_name' | translate }} <span
+                                        ng-show="_.isEmpty(form.name) || _.isEmpty(form.lastname)">*</span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.companyName" class="form-control"
+                                               placeholder="{{ 'company_name' | translate }}" name="form.companyName"
+                                               id="user-companyName"
+                                               ng-required="_.isEmpty(form.name) || _.isEmpty(form.lastname)">
+                                    </div>
+                                </div>
+
+                                <div ng-if="onlyForCompanies" class="form-group nip">
+                                    <label class="col-sm-3 control-label" for="user-nip">
+                                        {{ 'nip' | translate }} <span ng-show="onlyForCompanies">*</span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.nip" class="form-control"
+                                               placeholder="{{ 'nip' | translate }}" name="form.nip" id="user-nip"
+                                               ng-required="onlyForCompanies">
+                                    </div>
+                                </div>
+
+                                <div class="form-group add-street">
+                                    <label class="col-sm-3 control-label" for="user-add-street">
+                                        {{ 'street' | translate }} *<span ng-show="onlyForCompanies"></span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.ad_street" class="form-control"
+                                               placeholder="{{ 'street' | translate }}" name="form.ad_street"
+                                               id="user-add-street"
+                                               ng-required="onlyForCompanies">
+                                    </div>
+                                </div>
+
+                                <div class="form-group add-house-no">
+                                    <label class="col-sm-3 control-label" for="user-add-house-no">
+                                        {{ 'no_house' | translate }} *<span ng-show="onlyForCompanies"></span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.ad_house" class="form-control"
+                                               placeholder="{{ 'no_house' | translate }}" name="form.ad_house"
+                                               id="user-add-house-no"
+                                               ng-required="onlyForCompanies">
+                                    </div>
+                                </div>
+
+                                <div class="form-group add-post-code">
+                                    <label class="col-sm-3 control-label" for="user-add-post-code">
+                                        {{ 'apartment_number' | translate }}
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.ad_apartment" class="form-control"
+                                               placeholder="{{ 'apartment_number' | translate }}" name="form.ad_apartment"
+                                               id="user-add-post-code">
+                                    </div>
+                                </div>
+
+                                <div class="form-group add-zipcode">
+                                    <label class="col-sm-3 control-label" for="user-add-zipcode">
+                                        {{ 'postal_code' | translate }} *<span ng-show="onlyForCompanies"></span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.ad_zipcode" class="form-control"
+                                               placeholder="{{ 'postal_code' | translate }}" name="form.ad_zipcode"
+                                               id="user-add-zipcode"
+                                               ng-required="onlyForCompanies">
+                                    </div>
+                                </div>
+
+                                <div class="form-group ad-city">
+                                    <label class="col-sm-3 control-label" for="user-ad-city">
+                                        {{ 'city' | translate }} *<span ng-show="onlyForCompanies"></span>
+                                    </label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="form.ad_city" class="form-control"
+                                               placeholder="{{ 'city' | translate }}"
+                                               name="form.ad_city" id="user-ad-city" ng-required="onlyForCompanies">
+                                    </div>
+                                </div>
+
+                                <div class="form-group ad-country">
+                                    <label class="col-sm-3 control-label" for="user-countryCode">{{ 'country' | translate }}
+                                        *</label>
+                                    <div class="col-sm-7">
+                                        <select ng-change="selectCountry('ad')"
+                                                ng-options="country.code as country['name_' + currentLang.code] for country in countries"
+                                                ng-model="form.ad_countryCode" class="form-control"
+                                                id="user-countryCode"></select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group ad-phone">
+                                    <label class="col-sm-3 control-label" for="user-ad-areaCode">{{ 'phone' | translate }}
+                                        *</label>
+                                    <div class="col-sm-3">
+                                        <div class="input-group">
+                    <span class="input-group-addon" tooltip="{{ 'without_plus_prefix' | translate }}"><i
+                        class="fa fa-plus"></i></span>
+                                            <input type="tel" disabled ng-model="form.ad_areaCode" class="form-control"
+                                                   placeholder="{{ '48' | translate }}" id="user-ad-areaCode">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <input type="tel" ng-model="form.ad_telephone" class="form-control"
+                                               placeholder="{{ 'phone' | translate }}">
+                                    </div>
+                                </div>
+
+                            </fieldset>
+
+                            <div class="form-group">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="form.hasDelAddress" ng-true-value="true"
+                                                   ng-false-value="false">
+                                            <b>{{ 'delivery_address' | translate }}</b>
+                                            <br/>
+                                            {{ 'delivery_address_info' | translate }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <fieldset ng-show="form.hasDelAddress">
+                                <legend>{{ 'delivery_address' | translate }}</legend>
+                                <div class="form-group firstname">
+                                    <label class="col-md-3 control-label"
+                                           for="address-firstname">{{ 'firstname' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_name" class="form-control"
+                                               placeholder="{{ 'firstname' | translate }}" ng-required="form.hasDelAddress"
+                                               name="form.del_name"
+                                               id="address-firstname">
+                                    </div>
+                                </div>
+                                <div class="form-group lastname">
+                                    <label class="col-md-3 control-label"
+                                           for="address-lastname">{{ 'lastname' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_lastname" class="form-control"
+                                               placeholder="{{ 'lastname' | translate }}" ng-required="form.hasDelAddress"
+                                               name="form.del_lastname" id="address-lastname">
+                                    </div>
+                                </div>
+                                <div class="form-group company-name">
+                                    <label class="col-md-3 control-label"
+                                           for="address-company-name">{{ 'company_name' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_companyName" class="form-control"
+                                               placeholder="{{ 'company_name' | translate }}"
+                                               name="form.del_companyName" id="address-company-name">
+                                    </div>
+                                </div>
+                                <div class="form-group add-street">
+                                    <label class="col-md-3 control-label"
+                                           for="address-add-street">{{ 'street' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_street" class="form-control"
+                                               placeholder="{{ 'street' | translate }}" ng-required="form.hasDelAddress"
+                                               name="form.del_street"
+                                               id="address-add-street">
+                                    </div>
+                                </div>
+                                <div class="form-group add-house-no">
+                                    <label class="col-md-3 control-label"
+                                           for="address-add-house-no">{{ 'no_house' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_house" class="form-control"
+                                               placeholder="{{ 'no_house' | translate }}" ng-required="form.hasDelAddress"
+                                               name="form.del_house"
+                                               id="address-add-house-no">
+                                    </div>
+                                </div>
+                                <div class="form-group add-apartment-number">
+                                    <label class="col-md-3 control-label"
+                                           for="address-add-apartment-number">{{ 'apartment_number' | translate
+                                        }}</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_apartment" class="form-control"
+                                               placeholder="{{ 'apartment_number' | translate }}" name="form.del_apartment"
+                                               id="address-add-apartment-number">
+                                    </div>
+                                </div>
+                                <div class="form-group add-zipcode">
+                                    <label class="col-md-3 control-label"
+                                           for="address-add-zipcode">{{ 'postal_code' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_zipcode" class="form-control"
+                                               placeholder="{{ 'postal_code' | translate }}"
+                                               ng-required="form.hasDelAddress"
+                                               name="form.del_zipcode" id="address-add-zipcode">
+                                    </div>
+                                </div>
+                                <div class="form-group add-city">
+                                    <label class="col-md-3 control-label" for="address-add-city">{{ 'city' | translate }}
+                                        *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.del_city" class="form-control"
+                                               placeholder="{{ 'city' | translate }}" ng-required="form.hasDelAddress"
+                                               name="form.del_city"
+                                               id="address-add-city">
+                                    </div>
+                                </div>
+                                <div class="form-group ad-country">
+                                    <label class="col-md-3 control-label"
+                                           for="address-countryCode">{{ 'country' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <select ng-change="selectCountry('del')"
+                                                ng-options="country.code as country['name_' + currentLang.code] for country in countries"
+                                                ng-model="form.del_countryCode" class="form-control"
+                                                ng-required="form.hasDelAddress"
+                                                id="address-countryCode"></select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group ad-phone">
+                                    <label class="col-sm-3 control-label" for="address-add-areaCode">
+                                        {{ 'phone' | translate }} *
+                                    </label>
+                                    <div class="col-sm-3">
+                                        <div class="input-group">
+                    <span class="input-group-addon" tooltip="{{ 'without_plus_prefix' | translate }}"><i
+                        class="fa fa-plus"></i></span>
+                                            <input type="tel" ng-disabled="form.del_areaCode.length > 0"
+                                                   ng-model="form.del_areaCode" class="form-control"
+                                                   placeholder="{{ '48' | translate }}" id="address-add-areaCode">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <input type="tel" name="form.del_telephone" ng-model="form.del_telephone"
+                                               ng-required="form.hasDelAddress" class="form-control"
+                                               placeholder="{{ 'phone' | translate }}">
+                                    </div>
+                                </div>
+
+                            </fieldset>
+
+                            <div ng-if="!onlyForCompanies" class="form-group invoice">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="form.hasFvAddress"
+                                                   name="form.hasFvAddress" ng-true-value="true" ng-false-value="false">
+                                            <b>{{ 'invoice' | translate }}</b>
+                                            <br/>
+                                            {{'invoice_checkbox' | translate }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!--Invoice_data-->
+                            <fieldset ng-show="form.hasFvAddress">
+                                <legend>{{ 'invoice' | translate }}</legend>
+
+                                <div class="form-group ">
+                                    <div class="col-md-12 copyAddressBox">
+                                        <button type="button" id="copyAddressUser" ng-click="copyFromUserForm()"
+                                                class="btn btn-small btn-primary">
+                                            {{'copy_data_from_userform' | translate }}
+                                        </button>
+                                        <button type="button" id="copyDeliveryData" ng-click="copyFromDeliveryForm()"
+                                                class="btn btn-small btn-primary">
+                                            {{ 'copy_data_from_deliveryform' | translate }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group add-company_name">
+                                    <label class="col-md-3 control-label"
+                                           for="invoice-company-name">{{ 'company_name' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_companyName" class="form-control"
+                                               placeholder="{{ 'company_name' | translate }}"
+                                               ng-required="form.hasFvAddress"
+                                               name="form.fv_companyName" id="invoice-company-name">
+                                    </div>
+                                </div>
+                                <div class="form-group nip">
+                                    <label class="col-md-3 control-label" for="invoice-nip">{{ 'nip' | translate }}
+                                        *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_nip" class="form-control"
+                                               placeholder="{{ 'nip' | translate }}" ng-required="form.hasFvAddress"
+                                               name="form.fv_nip"
+                                               id="invoice-nip">
+                                    </div>
+                                </div>
+                                <div class="form-group add-street">
+                                    <label class="col-md-3 control-label" for="invoice-street">{{ 'street' | translate }}
+                                        *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_street" class="form-control"
+                                               placeholder="{{ 'street' | translate }}" ng-required="form.hasFvAddress"
+                                               name="form.fv_street"
+                                               id="invoice-street">
+                                    </div>
+                                </div>
+                                <div class="form-group add-house-no">
+                                    <label class="col-md-3 control-label"
+                                           for="invoice-no-house">{{ 'no_house' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_house" class="form-control"
+                                               placeholder="{{ 'no_house' | translate }}" ng-required="form.hasFvAddress"
+                                               name="form.fv_house"
+                                               id="invoice-no-house">
+                                    </div>
+                                </div>
+                                <div class="form-group add-post-code">
+                                    <label class="col-md-3 control-label"
+                                           for="invoice-apartment-number">{{ 'apartment_number' | translate
+                                        }}</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_apartment" class="form-control"
+                                               placeholder="{{ 'apartment_number' | translate }}" name="form.fv_apartment"
+                                               id="invoice-apartment-number">
+                                    </div>
+                                </div>
+                                <div class="form-group add-post-code">
+                                    <label class="col-md-3 control-label"
+                                           for="invoice-zipcode">{{ 'postal_code' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_zipcode" class="form-control"
+                                               placeholder="{{ 'postal_code' | translate }}" ng-required="form.hasFvAddress"
+                                               name="form.fv_zipcode" id="invoice-zipcode">
+                                    </div>
+                                </div>
+                                <div class="form-group ad-city">
+                                    <label class="col-md-3 control-label" for="invoice-city">{{ 'city' | translate }}
+                                        *</label>
+                                    <div class="col-md-7">
+                                        <input type="text" ng-model="form.fv_city" class="form-control"
+                                               placeholder="{{ 'city' | translate }}" ng-required="form.hasFvAddress"
+                                               name="form.fv_city"
+                                               id="invoice-city">
+                                    </div>
+                                </div>
+                                <div class="form-group ad-country">
+                                    <label class="col-md-3 control-label"
+                                           for="invoice-countryCode">{{ 'country' | translate }} *</label>
+                                    <div class="col-md-7">
+                                        <select
+                                            ng-options="country.code as country['name_' + currentLang.code] for country in countries"
+                                            ng-model="form.fv_countryCode" ng-required="form.hasFvAddress"
+                                            class="form-control"
+                                            id="invoice-countryCode"></select>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-group promotionalAggrement">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="form.promotions">
+                                            <b>{{ 'acceptation_receiving_promotional_offers' | translate }}</b>
+                                            <br/>
+                                            {{'advertising_text_agree' | translate }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="form.terms" required>
+                                            <b>* {{ 'statute' | translate }}</b>
+                                            <br/>
+                                            <span ng-bind-html=" 'accept_statute' | translate"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="form.data_protection" required>
+                                            <b>*</b> {{'personal_data' | translate }}
+                                            {{ 'personal_data_2' | translate }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div ng-if="model.key" class="form-group">
+                                <div class="col-sm-offset-3 col-sm-7"
+                                     vc-recaptcha
+                                     theme="'light'"
+                                     key="model.key"
+                                     on-create="setCaptchaWidgetId(widgetId)"
+                                     on-success="setResponse(response)"
+                                     on-expire="setCaptchaExpiration()">
+                                </div>
+                            </div>
+
+                            <div class="col-md-12 text-right">
+                                <button type="submit" class="btn btn-success btn-lg btn-submit btn-register">
+                                    {{ 'register' | translate }}
+                                </button>
+                            </div>
+
+                            <p>* {{ 'required_field' | translate }}</p>
+                        </form>
+
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="without_registration">
+                        <h2 class="page-header">{{ 'order_without_registration' | translate }}</h2>
+                        <form class="form-horizontal" role="form" ng-submit="addNonRegister()" data-toggle="validator">
+
+                            <div class="form-group firstname">
+                                <label class="col-sm-3 control-label" for="no-register-firstname">
+                                    {{ 'firstname' | translate }} *<span
+                                    ng-show="!onlyForCompanies || (onlyForCompanies && _.isEmpty(noRegisterForm.companyName))"></span>
+                                </label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.name" class="form-control"
+                                           placeholder="{{ 'firstname' | translate }}" id="no-register-firstname">
+                                </div>
+                            </div>
+
+                            <div class="form-group lastname">
+                                <label class="col-sm-3 control-label" for="no-register-lastname">
+                                    {{ 'lastname' | translate }} *<span
+                                    ng-show="onlyForCompanies && _.isEmpty(noRegisterForm.companyName)">*</span>
+                                </label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.lastname" class="form-control"
+                                           placeholder="{{ 'lastname' | translate }}" id="no-register-lastname">
+                                </div>
+                            </div>
+
+                            <div ng-if="onlyForCompanies" class="form-group companyName">
+                                <label class="col-sm-3 control-label" for="user-nip">
+                                    {{ 'company_name' | translate }} <span
+                                    ng-show="_.isEmpty(noRegisterForm.name) || _.isEmpty(noRegisterForm.lastname)"></span>
+                                </label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.companyName" class="form-control"
+                                           placeholder="{{ 'company_name' | translate }}" name="noRegisterForm.companyName"
+                                           id="user-companyName"
+                                    >
+                                </div>
+                            </div>
+
+                            <div ng-if="onlyForCompanies" class="form-group nip">
+                                <label class="col-sm-3 control-label" for="user-nip">
+                                    {{ 'nip' | translate }} <span ng-show="onlyForCompanies">*</span>
+                                </label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.nip" class="form-control"
+                                           placeholder="{{ 'nip' | translate }}" name="noRegisterForm.nip" id="user-nip"
+                                           ng-required="onlyForCompanies">
+                                </div>
+                            </div>
+
+                            <div class="form-group add-street">
+                                <label class="col-sm-3 control-label" for="no-register-ad-street">{{ 'street' | translate }}
+                                    *</label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.ad_street" class="form-control"
+                                           placeholder="{{ 'street' | translate }}" id="no-register-ad-street">
+                                </div>
+                            </div>
+
+                            <div class="form-group add-house-no">
+                                <label class="col-sm-3 control-label"
+                                       for="no-register-ad-house">{{ 'no_house' | translate }} *</label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.ad_house" class="form-control"
+                                           placeholder="{{ 'no_house' | translate }}" id="no-register-ad-house">
+                                </div>
+                            </div>
+
+                            <div class="form-group add-post-code">
+                                <label class="col-sm-3 control-label"
+                                       for="no-register-ad-apartment">{{ 'apartment_number' | translate
+                                    }}</label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.ad_apartment" class="form-control"
+                                           placeholder="{{ 'apartment_number' | translate }}" id="no-register-ad-apartment">
+                                </div>
+                            </div>
+
+                            <div class="form-group add-post-code">
+                                <label class="col-sm-3 control-label"
+                                       for="no-register-ad-zipcode">{{ 'postal_code' | translate }} *</label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.ad_zipcode" class="form-control"
+                                           placeholder="{{ 'postal_code' | translate }}" id="no-register-ad-zipcode">
+                                </div>
+                            </div>
+
+                            <div class="form-group ad-city">
+                                <label class="col-sm-3 control-label" for="no-register-ad-city">{{ 'city' | translate }}
+                                    *</label>
+                                <div class="col-sm-7">
+                                    <input type="text" ng-model="noRegisterForm.ad_city" class="form-control"
+                                           placeholder="{{ 'city' | translate }}" id="no-register-ad-city">
+                                </div>
+                            </div>
+
+                            <div class="form-group ad-city">
+                                <label class="col-sm-3 control-label"
+                                       for="no-register-ad-country">{{ 'country' | translate }} *</label>
+                                <div class="col-sm-7">
+                                    <select ng-change="selectCountry('ad', true)"
+                                            ng-options="country.code as country['name_' + currentLang.code] for country in countries"
+                                            ng-model="noRegisterForm.ad_countryCode" class="form-control"
+                                            id="no-register-ad-country"></select>
+                                </div>
+                            </div>
+
+
+                            <div class="form-group ad-phone">
+                                <label class="col-sm-3 control-label" for="no-register-ad-areacode">
+                                    {{ 'phone' | translate }} *
+                                </label>
+                                <div class="col-sm-3">
+                                    <div class="input-group">
+                    <span class="input-group-addon" tooltip="{{ 'without_plus_prefix' | translate }}"><i
+                        class="fa fa-plus"></i></span>
+                                        <input type="tel" disabled ng-model="form.ad_areaCode" class="form-control"
+                                               placeholder="{{ '48' | translate }}" id="user-ad-areaCode">
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <input type="tel" ng-model="noRegisterForm.ad_telephone" class="form-control"
+                                           placeholder="{{ 'phone' | translate }}">
+                                </div>
+                            </div>
+
+
+                            <div class="form-group email">
+                                <label class="col-sm-3 control-label" for="no-register-email">{{ 'email' | translate }}
+                                    *</label>
+                                <div class="col-sm-7">
+                                    <input type="email" ng-model="noRegisterForm.user" class="form-control"
+                                           placeholder="{{ 'email' | translate }}" required id="no-register-email">
+                                </div>
+                            </div>
+
+                            <div ng-if="!onlyForCompanies" class="form-group">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="noRegisterForm.hasFvAddress"
+                                                   ng-true-value="true"
+                                                   ng-false-value="false">
+                                            <b>{{ 'i_need_an_invoice' | translate }}</b>
+                                            <br>
+                                            {{ 'invoice_address1' | translate }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!--invoice-->
+                            <fieldset ng-show="noRegisterForm.hasFvAddress">
+                                <legend>{{ 'invoice' | translate }}</legend>
+                                <div class="col-md-12 copyAddressBox">
+                                    <button type="button" id="copyAddressNoRegister" onclick="NRcopyFromDeliveryForm()"
+                                            class="btn btn-small btn-primary">
+                                        {{'copy_data_from_userform' | translate }}
+                                    </button>
+                                </div>
+                                <div class="form-group add-company_name">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-company-name">{{ 'company_name' | translate }}
+                                        *</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_companyName" class="form-control"
+                                               placeholder="{{ 'company_name' | translate }}"
+                                               ng-required="noRegisterForm.hasFvAddress"
+                                               id="no-register-inv-company-name">
+                                    </div>
+                                </div>
+                                <div class="form-group nip">
+                                    <label class="col-sm-3 control-label" for="no-register-inv-nip">{{ 'nip' | translate }}
+                                        *</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_nip" class="form-control"
+                                               placeholder="{{ 'nip' | translate }}"
+                                               ng-required="noRegisterForm.hasFvAddress"
+                                               id="no-register-inv-nip">
+                                    </div>
+                                </div>
+                                <div class="form-group add-street">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-street">{{ 'street' | translate }} *</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_street" class="form-control"
+                                               placeholder="{{ 'street' | translate }}"
+                                               ng-required="noRegisterForm.hasFvAddress"
+                                               id="no-register-inv-street">
+                                    </div>
+                                </div>
+                                <div class="form-group add-house-no">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-house">{{ 'no_house' | translate }} *</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_house" class="form-control"
+                                               placeholder="{{ 'no_house' | translate }}"
+                                               ng-required="noRegisterForm.hasFvAddress"
+                                               id="no-register-inv-house">
+                                    </div>
+                                </div>
+                                <div class="form-group add-post-code">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-apartment">{{ 'apartment_number' | translate
+                                        }}</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_apartment" class="form-control"
+                                               placeholder="{{ 'apartment_number' | translate }}"
+                                               id="no-register-inv-apartment">
+                                    </div>
+                                </div>
+                                <div class="form-group add-post-code">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-zipcode">{{ 'postal_code' | translate }}
+                                        *</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_zipcode" class="form-control"
+                                               placeholder="{{ 'postal_code' | translate }}"
+                                               ng-required="noRegisterForm.hasFvAddress"
+                                               id="no-register-inv-zipcode">
+                                    </div>
+                                </div>
+                                <div class="form-group ad-city">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-city">{{ 'city' | translate }} *</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" ng-model="noRegisterForm.fv_city" class="form-control"
+                                               placeholder="{{ 'city' | translate }}"
+                                               ng-required="noRegisterForm.hasFvAddress"
+                                               id="no-register-inv-city">
+                                    </div>
+                                </div>
+                                <div class="form-group ad-country">
+                                    <label class="col-sm-3 control-label"
+                                           for="no-register-inv-countryCode">{{ 'country' | translate }}
+                                        *</label>
+                                    <div class="col-sm-7">
+                                        <select
+                                            ng-options="country.code as country['name_' + currentLang.code] for country in countries"
+                                            ng-model="noRegisterForm.fv_countryCode" class="form-control"
+                                            ng-required="noRegisterForm.hasFvAddress"
+                                            id="no-register-inv-countryCode"></select>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="form-group promotionalAggrement">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="noRegisterForm.terms" required>
+                                            <b>* {{ 'statute' | translate }}</b>
+                                            <br/>
+                                            <span ng-bind-html=" 'accept_statute' | translate"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group promotionalAggrement">
+                                <div class="col-sm-offset-3 col-sm-7">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" ng-model="noRegisterForm.data_protection" required>
+                                            <b>*</b> {{'personal_data' | translate }}{{ 'personal_data_2' | translate }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div ng-if="model.key" class="form-group">
+                                <div class="col-sm-offset-3 col-sm-7"
+                                     vc-recaptcha
+                                     theme="'light'"
+                                     key="model.key"
+                                     on-create="setWidgetId(widgetId)"
+                                     on-success="setResponse(response)"
+                                     on-expire="cbExpiration()">
+                                </div>
+                            </div>
+
+                            <div class="col-md-12 text-right">
+                                <button type="submit" class="btn btn-success btn-lg btn-submit">
+                                    {{ 'go_to_payment_confirm' | translate }}
+                                </button>
+                            </div>
+                            <p>* {{'required_field' | translate }}</p>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <section ng-if="logged && !dataLoading && cart.products.length" class="panel panel-default" id="products_cart">
+        <div class="section-title well"><i class="fa fa-cubes fa-lg"></i>{{'products_cart'|translate}}</div>
+        <div lang-conditional="cart_info_product" class="bg-info well">
+        </div>
+        <div ng-include="'products'"></div>
+
+        <div ng-if="userCanRecalculateCart && logged && cart.products.length > 1" class="row">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-primary btn-block reCountButton" ng-click="reCalculateCart()">
+                    {{ 're-count_cart_value' | translate }}
+                </button>
+            </div>
+        </div>
+
+        <div ng-if="userCanRecalculateCart && logged && reCountProductExist" class="row row-margin-top">
+            <div class="col-md-12">
+                <div class="bg-info text-center">
+                    {{ 'products_were_counted_again' | translate }}
+                </div>
+            </div>
+        </div>
+    </section>
+    <hr>
+
+    <section ng-if="logged && !dataLoading && cart.products.length" class="panel panel-default" id="delivery_cart">
+        <div class="section-title well"><i class="fa fa-truck fa-lg"></i>{{'delivery_cart'|translate}}</div>
+        <div lang-conditional="cart_info_delivery" class="bg-info well">
+        </div>
+
+
+        <div class="row">
+            <div class="panel-body">
+                <btn-list ng-if="cart.products.length>1 ||(cart.products.length==1 && cart.products[0].volume>1)"
+                          items="[{name:'single_address' ,value:1},{name:'many_addresses',value:0}]"
+                          label-fn="deliveryConnectedLabel"
+                          ng-click="changeDeliveryConnected"
+                          compare-fn="compareDeliveryMode"
+                          overall-classes="'col-lg-3 col-md-3 col-sm-12 col-xs-12'"></btn-list>
+            </div>
+        </div>
+        <div class="row">
+            <div class="panel-body">
+
+                <ng-switch on="cart.deliveryConnected">
+                    <deliveries ng-switch-when="1"
+                                products="cart.products"
+                                delivery-connected="cart.deliveryConnected"
+                                in-cart="true"/>
+
+                    <div ng-switch-when="0" ng-repeat="product in cart.products">
+                        <deliveries
+                            products="[product]"
+                            delivery-connected="cart.deliveryConnected"
+                            in-cart="true"
+                            title="product.names[currentLang.code] +' ('+product.productID+')'"/>
+                    </div>
+                </ng-switch>
+
+            </div>
+        </div>
+    </section>
+    <div ng-if="!dataLoading" class="row">
+        <div class="col-md-8 col-md-offset-2 col-sm-12">
+            <div class="well well-sm">
+                <button class="btn btn-default btn-block" ng-click="continueShopping()">
+                    {{ 'continue_shopping' | translate }}
+                </button>
+            </div>
+        </div>
+    </div>
+    <section ng-if="logged && !dataLoading && cart.products.length" class="panel panel-default" id="summary_cart">
+        <div class="section-title well"><i class="fa fa-shopping-cart fa-lg"></i> {{'summary_cart'|translate}}</div>
+
+        <div lang-conditional="cart_info_summary" class="bg-info well">
+        </div>
+
+        <div class="row" ng-if="cart.products.length>0">
+
+            <div class="col-md-offset-2 col-md-8 col-sm-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">{{ 'order_summary' | translate }}</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="alert alert-warning">
+                            {{ 'if_you_have_discount_code_add_it' | translate }}
+                        </div>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">{{ 'enter_discount_code' | translate }}</span>
+                                <input type="text" ng-model="form.couponID"
+                                       placeholder="{{ 'discount_code' | translate }}..." class="form-control">
+                                <span class="input-group-btn">
+                                <button ng-show="form.couponID.length > 3" ng-click="sendCoupon()"
+                                        class="btn btn-success">{{ 'use' | translate }}</button>
+                            </span>
+                            </div>
+                        </div>
+                        <div ng-repeat="coupon in coupons" class="alert alert-info">
+                            {{ 'valid_coupon' | translate }}: <b>{{ coupon.couponID }}</b> - {{ coupon.value }} <span
+                            ng-if="coupon.percent">%</span>
+                            <span ng-if="coupon.products.length > 1">
+                            <br>
+                                {{ 'products' | translate }}: {{ coupon.products.join(', ') }}
+                        </span>
+                        </div>
+                        <table class="table table-bordered text-right table-cart-price">
+                            <tr>
+                                <th>{{ 'cost_of_products' | translate }}</th>
+                                <td class="price">
+                                    <span class="price-old"
+                                          ng-show="showOldPrice(cart.sumCalcGrossPrice, cart.sumGrossPrice)">{{ cart.sumCalcGrossPrice | priceFilter }} {{ currentCurrency.symbol }}</span>
+                                    <span
+                                        ng-class="{'price-special': showOldPrice(cart.sumCalcGrossPrice, cart.sumGrossPrice)}"
+                                        class="price-regular">
+                                    {{ cart.sumGrossPrice | priceFilter }} {{ currentCurrency.symbol }}
+                                </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{{ 'cost_of_delivery' | translate }}</th>
+                                <td>{{ cart.deliveryGrossPrice | priceFilter }} {{ currentCurrency.symbol }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-primary" colspan="2">{{ 'total_to_pay' | translate }}</th>
+                            </tr>
+                            <tr>
+                                <th>{{ 'net_amount' | translate }}</th>
+                                <td class="price">
+                                <span class="price-old" ng-show="showOldPrice(cart.totalCalcPrice, cart.totalPrice)">
+                                    {{ cart.totalCalcPrice | priceFilter }} {{ currentCurrency.symbol }}
+                                </span>
+                                    <span
+                                        ng-class="{'price-special': showOldPrice(cart.totalCalcPrice, cart.totalPrice)}"
+                                        class="price-regular">
+                                    {{ cart.totalPrice | priceFilter }} {{ currentCurrency.symbol }}
+                                </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{{ 'gross_amount' | translate }}</th>
+                                <td class="price">
+                                <span class="price-old"
+                                      ng-show="showOldPrice(cart.totalCalcGrossPrice, cart.totalGrossPrice)">
+                                    {{ cart.totalCalcGrossPrice | priceFilter }} {{ currentCurrency.symbol }}
+                                </span>
+                                    <span
+                                        ng-class="{'price-special': showOldPrice(cart.totalCalcGrossPrice, cart.totalGrossPrice)}"
+                                        class="price-regular">
+                                    {{ cart.totalGrossPrice | priceFilter }} {{ currentCurrency.symbol }}
+                                </span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="form-group">
+                            <div>
+                            <textarea class="form-control" ng-model="form.orderMessage"
+                                      placeholder="{{ 'additional_info' | translate }}"
+                                      required ng-minlength="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div ng-show="logged == true" class="panel-footer bg-info">
+                        {{ 'to_order_product_select_one_options' | translate }}
+                    </div>
+                    <div ng-show="logged == false" class="panel-footer bg-info">
+                        {{ 'select_option_to_order' | translate }}
+                    </div>
+
+                    <div ng-show="logged == true && confirmButtonInCart" class="panel-footer">
+
+                        <div class="form-check">
+                            <input type="checkbox" id="confirmStatuteCheck" ng-model="form.confirmStatute"
+                                   ng-change="confirmStatuteCheck()"/>
+                            <label class="form-check-label" for="confirmStatuteCheck">
+                                <span ng-bind-html="confirmTextInCart[currentLang.code]"></span>
+                            </label>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section ng-if="logged && !dataLoading && cart.products.length" class="panel panel-default" id="payment_cart" style="margin-bottom:400px">
+        <div class="section-title well"><i class="fa fa-credit-card fa-lg"></i>{{'payment_cart'|translate}}</div>
+
+        <div lang-conditional="cart_info_payment" class="bg-info well">
+        </div>
+
+        <div class="row row-centered row-payments" ng-show="logged == true && cart.products.length > 0">
+            <div ng-repeat="payment in payments" class="col-lg-3 col-md-3 col-sm-6 col-centered">
+                <button ng-disabled="preventPayment" ng-click="paymentConfirm(payment.ID)"
+                        ng-if="!payment.html[currentLang.code] && !payment.deferredPayment"
+                        class="btn btn-lg btn-info btn-block btn-payment"
+                        ng-class="{'disabled': payment.limitExceeded, 'payment-selected': payment.selected}">
+                    {{ payment.names[currentLang.code] }}
+                    <span ng-if="!payment.limitExceeded && payment.deferredDays > 0">
+                    ({{ payment.deferredDays }} {{ 'days' | translate }})
+                </span>
+                    <i ng-if="payment.limitExceeded" class="fa fa-lock"></i>
+                    <i ng-if="!payment.limitExceeded && payment.deferredDays > 0" class="fa fa-info"
+                       tooltip="{{ 'credit_limit' | translate }}: {{ payment.creditLimit }}">
+                    </i>
+                </button>
+                <button ng-disabled="preventPayment" tooltip="{{ payment.tooltipInfo }}"
+                        ng-click="paymentConfirm(payment.ID)"
+                        ng-if="!payment.html[currentLang.code] && payment.deferredPayment"
+                        class="btn btn-lg btn-info btn-block btn-payment"
+                        ng-class="{'disabled': payment.limitExceeded, 'payment-selected': payment.selected}">
+                    {{ payment.names[currentLang.code] }}
+                    <span ng-if="!payment.limitExceeded && payment.deferredDays > 0">
+                    ({{ payment.deferredDays }} {{ 'days' | translate }})
+                </span>
+                    <i ng-if="payment.limitExceeded" class="fa fa-lock"></i>
+                    <i ng-if="!payment.limitExceeded && payment.deferredDays > 0" class="fa fa-info">
+                    </i>
+                </button>
+                <div ng-if="payment.html[currentLang.code]" ng-bind-html="insertHtml(payment.html[currentLang.code])"
+                     ng-init-bind>
+                </div>
+            </div>
+
+        </div>
+        <div class="confirm-button well"
+             ng-show="logged == true && cart.products.length > 0 && showSeparateConfirmButton">
+            <button ng-disabled="!confirmButton" type="button" ng-click="confirmOrder()"
+                    class="btn btn-lg btn-success btn-block">{{ 'buy_now' | translate }}</button>
+        </div>
+    </section style=>
+
+
+</div>
+
+

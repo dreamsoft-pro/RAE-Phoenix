@@ -1,0 +1,222 @@
+<style>
+    @page {
+        size: 210mm 297mm;
+        margin: 5mm;
+        margin-header: 5mm;
+        margin-footer: 5mm;
+        font-family: Helvetica;
+    }
+
+    #content {
+        width: 210mm;
+        /* background: #d6d6d6; */
+        margin: 0;
+    }
+
+    .paperImage {
+        width: 100%;
+        height: auto;
+    }
+
+    .logoImage {
+        width: 55mm;
+        height: auto;
+    }
+
+    .descriptionTable {
+        width: 100%;
+    }
+
+    .descriptionTable td {
+        vertical-align: top;
+    }
+
+    .descriptionTable .imageCol {
+        width: 20%;
+    }
+
+    .descriptionTable .descriptionCol {
+        width: 80%;
+        padding-left: 30px;
+    }
+
+    .singleDesc span {
+        color: #e6b382;
+    }
+
+    .lineBreak {
+        width: 100%;
+        height: 1px;
+        margin: 10mm 0 5mm;
+        background: black;
+    }
+
+    .attrsTable {
+        width: 100%;
+    }
+
+    .attrsTable tr {
+        width: 100%;
+    }
+
+    .attrsTable td {
+        vertical-align: top;
+    }
+
+    .attrsTable .nameCol {
+        width: 20%;
+    }
+
+    .attrsTable .dataCol {
+        width: 25%;
+        padding-left: 1%;
+    }
+
+    .attrsTable .productsCol {
+        width: 50%;
+        padding-left: 1%;
+        padding-top: 5mm;
+    }
+
+    .singleDescGroup {
+        padding-left: 10px;
+    }
+</style>
+<!-- page size="A4" backleft="5mm" backright="5mm" backtop="5mm" backbottom="5mm" -->
+
+<body>
+    <div id="content">
+        <div class="modal-body">
+
+
+            <img loading="lazy" class="logoImage"
+                src="https://buchdruckerei.de/wp-content/themes/twentytwenty/assets/images/logo.png" />
+
+            <h3 class="pageTitle">{{ paper_type }}</h3>
+
+            <table class="descriptionTable">
+                <tr>
+                    <td class="imageCol">
+                        {% if imageUrl %}
+                        <img loading="lazy" class="paperImage" ng-src="{{ imageUrl }}" />
+                        {% else %}
+                        <img loading="lazy" class="paperImage"
+                            ng-src="https://buchdruckerei.de/wp-content/themes/twentytwenty/assets/images/paper_cover.png" />
+                        {% endif %}
+                    </td>
+                    <td class="descriptionCol">
+                        <p>{{ paper_type_description }}</p><br>
+
+                        <div class="singleDesc">
+                            <span>{{'category' | translate(lang)}}:</span> {{ category }}
+                        </div>
+                        <div class="singleDesc">
+                            <span>{{'group' | translate(lang)}}:</span> {{ group }}
+                        </div>
+
+                        <div class="singleDesc">
+                            <span>{{'supplier' | translate(lang)}}:</span> {{ supplier }}
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <div class="lineBreak"></div>
+
+            <table class="attrsTable">
+                <tr>
+                    <td class="nameCol">
+                        <b>{{'description' | translate(lang)}}</b>
+                    </td>
+                    <td class="dataCol">
+                        <div class="singleDesc">
+                            <span>{{'whiteness' | translate(lang)}}:</span> {{ whiteness }}
+                        </div>
+                        <div class="singleDesc">
+                            <span>{{'sizePage' | translate(lang)}}:</span> {{ sizePage }}
+                        </div>
+                        <div class="singleDesc">
+                            <span>{{'opacity' | translate(lang)}}:</span> {{ opacity }}
+                        </div>
+                        <div class="singleDesc">
+                            <span>{{'colorOfThePaper' | translate(lang)}}:</span> {{ colorOfThePaper }}
+                        </div>
+                        <div class="singleDesc">
+                            <span>{{'smoothnessRoughness' | translate(lang)}}:</span> {{ smoothnessRoughness }}
+                        </div>
+
+                    </td>
+                    <td class="dataCol">
+                        {% if certificates %}
+                        <div class="singleDesc">
+                            <span>{{'certificates' | translate(lang)}}</span>
+                        </div>
+                        <div class="singleDescGroup">
+                            {% for cert in certificates %}
+                            {{ cert }}<br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if printingTechniques %}
+                        <div class="singleDesc">
+                            <span>{{'printingTechniques' | translate(lang)}}</span>
+                        </div>
+                        <div class="singleDescGroup">
+                            {% for cert in printingTechniques %}
+                            {{ cert }}<br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="dataCol">
+                        {% if finishingAndProcessing %}
+                        <div class="singleDesc">
+                            <span>{{'finishingAndProcessing' | translate(lang)}}</span>
+                        </div>
+                        <div class="singleDescGroup">
+                            {% for cert in finishingAndProcessing %}
+                            {{ cert }}<br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+
+            {% if products %}
+            <div class="lineBreak"></div>
+            <table class="attrsTable">
+                <tr>
+                    <td class="nameCol">
+                        <b>{{'popular_products' | translate(lang)}}</b>
+                    </td>
+                    <td class="productsCol">
+
+                        {% for product in products %}
+                        {{ product[lang] }}<br>
+                        {% endfor %}
+
+                    </td>
+                </tr>
+            </table>
+            {% endif %}
+
+            {% if altPapers %}
+            <div class="lineBreak"></div>
+            <table class="attrsTable">
+                <tr>
+                    <td class="nameCol">
+                        <b>{{'alternative_papers' | translate(lang)}}</b>
+                    </td>
+                    <td class="productsCol">
+
+                        {% for altPaper in altPapers %}
+                        {{ altPaper.name }}<br>
+                        {% endfor %}
+
+                    </td>
+                </tr>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+</body>

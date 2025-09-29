@@ -1,0 +1,274 @@
+<style>
+    .stickyStyle1 {
+        position: sticky;
+        top: 60px;
+    }
+
+    .LeftMenuProducts {
+        list-style: none;
+    }
+
+    .LeftMenuProducts>li {
+        width: 100%;
+        padding-left: 15px;
+        font-size: 14px !important;
+    }
+
+    .LeftMenuProducts>li>a {
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+
+    .LeftMenuProductsItems {
+        list-style: none;
+    }
+
+    .LeftMenuProductsItems>li {
+        width: 100%;
+        padding-left: 15px;
+        font-size: 12px !important;
+    }
+
+    .LeftMenuProductsItems>li>a {
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
+    }
+
+    .panelRightOrderMax {
+        overflow: hidden;
+    }
+
+    @media (max-width:932px) {
+        .stickyStyle1 {
+            position: relative;
+            top: 0;
+        }
+        .rowSticky1 {
+            height: auto;
+        }
+        .owfh{
+            overflow: hidden;
+        }
+    }
+</style>
+
+<style ng-if="attributeIconsCount == 1">
+    .col-md-2-20pp {
+        width: 20%;
+    }
+
+    .col-md-4-20pp {
+        width: 40%;
+    }
+
+    .col-md-6-20pp {
+        width: 60%;
+    }
+
+    .col-md-8-20pp {
+        width: 80%;
+    }
+
+    @media (max-width:932px) {
+        .col-md-2-20pp {
+            width: 33.3%;
+        }
+        .col-md-4-20pp {
+            width: 33.3%;
+        }
+        .col-md-6-20pp {
+            width: 33.3%;
+        }
+        .col-md-8-20pp {
+            width: 33.3%;
+        }
+    }
+
+    @media (max-width:768px) {
+        .col-md-2-20pp {
+            width: 100%;
+        }
+        .col-md-4-20pp {
+            width: 100%;
+        }
+        .col-md-6-20pp {
+            width: 100%;
+        }
+        .col-md-8-20pp {
+            width: 100%;
+        }
+    }
+</style>
+<script>
+    $(document).on('click', '.dropDownMenuLeft', function() {
+        console.log('test');
+        var index = $('.dropDownMenuLeft').index(this);
+        $(".dropDownMenuLeft-info").not($(".dropDownMenuLeft-info").eq(index)).removeClass("in");
+    });
+</script>
+<!-- Product groups -->
+<div class="container" id="content-group" ng-init="loadOtherTemplateVariables('calc');">
+    <div class="row" id="row-group-description">
+        <div class="col-xs-12">
+            <h1 class="page-header">{{ 'group' | translate }} - {{ group.names[currentLang.code] }}</h1>
+
+        </div>
+    </div>
+
+    <div class="row owfh" style="margin-left: 0;margin-right: 0;">
+        <div class="row" style="margin-left: 0;margin-right: 0;">
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" ng-class="{ 'col-xs-12 col-sm-12 col-md-6 col-lg-6': attributeDescView == 1, 'col-xs-12 col-sm-12 col-md-6 col-lg-6 col-md-push-6 col-lg-push-6': attributeDescView == 2}" ng-if="attributeDescView != 3">
+                <accordion>
+                    <accordion-group ng-repeat="description in descriptions | orderBy: 'order' " is-open="description.isOpen" ng-class="{ 'panel-accordion':true, 'active':description.isOpen}">
+                        <accordion-heading>
+                            {{ description.langs[currentLang.code].name }}
+                            <i class="pull-right fa" ng-class="{'fa-chevron-down': description.isOpen, 'fa-chevron-right': !description.isOpen}"></i>
+                        </accordion-heading>
+                        <div ng-bind-html="description.langs[currentLang.code].description"></div>
+                    </accordion-group>
+                </accordion>
+                <div class="row row-group-gallery" ng-repeat="gallery in galleries | orderBy: 'order' | filter:hasFormats " ng-if="gallery.items.length > 0">
+                    <div class="col-xs-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">
+                                    {{ gallery.langs[currentLang.code].name }} </h3>
+                            </div>
+                            <div class="panel-body">
+                                <ng-gallery images="gallery.items" thumbs-num="gallery.items.length"></ng-gallery>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 stickyStyle1 panelRightOrderMax" ng-if="(attributeMenuLeft == 1 && (attributeDescView == 0 || attributeDescView == 3))">
+                <ul class="nav navbar-nav LeftMenuProducts" id="menu1">
+                    <li class="dropdown" ng-repeat="item in menuItems | menutypes | orderBy: 'sort'">
+                        <a href="#" class="dropdown-toggle dropDownMenuLeft" data-target="#s2menu-{{item.ID}}" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="s2menu-{{item.ID}}">
+                                {{ item.langs[currentLang.code].name }}
+                                <i class="fa fa-chevron-down"></i>
+                            </a>
+                        <ul class="dropDownMenuLeft-info collapse nav navbar-nav LeftMenuProductsItems" id="s2menu-{{item.ID}}">
+                            <li ng-repeat="type in item.allTypes">
+                                <a ng-if="!type.isEditor && !type.isCustomProduct" ui-sref="calculate({categoryurl: item.langs[currentLang.code].url,
+                                        groupurl: type.group.slugs[currentLang.code], typeurl: type.slugs[currentLang.code]})">
+                                                {{ type.names[currentLang.code] }}
+                                            </a>
+                                <a ng-if="type.isEditor && !type.isCustomProduct" ui-sref="select-project({categoryurl: item.langs[currentLang.code].url,
+                                        groupurl: type.group.slugs[currentLang.code], typeurl: type.slugs[currentLang.code]})">
+                                                {{ type.names[currentLang.code] }}
+                                            </a>
+                                <a ng-if="!type.isEditor && type.isCustomProduct" ui-sref="custom-product({categoryurl: item.langs[currentLang.code].url,
+                                        groupurl: type.group.slugs[currentLang.code],
+                                        typeurl: type.slugs[currentLang.code]})">
+                                                {{ type.names[currentLang.code] }}
+                                            </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" ng-class="{ 'col-xs-12 col-sm-12 col-md-6 col-lg-6': attributeDescView == 1, 'col-xs-12 col-sm-12 col-md-6 col-lg-6 col-md-pull-6 col-lg-pull-6': attributeDescView == 2, 'col-xs-12 col-sm-12 col-md-9 col-lg-9': (attributeMenuLeft == 1 && (attributeDescView == 0 || attributeDescView == 3))}">
+                <div class="row row-products-list">
+                    <div ng-class="itemsClassName(product)" ng-repeat="product in items | orderBy: 'order'">
+
+                        <div ng-if="!product.isEditor && !product.isCustomProduct" class="thumbnail clearfix">
+                            <a ui-sref="calculate({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="thumbnail-link" ng-if="!product.icons[currentLang.code] && !product.icon">
+                                <img loading="lazy" ng-if="!product.icons[currentLang.code]" ng-src="{{STATIC_URL}}{{companyID}}/images/productholder.png" class="img-responsive" />
+                            </a>
+                            <a ng-if="product.icon" ui-sref="calculate({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="thumbnail-link">
+                                <img loading="lazy" ng-if="product.icon" ng-src="{{product.icon.url}}" alt="" class="img-responsive" />
+                                <img loading="lazy" class="promotion-icon img-responsive" ng-if="product.promotion.icon" ng-src="{{product.promotion.icon.url}}" alt="" />
+                            </a>
+                            <div class="caption">
+                                <h3>
+                                    <a ui-sref="calculate({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})">
+                            {{ product.names[currentLang.code] }}
+                        </a>
+                                </h3>
+                                <div class="description" ng-show="product.icons[currentLang.code]" data-ng-bind-html="product.icons[currentLang.code]"></div>
+
+                            </div>
+                            <a ui-sref="calculate({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="btn btn-block btn-info btn-flat btn-more">
+                        {{ 'show_more' | translate }}
+                        </a>
+                        </div>
+
+                        <div ng-if="product.isEditor && !product.isCustomProduct" class="thumbnail clearfix">
+                            <a ui-sref="select-project({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="thumbnail-link" ng-if="!product.icons[currentLang.code] && !product.icon">
+                                <img loading="lazy" ng-if="!product.icons[currentLang.code]" ng-src="{{STATIC_URL}}{{companyID}}/images/productholder.png" class="img-responsive" />
+                            </a>
+                            <a ng-if="product.icon" ui-sref="select-project({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="thumbnail-link">
+                                <img loading="lazy" ng-if="product.icon" ng-src="{{product.icon.url}}" alt="" class="img-responsive" />
+                                <img loading="lazy" class="promotion-icon img-responsive" ng-if="product.promotion.icon" ng-src="{{product.promotion.icon.url}}" alt="" />
+                            </a>
+                            <div class="caption">
+                                <h3>
+                                    <a ui-sref="select-project({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})">
+                            {{ product.names[currentLang.code] }}
+                        </a>
+                                </h3>
+                                <div class="description" ng-show="product.icons[currentLang.code]" data-ng-bind-html="product.icons[currentLang.code]"></div>
+
+                            </div>
+                            <a ui-sref="select-project({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="btn btn-block btn-info btn-flat btn-more">
+                        {{ 'show_more' | translate }}
+                        </a>
+                        </div>
+
+                        <div ng-if="!product.isEditor && product.isCustomProduct" class="thumbnail clearfix">
+                            <a ui-sref="custom-product({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="thumbnail-link" ng-if="!product.icons[currentLang.code] && !product.icon">
+                                <img loading="lazy" ng-if="!product.icons[currentLang.code]" ng-src="{{STATIC_URL}}{{companyID}}/images/productholder.png" class="img-responsive" />
+                            </a>
+                            <a ng-if="product.icon" ui-sref="custom-product({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="thumbnail-link">
+                                <img loading="lazy" ng-if="product.icon" ng-src="{{product.icon.url}}" alt="" class="img-responsive" />
+                                <img loading="lazy" class="promotion-icon img-responsive" ng-if="product.promotion.icon" ng-src="{{product.promotion.icon.url}}" alt="" />
+                            </a>
+                            <div class="caption">
+                                <h3>
+                                    <a ui-sref="custom-product({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})">
+                            {{ product.names[currentLang.code] }}
+                        </a>
+                                </h3>
+                                <div class="description" ng-show="product.icons[currentLang.code]" data-ng-bind-html="product.icons[currentLang.code]"></div>
+
+                            </div>
+                            <a ui-sref="custom-product({categoryurl: category.langs[currentLang.code].url, groupurl: group.slugs[currentLang.code], typeurl: product.slugs[currentLang.code]})" class="btn btn-block btn-info btn-flat btn-more">
+                        {{ 'show_more' | translate }}
+                        </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row ">
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" ng-if="attributeDescView == 3">
+                <accordion>
+                    <accordion-group ng-repeat="description in descriptions | orderBy: 'order' " is-open="description.isOpen" ng-class="{ 'panel-accordion':true, 'active':description.isOpen}">
+                        <accordion-heading>
+                            {{ description.langs[currentLang.code].name }}
+                            <i class="pull-right fa" ng-class="{'fa-chevron-down': description.isOpen, 'fa-chevron-right': !description.isOpen}"></i>
+                        </accordion-heading>
+                        <div ng-bind-html="description.langs[currentLang.code].description"></div>
+                    </accordion-group>
+                </accordion>
+                <div class="row row-group-gallery" ng-repeat="gallery in galleries | orderBy: 'order' | filter:hasFormats " ng-if="gallery.items.length > 0">
+                    <div class="col-xs-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">
+                                    {{ gallery.langs[currentLang.code].name }} </h3>
+                            </div>
+                            <div class="panel-body">
+                                <ng-gallery images="gallery.items" thumbs-num="gallery.items.length"></ng-gallery>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End product groups -->

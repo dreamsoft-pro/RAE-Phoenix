@@ -1,0 +1,155 @@
+<div class="panel panel-default" id="panel-product-delivery">
+    <div ng-if="title" class="panel-heading">
+        <h3 class="panel-title">
+            <b>{{title}}</b>
+        </h3>
+    </div>
+    <div ng-repeat-start="address in productAddresses track by address.index" class="panel-body">
+
+        <div ng-if="productAddresses.length>1 && !deliveryConnected" class="well">
+            {{'package_delivery'|translate}} {{$index + 1}}
+            <button ng-click="removeProductAddress( $index )"
+                    class="btn btn-xs btn-danger pull-right"
+                    tooltip="{{ 'remove' | translate }}">
+                <i class="fa fa-trash"></i> {{ 'remove_address' | translate }}
+            </button>
+        </div>
+
+        <ng-switch class="row">
+            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                <div>{{'cl_delivery'|translate}}</div>
+                <btn-list items="filteredDeliveries"
+                          ng-model="address"
+                          label-fn="deliveryNameFn"
+                          compare-fn="compareDelivery"
+                          ng-click="deliverySelect"
+                          overall-classes="'col-lg-12 col-md-12 col-sm-12 col-xs-12'"></btn-list>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+
+                <ng-switch on="getAddressType(address)">
+
+                    <span ng-switch-when="address">
+                        <div ng-if="addresses.length">{{'delivery_address'|translate}}</div>
+                        <btn-list items="addresses"
+                                  ng-if="addresses.length"
+                                  ng-model="address"
+                                  label-fn="addressNameFn"
+                                  compare-fn="compareAddress"
+                                  ng-click="addressSelect"
+                                  overall-classes="'col-lg-12 col-md-12 col-sm-12 col-xs-12'"></btn-list>
+                        <div ng-if="logged" class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                            <button ng-click="addressesEdit();" class="btn btn-xs btn-success pull-right">
+                                <i class="fa fa-plus"></i> {{ 'add_address' | translate }}
+                            </button>
+                        </div>
+                    </span>
+
+                    <span ng-switch-when="collectionPoint">
+                        <div>{{'collection_point_address'|translate}}</div>
+                        <btn-list items="collectionPoints"
+                                  ng-model="address"
+                                  label-fn="collectionPointNameFn"
+                                  compare-fn="compareColPoint"
+                                  ng-click="colPointSelect"
+                                  overall-classes="'col-lg-12 col-md-12 col-sm-12 col-xs-12'"></btn-list>
+
+                    </span>
+                </ng-switch>
+                <div class="sender">
+                    <div ng-if="senders.length">{{ 'sender' | translate }}</div>
+                    <btn-list items="senders"
+                              ng-if="senders.length"
+                              ng-model="address"
+                              label-fn="senderNameFn"
+                              compare-fn="compareSender"
+                              ng-click="senderSelect"
+                              overall-classes="'col-lg-12 col-md-12 col-sm-12 col-xs-12 senders-list'"></btn-list>
+                </div>
+            </div>
+            <div class="table-responsive col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <table class="table" wt-responsive-table>
+                    <thead>
+                    <tr class="table-row-smaller">
+                        <th ng-if="!deliveryConnected" class="col-volumes"
+                            style="width: 20%">{{ 'volumes' | translate }}</th>
+                        <th class="col-packages">{{ 'packages' | translate }}</th>
+                        <th class="col-weight">{{ 'weight' | translate }}</th>
+                        <th class="col-price">{{ 'price' | translate }}</th>
+                        <th class="col-price">{{ 'gross_price' | translate }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr class="table-row-bigger">
+                        <td ng-if="!deliveryConnected">
+                            <input ng-model="address.allVolume" ng-change="changeVolumes();"
+                                   class="form-control" type="text" name=""
+                                   placeholder="{{ 'enter_volume' | translate }}" style="width:auto">
+                        </td>
+                        <td>
+                            <span ng-model="address.no_of_pkgs">{{ address.no_of_pkgs }}</span>
+                        </td>
+                        <td class="col-weight text-nowrap">
+                            {{ address.grossweight }} kg
+                        </td>
+                        <td class="col-price text-nowrap">
+                            {{ address.price }} {{ currentCurrency.symbol }}
+                        </td>
+                        <td class="col-price text-nowrap">
+                            {{ address.priceGross }} {{ currentCurrency.symbol }}
+                        </td>
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    <div ng-repeat-end ng-if="address.hasParcelShops">
+        <div>{{ 'select_parcel_shop' | translate }}</div>
+        <select ng-show="address.parcelShops.length > 0" class="form-control"
+                ng-model="address.parcelShopID"
+                ng-options="item.code as item.label for item in address.parcelShops">
+            <option value="">{{ 'select' | translate }}</option>
+        </select>
+
+        <div ng-show="address.parcelShops === null">
+            <i class="fa fa-spinner fa-pulse fa-fw"></i>
+            <span>{{ 'please_wait' | translate }}</span>
+        </div>
+
+        <div ng-show="emptyArray(address.parcelShops)">
+            <i class="fa fa-ban"></i>
+            <span> {{ 'not_found' | translate }}!</span>
+        </div>
+    </div>
+
+    <div ng-show="logged && !oneTimeUser && ( deliveryLackOfVolume > 0 || productAddresses[0].allVolume > 1)"
+         class="panel-body">
+
+        <div class="col-md-12" ng-if="addresses.length == 0">
+            <div class="alert alert-info">
+                {{ 'delivery_empty_address_info' | translate }}
+            </div>
+        </div>
+
+        <div class="col-md-6 col-sm-6">
+            <div class="alert alert-danger"
+                 ng-show="logged && !oneTimeUser && deliveryLackOfVolume > 0">
+                {{ 'delivery_lack_of_volume' | translate }}: {{deliveryLackOfVolume}}
+            </div>
+        </div>
+        <div
+            ng-show="!oneTimeUser  && !deliveryConnected && addresses.length > 0
+             && ( deliveryLackOfVolume > 0 || productAddresses[0].allVolume > 1)"
+            class="col-md-6 col-sm-6">
+            <div class="input-group">
+                <input ng-model="separateVolume" class="form-control" type="text"
+                       placeholder="{{ 'separate_volume' | translate }}...">
+                <span ng-click="separateDelivery();" class="input-group-addon btn">
+                    <i class="fa fa-plus"></i> {{'separate_delivery' | translate }}
+                </span>
+            </div>
+        </div>
+
+    </div>
+</div>

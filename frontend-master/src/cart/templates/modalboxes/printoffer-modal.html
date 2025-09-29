@@ -1,0 +1,215 @@
+<!--Beginning of print region-->
+<script>
+    $(document).ready(function() {
+        $(document).on('click', '.printNewButton', function() {
+            console.log('Printing...');
+
+            var printContents = $(".modalPrintBox").html();
+            var win = window.open(document.URL, "Print", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=" + (screen.width - 400) + ",height=" + (screen.height - 200) + ",top=10,left=100");
+            //win.document = document;
+            setTimeout(function() {
+                win.document.body.innerHTML = printContents;
+                $(win.document).ready(function() {
+                    setTimeout(function() {
+                        $('<style>').text("@media print { *,:after,:before{background: none!important;} body{-webkit-print-color-adjust: exact !important;} .table td.bg-success{ background: #ededed!important; -webkit-print-color-adjust: exact; color-adjust: exact;  } .panel-configuration h4 { margin: 0; } .headerOfferH4{ clear: both; padding-top: 8px; } dt{ float: left; clear: both; } dd{ padding-left: 10px; float: left; } body{ font-size: 12px; padding-top: 0px; } .loading{ display: none; } #printLeftOffer{ width: 50%; float: left; }.logo-offer{ max-width: 200px !important; max-height: 40px !important; } #productConfigPrint{ width: 50%; float: left;} #productFormatPrint{ width: 50%; float: left;}}").appendTo(win.document.head);
+                        win.onafterprint = window.close;
+
+                        var max_h = win.document.getElementsByClassName("poLogo");
+                        if (max_h.length > 0) {
+                            max_h[0].style.maxHeight = "150px";
+                            max_h[0].style.maxWidth = "200px";
+                        }
+
+                        var max_w = win.document.getElementsByClassName("logo-offer");
+                        if (max_h.length > 0) {
+                            max_w[0].style.maxHeight = "300px";
+                        }
+
+                        win.print();
+                        win.onfocus = function() {
+                            setTimeout(function() {
+                                win.close();
+                            }, 500);
+                        }
+                    }, 2000);
+                });
+            }, 500);
+
+            //win.close();
+
+        });
+    });
+</script>
+<div id="content" class="modalPrintBox">
+    <div class="modal-header">
+        <h4 class="modal-title">{{ 'offer_for_print' | translate }}</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-sm-6" id="printLeftOffer">
+                <img loading="lazy" ng-src="{{STATIC_URL}}uploadedFiles/{{companyID}}/logo" class="img-responsive logo-offer" style="max-width:30%;">
+                <hr>
+                <dl class="dl-horizontal">
+                    <dt ng-if="offerdata.name">{{ 'order_name' | translate }}</dt>
+                    <dd ng-if="offerdata.name">{{ offerdata.name }}</dd>
+                    <dt>{{ 'offer_gen' | translate }}</dt>
+                    <dd>{{ offerdate | date:'yyyy-MM-dd HH:mm:ss' }}</dd>
+                    <dt>{{currentType.names[currentLang.code]}}</dt>
+                    <dd>{{ offerdata.cps[0].data.currentFormat.name }}, {{offerdata.products[0].pages}} {{ 'pages' | translate }}, {{offerdata.volume}} {{ 'pieces' | translate }}
+                    </dd>
+                </dl>
+                <table class="table">
+                    <caption>{{ 'delivery' | translate }}:
+                        <span ng-repeat="address in offerdata.productAddresses">
+                            <span ng-repeat="delivery in deliveries | filter : { ID: address.deliveryID } ">
+                                {{delivery.names[currentLang.code]}}<br>
+                            </span>
+                        </span>
+
+                    </caption>
+                    <tr>
+                        <th>{{ 'net_price_with_delivery' | translate }}</th>
+                        <th>{{ 'gross_price_with_delivery' | translate }}</th>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span ng-bind="showSumPrice()"></span> {{ currentCurrency.symbol }}
+                        </td>
+                        <td>
+                            <span ng-bind="showSumGrossPrice()"></span> {{ currentCurrency.symbol }}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-sm-6">
+                <img loading="lazy" ng-if="po_logo" ng-src="{{po_logo}}" class="img-responsive poLogo" style="max-width:200px;" />
+            </div>
+        </div>
+        <hr />
+        <div class="row">
+            <!--product configuration starts here-->
+            <div class="col-sm-6 col-sm-12" id="productConfigPrint">
+
+                <div class="panel panel-info panel-configuration">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">
+                            {{ 'configuration_product' | translate }}:
+                        </h3>
+                    </div>
+                    <div class="panel-body">
+                        <div ng-repeat="complexProduct in complexProducts">
+
+                            {{ tmpProduct = complexProduct.selectedProduct.data;"" }}
+
+                            <div ng-if="complexProducts.length > 1 && !tmpProduct.info.noCalculate" class="headerOfferH4">
+                                <h4 ng-if="!tmpProduct.info.langs[currentLang.code]">{{ tmpProduct.info.name }}</h4>
+                                <h4 ng-if="tmpProduct.info.langs[currentLang.code]">{{ tmpProduct.info.langs[currentLang.code].name }}</h4>
+                            </div>
+                            <dl class="dl-horizontal" ng-if="!tmpProduct.info.noCalculate">
+
+                                <dt ng-if="tmpProduct.customFormatInfo.customName[currentLang.code]">{{ tmpProduct.customFormatInfo.customName[currentLang.code] }}</dt>
+                                <dt ng-if="!tmpProduct.customFormatInfo.customName[currentLang.code]">{{ 'format' | translate }}</dt>
+                                <dd>
+                                    {{ tmpProduct.currentFormat.name }}
+                                    <div ng-if="tmpProduct.currentFormat.custom">
+                                        {{ tmpProduct.currentFormat.customWidth }} x {{ tmpProduct.currentFormat.customHeight }} {{ tmpProduct.currentFormat.unit == 2 ? 'cm' : 'mm' }}
+                                    </div>
+                                </dd>
+
+                                <dt ng-if="tmpProduct.currentPages > 0 && tmpProduct.customPageInfo.customName[currentLang.code]">{{ tmpProduct.customPageInfo.customName[currentLang.code] }}</dt>
+                                <dt ng-if="tmpProduct.currentPages > 0 && !tmpProduct.customPageInfo.customName[currentLang.code]">{{'pages' | translate}}</dt>
+                                <dd ng-if="tmpProduct.currentPages > 0">{{tmpProduct.currentPages}}</dd>
+
+                                <div ng-repeat="attribute in complexProduct.selectedProduct.data.attributes">
+                                    <div ng-show="attribute.filteredOptions.length > 0 && !checkEmptyChoice(complexProduct,attribute.attrID)">
+                                        <dt>{{ showAttribute(complexProduct,attribute.attrID ) }}</dt>
+                                        <dd>{{ showOption(complexProduct,attribute.attrID,tmpOption ) }}</dd>
+                                    </div>
+                                </div>
+
+                                <div ng-if="tmpProduct.currentPages > 2 && tmpProduct.thickness.current > 0">
+                                    <dt>{{ 'thickness' | translate }}</dt>
+                                    <dd>{{ tmpProduct.thickness.current | number:2 }} mm</dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <div>
+                            <dl class="dl-horizontal">
+                                <dt>{{ 'volume' | translate }}</dt>
+                                <dd>
+                                    <span ng-if="productItem.amount > 1">{{ productItem.amount }} x </span> {{ productItem.volume }}
+                                </dd>
+
+                                <dt ng-if="productItem.taxID > 0">{{'vat_rate' | translate}}</dt>
+                                <dd ng-if="productItem.taxID > 0">{{ showTax(productItem.taxID) }}</dd>
+
+                                <dt ng-if="productItem.realisationTime > 0">{{ 'realization_time' | translate }}</dt>
+                                <dd ng-if="productItem.realisationTime > 0">{{ showRealizationTime(productItem.realisationTime) }}</dd>
+
+                                <dt ng-if="getTotalThickness() > 0 && complexProducts.length > 1">{{'total_thickness' | translate}}</dt>
+                                <dd ng-if="getTotalThickness() > 0 && complexProducts.length > 1">{{ getTotalThickness() }} mm</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="panel-footer bg-info">
+                        {{ 'term_realization_info' | translate }}
+                    </div>
+                </div>
+
+            </div>
+            <!--selected product format starts here-->
+            <div class="col-sm-6" id="productFormatPrint">
+                <div class="panel panel-default">
+                    <div class="panel-heading">{{ 'price_for_volume' | translate }}</div>
+                    <div class="loading text-center text-primary" ng-show="loadVolumes">
+                        <i class="fa fa-spinner fa-pulse fa-fw"></i>
+                        <span>{{ 'please_wait' | translate }}</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <th>{{ 'volume' | translate }}</th>
+                                <th>
+                                    {{ 'price' | translate }}/{{ 'volume' | translate }}
+                                    <br> {{ 'net_price' | translate }}/{{ 'gross_price' | translate }}
+                                </th>
+                                <th>
+                                    {{ 'price' | translate }}/{{ 'unit' | translate }}
+                                    <br> {{ 'net_price' | translate }}/{{ 'gross_price' | translate }}
+                                </th>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="volume in rtVolumes | orderBy:'qty'" ng-class="(volume.qty == calculation.volume) ? 'bg-success' : '' ">
+                                    <td ng-class="(volume.qty == calculation.volume) ? 'bg-success' : '' ">{{ volume.qty }}</td>
+                                    <td ng-class="(volume.qty == calculation.volume) ? 'bg-success' : '' ">
+                                        <b>{{ volume.net | priceFilter }} {{ currentCurrency.symbol }}</b>
+                                        <br>
+                                        <small>{{ volume.gross | priceFilter }} {{ currentCurrency.symbol }}</small>
+                                    </td>
+                                    <td ng-class="(volume.qty == calculation.volume) ? 'bg-success' : '' ">
+                                        <b>{{ volume.netunit | priceFilter }} {{ currentCurrency.symbol }}</b>
+                                        <br>
+                                        <small>{{ volume.grossunit | priceFilter }} {{ currentCurrency.symbol }}</small>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!--selected product format ends here-->
+        </div>
+        <hr />
+        <div class="row">
+            <div class="col-sm-12">
+                <div ng-static-contents class="staticContentBox" content="static.print_offer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button class="btn red-sunglo" ng-click="$dismiss()">{{ 'cancel' | translate }}</button>
+    <!--ng-click="print()"-->
+    <button class="btn btn-success printNewButton"><i class="fa fa-print"></i> {{ 'text_print' | translate }}</button>
+</div>
+<!--End of print region-->
