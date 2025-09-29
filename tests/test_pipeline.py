@@ -35,12 +35,17 @@ def test_run_external_script_failure(mock_run, caplog):
     assert "Script failed" in caplog.text
     assert "error" in caplog.text
 
+from scipy.sparse import csr_matrix
+
+from scipy.sparse import csr_matrix
+from scripts.feniks.types import GitInfo, MigrationSuggestion
+
 def test_load_enriched_chunks_success(tmp_path: Path):
     """Tests successful loading and parsing of an enriched JSONL file."""
     jsonl_path = tmp_path / "enriched.jsonl"
     mock_data = {
-        "chunk_id": "123", "file_path": "a/b.js", "start_line": 1, "end_line": 10, 
-        "text": "...", "code_snippet": "...", "chunk_name": "testChunk", "module": "testModule",
+        "id": "123", "filePath": "a/b.js", "start": 1, "end": 10,
+        "text": "...", "name": "testChunk", "module": "testModule",
         "kind": "service", "cyclomatic_complexity": 5, "api_endpoints": ["/api/test"],
         "git_last_commit": {"hash": "abc", "author": "tester", "date": "2024-01-01", "summary": "test"},
         "migration_suggestion": {"target": "React Hook", "notes": "..."}
@@ -55,8 +60,8 @@ def test_load_enriched_chunks_success(tmp_path: Path):
     assert chunk.module == "testModule"
     assert chunk.cyclomatic_complexity == 5
     assert chunk.api_endpoints == ["/api/test"]
-    assert chunk.git_last_commit.author == "tester"
-    assert chunk.migration_suggestion.target == "React Hook"
+    assert chunk.git_last_commit is not None and chunk.git_last_commit.author == "tester"
+    assert chunk.migration_suggestion is not None and chunk.migration_suggestion.target == "React Hook"
 
 def test_load_enriched_chunks_error(tmp_path: Path, caplog):
     """Tests that corrupted lines in JSONL are skipped and logged."""
@@ -66,7 +71,7 @@ def test_load_enriched_chunks_error(tmp_path: Path, caplog):
     assert len(chunks) == 0
     assert "Could not parse enriched chunk line" in caplog.text
     assert "not a json" in caplog.text
-    assert "KeyError" in caplog.text
+    assert "'filePath'" in caplog.text
 
 # --- Unit Test for Qdrant Payload ---
 
@@ -74,19 +79,21 @@ def test_upsert_points_payload_creation():
     """Verify that the payload sent to Qdrant is correctly structured."""
     mock_client = MagicMock()
     
-    # Create a full-featured chunk
+    # Create a full-featured chunk using real dataclasses
+    git_info = GitInfo(hash='abc', author='test', date='2024', summary='commit')
+    mig_sug = MigrationSuggestion(target='React', notes='...')
+
     mock_chunk = Chunk(
         id='1', file_path='a/b.js', start_line=1, end_line=1, text='some code', chunk_name='test',
         cyclomatic_complexity=10,
-        git_last_commit=MagicMock(__dict__={'hash': 'abc'}),
-        migration_suggestion=MagicMock(__dict__={'target': 'React'})
+        git_last_commit=git_info,
+        migration_suggestion=mig_sug
     )
 
-    # Mock TF-IDF matrix to be sparse
-    tfidf_matrix = MagicMock()
-    tfidf_matrix.tocoo.return_value = MagicMock(col=[], data=[])
+    # Mock TF-IDF matrix to be sparse and have the correct shape
+    tfidf_matrix = csr_matrix(([[1, 1]]), dtype=np.float64)
 
-    upsert_points(mock_client, "test_coll", [mock_chunk], np.array([[0.1]*10]), tfidf_matrix, {{}})
+    upsert_points(mock_client, "test_coll", [mock_chunk], np.array([[0.1]*10]), tfidf_matrix, {'a': 0, 'b': 1})
 
     mock_client.upsert.assert_called_once()
     _, kwargs = mock_client.upsert.call_args
@@ -94,8 +101,8 @@ def test_upsert_points_payload_creation():
 
     assert "text" not in payload  # Ensure large fields are excluded
     assert payload["cyclomatic_complexity"] == 10
-    assert payload["git_last_commit"] == {'hash': 'abc'}
-    assert payload["migration_suggestion"] == {'target': 'React'}
+    assert payload["git_last_commit"] == git_info.__dict__
+    assert payload["migration_suggestion"] == mig_sug.__dict__
 
 
 # --- Integration Test for the Full Pipeline ---
@@ -110,21 +117,31 @@ def test_full_build_process(mock_qdrant_constructor, mock_get_model, mock_run_sc
     monkeypatch.setattr(settings, 'PROJECT_ROOT', tmp_path)
 
     # 2. Mock the external script runner to create a fake enriched file
-    enriched_chunks_path = tmp_path / "runs" / "latest" / "chunks.enriched.jsonl"
     def create_fake_output(cmd, cwd):
-        if "js_html_indexer" in cmd[1]:
-            # The indexer is called, but we only care about the final enriched file
+        try:
+            out_index = cmd.index("--out") + 1
+            out_path = Path(cmd[out_index])
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # The first script (indexer) creates the initial file with real text
+            if "js_html_indexer" in cmd[1]:
+                 with out_path.open("w") as f:
+                    f.write('{"id": "1", "filePath": "a.js", "start": 1, "end": 1, "text": "function hello() { console.log(\'world\'); }", "name": "test1"}\n')
+                    f.write('{"id": "2", "filePath": "b.js", "start": 1, "end": 1, "text": "function goodbye() { console.log(\'world\'); }", "name": "test2"}\n')
+            # Subsequent scripts just pass the data through
+            elif "--in" in cmd:
+                 in_index = cmd.index("--in") + 1
+                 in_path = Path(cmd[in_index])
+                 if in_path.exists():
+                    out_path.write_text(in_path.read_text())
+        except (ValueError, IndexError):
             pass
-        elif "enrich_git_blame" in cmd[1]:
-            # The enricher is called, create its output file
-            enriched_chunks_path.parent.mkdir(parents=True, exist_ok=True)
-            with enriched_chunks_path.open("w") as f:
-                f.write('{"chunk_id": "1", "file_path": "a.js", "start_line": 1, "end_line": 1, "text": "...", "code_snippet": "...", "chunk_name": "test"}\n')
+
     mock_run_script.side_effect = create_fake_output
 
-    # 3. Mock embedding model
+    # 3. Mock embedding model to return 2 embeddings
     mock_model = MagicMock()
-    mock_model.encode.return_value = np.array([[0.1]*10])
+    mock_model.encode.return_value = np.array([[0.1]*10, [0.2]*10])
     mock_get_model.return_value = mock_model
 
     # 4. Mock Qdrant client
@@ -132,14 +149,20 @@ def test_full_build_process(mock_qdrant_constructor, mock_get_model, mock_run_sc
     mock_qdrant_constructor.return_value = mock_qdrant_instance
 
     # --- Run Process ---
-    run_build_process(reset_collection=True)
+    # We need to wrap this in a try/except block because sys.exit(1) is called on error
+    try:
+        run_build_process(reset_collection=True)
+    except SystemExit as e:
+        pytest.fail(f"run_build_process exited unexpectedly with code {e.code}")
+
 
     # --- Assertions ---
-    # Assert that both external scripts were called
-    assert mock_run_script.call_count == 2
-    
-    # Assert that embedding and Qdrant functions were called
+    assert mock_run_script.call_count == 4
     mock_get_model.assert_called_once()
     mock_qdrant_constructor.assert_called_once()
     mock_qdrant_instance.delete_collection.assert_called_once()
+    mock_qdrant_instance.create_collection.assert_called_once()
     mock_qdrant_instance.upsert.assert_called_once()
+    
+    _, kwargs = mock_qdrant_instance.upsert.call_args
+    assert len(kwargs['points']) == 2
