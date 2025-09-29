@@ -56,7 +56,10 @@ def load_chunks_from_jsonl(path: Path) -> List[Chunk]:
                     anti_patterns=[],  # Placeholder for now
                     text=data["code_snippet"],
                     start_line=data["start_line"],
-                    end_line=data["end_line"]
+                    end_line=data["end_line"],
+                    # Nowe pola
+                    api_endpoints=data.get("api_endpoints", []),
+                    migration_suggestion=data.get("migration_suggestion", {}),
                 ))
             except (json.JSONDecodeError, KeyError) as e:
                 log.error(f"Could not parse line {i+1} in {path}: {e}")
