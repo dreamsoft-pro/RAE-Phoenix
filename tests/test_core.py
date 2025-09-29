@@ -1,13 +1,15 @@
+import subprocess
 import json
 from pathlib import Path
 import pytest
-from scripts.feniks.core import (
-    sha1,
-    load_chunks_from_jsonl,
-    build_module_cards_from_chunks,
-    extract_module_from_path,
+from feniks.utils import sha1, extract_module_from_path
+from feniks.parser import (
+    run_ast_indexer,
+    load_chunks_from_jsonl
 )
-from scripts.feniks.types import Chunk
+from feniks.kb_builder import build_module_cards_from_chunks
+from feniks.logger import setup_logger
+from unittest.mock import patch, MagicMock
 
 
 @pytest.fixture
@@ -55,6 +57,24 @@ def mock_chunks_jsonl(tmp_path: Path) -> Path:
             "start_line": 1,
             "end_line": 50,
         },
+        {
+            "chunk_id": "5",
+            "file_path": "/app/src/cart/directives/cartDirective.js",
+            "chunk_name": "cartDirective",
+            "ast_node_type": "CallExpression",
+            "dependencies_di": [],
+            "code_snippet": "angular.module('cart').directive('cartDirective', ...)",
+            "start_line": 1, "end_line": 10
+        },
+        {
+            "chunk_id": "6",
+            "file_path": "/app/src/cart/factories/cartFactory.js",
+            "chunk_name": "cartFactory",
+            "ast_node_type": "CallExpression",
+            "dependencies_di": [],
+            "code_snippet": "angular.module('cart').factory('cartFactory', ...)",
+            "start_line": 1, "end_line": 10
+        },
     ]
     with jsonl_path.open("w", encoding="utf-8") as f:
         for chunk in chunks_data:
@@ -65,7 +85,7 @@ def mock_chunks_jsonl(tmp_path: Path) -> Path:
 def test_load_chunks_from_jsonl(mock_chunks_jsonl: Path):
     """Tests that chunks are loaded correctly from a JSONL file."""
     chunks = load_chunks_from_jsonl(mock_chunks_jsonl)
-    assert len(chunks) == 4
+    assert len(chunks) == 6
     
     # Test the first chunk (CartService)
     cart_service_chunk = chunks[0]
@@ -97,7 +117,9 @@ def test_build_module_cards_from_chunks(mock_chunks_jsonl: Path):
     assert cart_card["services"] == ["CartService"]
     assert cart_card["controllers"] == ["CartCtrl"]
     assert cart_card["templates"] == ["cart.html"]
-    assert len(cart_card["files"]) == 3 # Service, Controller, Template
+    assert cart_card["directives"] == ["cartDirective"]
+    assert cart_card["factories"] == ["cartFactory"]
+    assert len(cart_card["files"]) == 5 # Service, Controller, Template, Directive, Factory
 
     index_card = module_cards["index"]
     assert index_card["module"] == "index"
@@ -151,3 +173,43 @@ def test_sha1_different_strings():
     hash2 = sha1("string two")
 
     assert hash1 != hash2
+
+
+def test_load_chunks_from_empty_file(tmp_path: Path):
+    """Tests that loading from an empty or invalid JSONL file returns an empty list."""
+    empty_file = tmp_path / "empty.jsonl"
+    empty_file.write_text("\n  \n") # Empty lines
+    assert load_chunks_from_jsonl(empty_file) == []
+
+    invalid_json_file = tmp_path / "invalid.jsonl"
+    invalid_json_file.write_text("this is not json")
+    assert load_chunks_from_jsonl(invalid_json_file) == []
+
+
+def test_build_module_cards_from_empty_chunks():
+    """Tests that building cards from an empty list of chunks returns an empty dict."""
+    assert build_module_cards_from_chunks([]) == {}
+
+
+def test_module_extraction_no_module():
+    """Tests that no module is extracted if the path doesn't match."""
+    path = Path("/some/other/structure/file.js")
+    assert extract_module_from_path(path) is None
+
+
+@patch('scripts.feniks.parser.subprocess.run')
+def test_run_ast_indexer_failure(mock_subprocess_run):
+    """Tests that run_ast_indexer raises RuntimeError on subprocess failure."""
+    mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cmd", stderr="error")
+    with pytest.raises(RuntimeError):
+        run_ast_indexer(Path("/tmp"))
+
+
+def test_load_chunks_with_missing_key(tmp_path: Path, caplog):
+    """Tests parsing a JSONL file with a missing required key."""
+    jsonl_path = tmp_path / "missing_key.jsonl"
+    # 'file_path' is missing
+    jsonl_path.write_text('{"chunk_name": "Test", "ast_node_type": "A", "code_snippet": "...", "start_line": 1, "end_line": 2}\n')
+    chunks = load_chunks_from_jsonl(jsonl_path)
+    assert chunks == []
+    assert "Could not parse line" in caplog.text

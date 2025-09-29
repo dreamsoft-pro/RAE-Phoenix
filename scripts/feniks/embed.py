@@ -1,3 +1,4 @@
+import os
 from typing import List, Tuple, Dict, Any
 
 import numpy as np
@@ -14,7 +15,7 @@ def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
     vec = TfidfVectorizer(
         token_pattern=r"[A-Za-z0-9_#\-$]{2,}",
         ngram_range=(1, 2),
-        min_df=2,
+        min_df=int(os.getenv("FENIKS_TEST_MIN_DF", 2)),
         max_features=50000
     )
     X = vec.fit_transform(corpus)  # csr_matrix
