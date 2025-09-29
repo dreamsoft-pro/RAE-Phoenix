@@ -1,243 +1,338 @@
-#!/usr/bin/env node
-// Minimalny, stabilny indexer dla AngularJS (JS + HTML) -> JSONL chunków
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { glob } from "glob";
-import { v4 as uuidv4 } from "uuid";
-import * as babelParser from "@babel/parser";
-import traverse from "@babel/traverse";
+// scripts/js_html_indexer.mjs
+// ESM Node 18+
+// Usage: node scripts/js_html_indexer.mjs --root <frontend-root> --out <out-jsonl>
+import fs from 'fs';
+import fsp from 'fs/promises';
+import path from 'path';
+import fg from 'fast-glob';
+import * as babelParser from '@babel/parser';
+import traverse from '@babel/traverse';
+import { fileURLToPath } from 'url';
 
-const args = process.argv.slice(2);
-const rootArgIdx = args.indexOf("--root");
-const outArgIdx  = args.indexOf("--out");
-if (rootArgIdx === -1 || outArgIdx === -1) {
-  console.error("Użycie: node js_html_indexer.mjs --root /ścieżka/do/frontend --out ./data/chunks.jsonl");
-  process.exit(1);
-}
-const ROOT = path.resolve(args[rootArgIdx+1]);
-const OUT  = path.resolve(args[outArgIdx+1]);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Heurystyki komponentów AngularJS
-const ANG_METHODS = new Set(["controller","service","factory","directive","filter","config","run"]);
-
-// Pomocnicze: bezpieczne parsowanie JS
-function parseJS(code, file) {
-  return babelParser.parse(code, {
-    sourceType: "unambiguous",
-    allowReturnOutsideFunction: true,
-    plugins: [
-      "jsx",
-      "classProperties",
-      "objectRestSpread",
-      "optionalChaining",
-      "dynamicImport"
-    ],
-    errorRecovery: true
-  });
-}
-
-function extractDepsFromArray(node) {
-  // Wzorzec: ['dep1','dep2', function(dep1, dep2){...}]
-  const arr = node.arguments?.[1];
-  if (!arr || arr.type !== "ArrayExpression") return null;
-  const elms = arr.elements || [];
-  if (elms.length === 0) return null;
-  const last = elms[elms.length-1];
-  if (last.type !== "FunctionExpression" && last.type !== "ArrowFunctionExpression") return null;
-  const deps = [];
-  for (let i=0; i<elms.length-1; i++) {
-    const e = elms[i];
-    if (e.type === "StringLiteral") deps.push(e.value);
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const out = { root: null, out: null };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--root') out.root = args[++i];
+    else if (args[i] === '--out') out.out = args[++i];
   }
-  return deps;
+  if (!out.root) throw new Error('Missing --root');
+  if (!out.out) throw new Error('Missing --out');
+  return out;
 }
 
-function extractDepsFromFn(node) {
-  // Wzorzec: .controller('Name', function($scope, AuthService){})
-  const fn = node.arguments?.[1];
-  if (fn && (fn.type === "FunctionExpression" || fn.type === "ArrowFunctionExpression")) {
-    return (fn.params || []).map(p => p.name).filter(Boolean);
-  }
-  return null;
+function readFileSafe(p) {
+  try { return fs.readFileSync(p, 'utf8'); }
+  catch { return null; }
 }
 
-function findTemplateUrlInDirective(node, code) {
-  // Szuka `return { ..., templateUrl: '...' }` w ciele funkcji fabrycznej dyrektywy
-  const fn = node.arguments?.[1];
-  const body = (fn && (fn.type === "FunctionExpression" || fn.type === "ArrowFunctionExpression")) ? fn.body : null;
-  if (!body || body.type !== "BlockStatement") return null;
-  for (const st of body.body) {
-    if (st.type === "ReturnStatement" && st.argument && st.argument.type === "ObjectExpression") {
-      for (const prop of st.argument.properties || []) {
-        const key = prop.key?.name || prop.key?.value;
-        if (key === "templateUrl") {
-          const val = prop.value;
-          if (val.type === "StringLiteral") return val.value;
-        }
+function toUnix(p) { return p.split(path.sep).join('/'); }
+
+function decisionCount(node) {
+  // Simple cyclomatic complexity approximation
+  let count = 1;
+  traverse.default(node, {
+    enter(path) {
+      switch (path.node.type) {
+        case 'IfStatement':
+        case 'ForStatement':
+        case 'ForInStatement':
+        case 'ForOfStatement':
+        case 'WhileStatement':
+        case 'DoWhileStatement':
+        case 'CatchClause':
+        case 'ConditionalExpression':
+          count++; break;
+        case 'LogicalExpression':
+          if (path.node.operator === '||' || path.node.operator === '&&') count++;
+          break;
+        case 'SwitchCase':
+          if (path.node.test) count++;
+          break;
       }
     }
+  });
+  return count;
+}
+
+function businessTagsFromName(name, file) {
+  const s = (name || '' + ' ' + (file || '')).toLowerCase();
+  const tags = new Set();
+  const addIf = (re, t) => { if (re.test(s)) tags.add(t); };
+  addIf(/\bauth|login|logout|token|session\b/, 'authentication');
+  addIf(/\bpay|payment|checkout|transaction|billing\b/, 'payment');
+  addIf(/\bprice|pric(ing)|discount|promo|vat|tax\b/, 'pricing');
+  addIf(/\bcart|basket\b/, 'cart');
+  addIf(/\border|shipment|delivery\b/, 'order');
+  addIf(/\binventory|stock|warehouse\b/, 'inventory');
+  addIf(/\buser|account|profile\b/, 'user');
+  addIf(/\breport|analytics|metric|kpi\b/, 'analytics');
+  return Array.from(tags);
+}
+
+function apiEndpointsFromCall(calleeName, args) {
+  const endpoints = [];
+  const first = args?.[0];
+  const collect = (v) => {
+    if (typeof v === 'string' && /(\/api\/|^https?:\/\/)/.test(v)) endpoints.push(v);
+  };
+  if (first && first.type === 'StringLiteral') collect(first.value);
+  else if (first && first.type === 'TemplateLiteral' && first.quasis?.length) {
+    collect(first.quasis.map(q => q.value.cooked).join('${}'));
+  }
+  return endpoints;
+}
+
+function calleeNameFromNode(node) {
+  if (!node) return null;
+  if (node.type === 'Identifier') return node.name;
+  if (node.type === 'MemberExpression') {
+    const obj = calleeNameFromNode(node.object);
+    const prop = node.property && (node.property.name || (node.property.value ?? ''));
+    if (obj && prop) return `${obj}.${prop}`;
+  }
+  if (node.type === 'OptionalMemberExpression') {
+    const obj = calleeNameFromNode(node.object);
+    const prop = node.property && (node.property.name || (node.property.value ?? ''));
+    if (obj && prop) return `${obj}.${prop}`;
   }
   return null;
 }
 
-// Przebieg: JS pliki
-async function indexJS(files, out) {
-  for (const f of files) {
-    const rel = path.relative(ROOT, f);
-    const code = fs.readFileSync(f, "utf8");
-    let ast;
-    try { ast = parseJS(code, f); }
-    catch(e) { console.warn("[PARSER] Błąd w", rel, e.message); continue; }
+function parseJS(filePath, code, modulesCtx) {
+  const ast = babelParser.parse(code, {
+    sourceType: 'module',
+    plugins: ['jsx', 'classProperties', 'objectRestSpread', 'optionalChaining']
+  });
+  const chunks = [];
+  const routes = [];
+
+  function pushChunk({id, kind, name, module, start, end, text, depsDI}) {
+    const file = toUnix(filePath);
+    const calls = new Set();
+    const api = new Set();
+    let complexity = 1;
 
     traverse.default(ast, {
-      CallExpression(pathNode) {
-        const { node } = pathNode;
-        // Oczekujemy np. angular.module(...).controller(...)
-        if (node.callee && node.callee.type === "MemberExpression") {
-          const prop = node.callee.property;
-          const obj  = node.callee.object;
-          const methodName = prop?.name;
-          if (!ANG_METHODS.has(methodName)) return;
-
-          // Nazwa chunka (np. nazwa kontrolera / serwisu / dyrektywy)
-          let chunkName = null;
-          const firstArg = node.arguments?.[0];
-          if (firstArg && firstArg.type === "StringLiteral") chunkName = firstArg.value;
-
-          // Zależności DI
-          let deps = extractDepsFromArray(node) || extractDepsFromFn(node) || [];
-
-          // templateUrl dla dyrektyw
-          let templateUrl = null;
-          if (methodName === "directive") {
-            templateUrl = findTemplateUrlInDirective(node, code);
+      enter(p) {
+        // Restrict to function range if provided
+        if (start != null && end != null) {
+          const n = p.node;
+          if (!n.loc) return;
+          const s = n.loc.start.line, e = n.loc.end.line;
+          if (e < start || s > end) return;
+        }
+        if (p.isCallExpression()) {
+          const c = p.node.callee;
+          const name = calleeNameFromNode(c);
+          if (name) calls.add(name);
+          // API endpoints
+          if (name && (/^\$?http(\.|$)/.test(name) || /resource/i.test(name))) {
+            apiEndpointsFromCall(name, p.node.arguments).forEach(a => api.add(a));
           }
-
-          // --- Nowe funkcjonalności ---
-
-          // 1. Wyszukiwanie endpointów API w ciele funkcji
-          const apiEndpoints = [];
-          const functionBody = pathNode.get("arguments.1.body");
-          if (functionBody) {
-            functionBody.traverse({
-              CallExpression(innerPath) {
-                const callee = innerPath.get("callee");
-                if (callee.isMemberExpression() && callee.get("object").isIdentifier({ name: "$http" })) {
-                  const firstArg = innerPath.get("arguments.0");
-                  if (firstArg && firstArg.isStringLiteral()) {
-                    apiEndpoints.push(firstArg.node.value);
-                  }
-                }
-              }
-            });
-          }
-
-          // 2. Generowanie sugestii migracyjnych
-          let migrationSuggestion = {};
-          switch (methodName) {
-            case "service":
-            case "factory":
-              migrationSuggestion = { target: "Custom Hook (e.g., useSWR)", notes: "Replace $http with fetch/axios and wrap logic in a reusable data-fetching hook." };
-              break;
-            case "controller":
-              migrationSuggestion = { target: "Functional React Component", notes: "State logic should be managed by hooks like useState, useReducer, or a state management library." };
-              break;
-            case "directive":
-              migrationSuggestion = { target: "React Component", notes: "Can be a functional component. DOM manipulations should be replaced with declarative JSX and state." };
-              break;
-            case "filter":
-              migrationSuggestion = { target: "Utility Function", notes: "Can be a simple exported JavaScript function that takes a value and returns a transformed value." };
-              break;
-          }
-
-          // Wytnij fragment kodu i komentarze (sprawdzając też węzeł nadrzędny)
-          const { start, end } = node;
-          const snippet = code.slice(start, end);
-          const parentNode = pathNode.parentPath.node;
-          const allComments = (parentNode.leadingComments || []).concat(node.leadingComments || []);
-          const comments = allComments.map(c => ` * ${c.value.trim()}`).join("\n");
-          const fullSnippet = (comments ? `/**\n${comments}\n */\n` : "") + snippet;
-
-          const chunk = {
-            chunk_id: uuidv4(),
-            file_path: rel,
-            ast_node_type: "CallExpression",
-            chunk_name: chunkName || methodName,
-            code_snippet: fullSnippet,
-            start_line: node.loc?.start?.line || null,
-            end_line: node.loc?.end?.line || null,
-            dependencies_di: deps,
-            template_url: templateUrl,
-            // Nowe pola
-            api_endpoints: apiEndpoints,
-            migration_suggestion: migrationSuggestion,
-            // Stare pola
-            tags: [],
-            comments: allComments.map(c => c.value.trim()).join("\n"),
-          };
-          fs.appendFileSync(out, JSON.stringify(chunk) + "\n");
         }
       }
     });
-  }
-}
 
-// Przebieg: HTML (ulepszona heurystyka semantyczna)
-async function indexHTML(files, out) {
-  for (const f of files) {
-    const rel = path.relative(ROOT, f);
-    const content = fs.readFileSync(f, "utf8");
+    // Rough complexity on sliced AST region
+    if (start != null && end != null) {
+      complexity = decisionCount(ast);
+    } else {
+      complexity = decisionCount(ast);
+    }
 
-    // Dziel na większe bloki, np. po <form>, <section>, lub div z klasą "container" lub "row"
-    const chunks = content.split(/(?=<form|<section|<div\s+(?:class|ng-class)\s*=\s*['"][^'"]*\b(?:container|row|page|modal-body)\b[^'"]*['"])/);
-
-    let currentLine = 1;
-    for (const part of chunks) {
-      if (!part.trim()) continue;
-
-      const lines = part.split(/\r?\n/);
-      const startLine = currentLine;
-      const endLine = currentLine + lines.length - 1;
-
-      let chunkName = "html_section";
-      const idMatch = part.match(/id="([^"]+)"/);
-      if (idMatch) {
-        chunkName = idMatch[1];
-      } else {
-        const classMatch = part.match(/class="([^"]+)"/);
-        if (classMatch) chunkName = classMatch[1].split(" ")[0];
+    const business_tags = businessTagsFromName(name, file);
+    const record = {
+      id,
+      filePath: file,
+      module,
+      name,
+      kind,
+      nodeType: 'Function',
+      dependenciesDI: depsDI || [],
+      antiPatterns: [],
+      text,
+      start: start ?? 1,
+      end: end ?? (code.split('\n').length),
+      route: null,
+      symbol: name,
+      metadata: {
+        calls_functions: Array.from(calls),
+        api_endpoints: Array.from(api),
+        ui_routes: [],
+        cyclomatic_complexity: complexity,
+        summary_en: null,
+        business_tags
       }
+    };
+    chunks.push(record);
+  }
 
-      const chunk = {
-        chunk_id: uuidv4(),
-        file_path: rel,
-        ast_node_type: "NgTemplate",
-        chunk_name: chunkName,
-        code_snippet: part.trim(),
-        start_line: startLine,
-        end_line: endLine,
-        dependencies_di: [],
-        template_url: null,
-        tags: [],
-        comments: ""
-      };
-      fs.appendFileSync(out, JSON.stringify(chunk) + "\n");
+  function angularDIParams(fnNode) {
+    if (!fnNode) return [];
+    if (fnNode.type === 'FunctionExpression' || fnNode.type === 'ArrowFunctionExpression') {
+      return (fnNode.params || []).map(p => p.name).filter(Boolean);
+    }
+    return [];
+  }
 
-      currentLine = endLine + 1;
+  traverse.default(ast, {
+    CallExpression(p) {
+      const callee = p.node.callee;
+      if (callee.type === 'MemberExpression') {
+        const prop = callee.property?.name || callee.property?.value;
+        if (!prop) return;
+        if (prop === 'module' && callee.object?.name === 'angular') {
+          const modArg = p.node.arguments?.[0];
+          if (modArg?.type === 'StringLiteral') {
+            modulesCtx.currentModule = modArg.value;
+          }
+        }
+        const propName = String(prop);
+        const isNgDef = ['controller','service','factory','directive','filter','component','config'].includes(propName);
+        if (isNgDef) {
+          const args = p.node.arguments || [];
+          const nameArg = args[0];
+          const defArg = args.slice(-1)[0];
+          const name = nameArg && nameArg.type === 'StringLiteral' ? nameArg.value : null;
+          const moduleName = modulesCtx.currentModule || null;
+          let fnNode = defArg;
+          let deps = [];
+          if (defArg && defArg.type === 'ArrayExpression') {
+            const elems = defArg.elements || [];
+            const last = elems[elems.length - 1];
+            fnNode = last;
+            deps = elems.slice(0, -1).map(e => e.value).filter(Boolean);
+          } else {
+            deps = angularDIParams(defArg);
+          }
+          const { start, end } = fnNode?.loc || p.node.loc || {start:{line:1}, end:{line: code.split('\n').length}};
+          const lines = code.split('\n').slice(start.line - 1, end.line).join('\n');
+          const id = `${toUnix(filePath)}:${start.line}-${end.line}:${propName}:${name ?? 'anonymous'}`;
+          const kindMap = {controller:'component', component:'component', service:'service', factory:'service', directive:'directive', filter:'filter', config:'route'};
+          pushChunk({id, kind: kindMap[propName] || 'util', name: name ?? 'anonymous', module: moduleName, start: start.line, end: end.line, text: lines, depsDI: deps});
+        }
+      }
+    }
+  });
+
+  traverse.default(ast, {
+    CallExpression(p) {
+      const callee = p.node.callee;
+      if (callee.type === 'MemberExpression') {
+        const objName = callee.object?.name || callee.object?.property?.name;
+        const propName = callee.property?.name;
+        if (objName === '$stateProvider' && propName === 'state') {
+          const [stateName, cfg] = p.node.arguments || [];
+          let url = null, controller = null, templateUrl = null;
+          if (cfg && cfg.type === 'ObjectExpression') {
+            for (const prop of cfg.properties || []) {
+              const key = prop.key?.name || prop.key?.value;
+              if (key === 'url' && prop.value.type === 'StringLiteral') url = prop.value.value;
+              if (key === 'controller' && prop.value.type === 'StringLiteral') controller = prop.value.value;
+              if (key === 'templateUrl' && prop.value.type === 'StringLiteral') templateUrl = prop.value.value;
+            }
+          }
+          const sName = stateName && stateName.type === 'StringLiteral' ? stateName.value : null;
+          routes.push({ type: 'ui-router', state: sName, url, controller, templateUrl });
+        }
+        if (objName === '$routeProvider' && propName === 'when') {
+          const [urlArg, cfg] = p.node.arguments || [];
+          let url = null, controller = null, templateUrl = null;
+          if (urlArg?.type === 'StringLiteral') url = urlArg.value;
+          if (cfg && cfg.type === 'ObjectExpression') {
+            for (const prop of cfg.properties || []) {
+              const key = prop.key?.name || prop.key?.value;
+              if (key === 'controller' && prop.value.type === 'StringLiteral') controller = prop.value.value;
+              if (key === 'templateUrl' && prop.value.type === 'StringLiteral') templateUrl = prop.value.value;
+            }
+          }
+          routes.push({ type: 'ng-route', state: null, url, controller, templateUrl });
+        }
+      }
+    }
+  });
+
+  if (routes.length && chunks.length) {
+    const byCtrl = new Map();
+    for (const r of routes) {
+      if (r.controller) {
+        const arr = byCtrl.get(r.controller) || [];
+        arr.push(r.url);
+        byCtrl.set(r.controller, arr);
+      }
+    }
+    for (const ch of chunks) {
+      const urls = byCtrl.get(ch.name) || [];
+      if (urls.length) {
+        ch.metadata.ui_routes = Array.from(new Set([...(ch.metadata.ui_routes || []), ...urls]));
+      }
+    }
+    for (const r of routes) {
+      const id = `${toUnix(filePath)}:route:${r.url || r.state}`;
+      const text = `// route: ${r.type} ${r.state ?? ''} ${r.url ?? ''} controller=${r.controller ?? ''}`;
+      chunks.push({
+        id,
+        filePath: toUnix(filePath),
+        module: null,
+        name: r.controller || r.state || (r.url ?? 'route'),
+        kind: 'route',
+        nodeType: 'Object',
+        dependenciesDI: [],
+        antiPatterns: [],
+        text,
+        start: 1, end: 1,
+        route: r.url || r.state,
+        symbol: r.controller || r.state,
+        metadata: {
+          calls_functions: [],
+          api_endpoints: [],
+          ui_routes: r.url ? [r.url] : [],
+          cyclomatic_complexity: 1,
+          summary_en: null,
+          business_tags: businessTagsFromName(r.controller || r.state, filePath)
+        }
+      });
     }
   }
+
+  return chunks;
 }
 
-(async () => {
-  fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  fs.writeFileSync(OUT, ""); // reset
+async function main() {
+  const args = parseArgs();
+  const root = path.resolve(args.root);
+  const outPath = path.resolve(args.out);
+  await fsp.mkdir(path.dirname(outPath), { recursive: true });
 
-  const jsFiles = await glob("**/*.js", { cwd: ROOT, absolute: true, nodir: true });
-  const htmlFiles = await glob("**/*.html", { cwd: ROOT, absolute: true, nodir: true });
+  const patterns = [
+    toUnix(path.join(root, '**/*.js')),
+  ];
+  const entries = await fg(patterns, { dot: false, onlyFiles: true });
+  let total = 0;
+  const out = fs.createWriteStream(outPath, { flags: 'w', encoding: 'utf8' });
 
-  console.log(`[Feniks] JS: ${jsFiles.length} plików, HTML: ${htmlFiles.length} plików`);
-  await indexJS(jsFiles, OUT);
-  await indexHTML(htmlFiles, OUT);
-  console.log(`[Feniks] Zapisano: ${OUT}`);
-})();
+  for (const file of entries) {
+    const code = readFileSafe(file);
+    if (!code) continue;
+    const modulesCtx = { currentModule: null };
+    try {
+      const recs = parseJS(file, code, modulesCtx);
+      for (const r of recs) {
+        out.write(JSON.stringify(r) + '\n');
+        total++;
+      }
+    } catch (e) {
+      out.write(JSON.stringify({ error: String(e), filePath: toUnix(file) }) + '\n');
+    }
+  }
+  out.end();
+  console.log(`[OK] Indexed ${entries.length} files → ${total} records at ${outPath}`);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}
