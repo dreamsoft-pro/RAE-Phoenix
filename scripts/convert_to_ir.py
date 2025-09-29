@@ -1,126 +1,90 @@
-#!/usr/bin/env python3
-from __future__ import annotations
-import json, sys, argparse, re
+import argparse
+import json
+import sys
 from pathlib import Path
-from datetime import datetime, timezone
 
-HTTP_METHODS = ["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"]
+# Add project root to allow sibling imports
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
 
-def guess_method(calls_functions: list[str]) -> str:
-    text = " ".join(calls_functions or [])
-    m = re.search(r"\.([Gg][Ee][Tt]|[Pp][Oo][Ss][Tt]|[Pp][Uu][Tt]|[Dd][Ee][Ll][Ee][Tt][Ee]|[Pp][Aa][Tt][Cc][Hh]|[Hh][Ee][Aa][Dd]|[Oo][Pp][Tt][Ii][Oo][Nn][Ss])\b", text)
-    if m:
-        method = m.group(1).upper()
-        if method in HTTP_METHODS:
-            return method
-    if "$http" in text or "this.$http" in text:
-        return "UNKNOWN"
-    return "UNKNOWN"
+from feniks.logger import log
 
-def complexity_norm(x: float) -> float:
-    return max(0.0, min(1.0, float(x) / 20.0))
+def calculate_criticality(chunk: dict) -> float:
+    """Heuristically calculate a criticality score."""
+    score = 0.0
+    score += chunk.get("cyclomatic_complexity", 0) * 0.5
+    if "/api/" in chunk.get("text", ""):
+        score += 10
+    # Simple heuristic: more dependencies, more critical
+    score += len(chunk.get("dependencies_di", [])) * 0.2
+    return round(score, 2)
 
-def recency_score(iso: str | None) -> float:
-    if not iso:
-        return 0.5
-    try:
-        dt = datetime.fromisoformat(iso.replace("Z","+00:00"))
-        days = (datetime.now(timezone.utc) - dt).days
-        if days <= 90: return 1.0
-        if days <= 365: return 0.6
-        return 0.3
-    except Exception:
-        return 0.5
-
-def route_exposure(urls: list[str]) -> float:
-    if not urls: return 0.0
-    important = ["/checkout", "/cart", "/login", "/payment", "/order", "/account"]
-    hits = sum(1 for u in urls for k in important if isinstance(u, str) and k in u)
-    return 0.8 if hits else 0.5
-
-def choose_migration_target(kind: str, has_api: bool) -> tuple[str, str]:
-    k = (kind or "util").lower()
-    if k in ("component","controller","directive","template"):
-        return ("ReactComponent", f"AngularJS {k} → React component (functional).")
-    if k in ("service","factory"):
-        return ("ReactHook" if has_api else "Util",
-                "Service using HTTP becomes data-fetching hook; otherwise a pure util/hook.")
-    if k == "route":
-        return ("Route", "AngularJS route → Next.js app router segment.")
-    return ("Util", "Generic utility.")
-
-def to_ir(row: dict) -> dict:
-    file = row.get("filePath")
-    module = row.get("module")
-    name = row.get("name") or row.get("symbol") or "anonymous"
-    kind = row.get("kind") or "util"
-    start = int(row.get("start", 1))
-    end = int(row.get("end", start))
-    meta = row.get("metadata") or {}
-    calls = list(meta.get("calls_functions") or [])
-    endpoints = list(meta.get("api_endpoints") or [])
-    routes = list(meta.get("ui_routes") or [])
-    business = list(meta.get("business_tags") or [])
-    summary = meta.get("summary_en")
-    glc = meta.get("git_last_commit") or row.get("git_last_commit")
-    cycl = float(meta.get("cyclomatic_complexity") or row.get("cyclomatic_complexity") or 1)
-
-    method = guess_method(calls)
-    api_calls = [{
-        "method": method,
-        "url": url,
-        "confidence": 0.95 if isinstance(url, str) and url.startswith(('/api/','http://','https://')) else 0.7,
-        "evidence": {"file": file, "start": start, "end": end, "rule": "ast:$http|$resource"}
-    } for url in endpoints]
-
-    c_norm = complexity_norm(cycl)
-    r_score = route_exposure(routes)
-    recency = recency_score(glc.get("date") if isinstance(glc, dict) else None)
-    criticality = round(0.5*c_norm + 0.3*r_score + 0.2*recency, 4)
-
-    mg_target, mg_reason = choose_migration_target(kind, has_api=bool(endpoints))
-    evidence = [{"file": file, "start": start, "end": end, "rule": "ast:chunk-lines"}]
-
-    return {
-        "id": str(row.get("id") or f"{file}:{start}-{end}:{kind}:{name}"),
-        "entity": {"type": kind, "name": name},
-        "location": {"file": file, "module": module, "span": {"start": start, "end": end}},
-        "relations": {"calls_functions": calls, "ui_routes": routes, "api_calls": api_calls},
-        "contracts": {"io_contract": None, "api_contract_ref": None},
-        "scores": {"cyclomatic_complexity": cycl, "criticality_score": criticality},
-        "metadata": {
-            "business_tags": business, "summary_en": summary,
-            "git_last_commit": glc if isinstance(glc, dict) else None,
-            "evidence": evidence, "confidence": 1.0
-        },
-        "migration": {"target": mg_target, "rationale": mg_reason}
-    }
+def determine_migration_target(chunk: dict) -> str:
+    """Heuristically determine the migration target."""
+    kind = chunk.get("kind")
+    if kind == "service":
+        return "React Hook (useSWR or React Query)"
+    if kind == "controller":
+        return "React Component (Client)"
+    if kind == "directive":
+        return "React Component (Server or Client)"
+    if kind == "filter":
+        return "Utility Function"
+    return "Undetermined"
 
 def main():
-    ap = argparse.ArgumentParser(description="Convert enriched JSONL (indexer+blame) to Feniks IR JSONL")
-    ap.add_argument("--in", dest="inp", required=True, help="Input JSONL: runs/latest/chunks.enriched.jsonl")
-    ap.add_argument("--out", required=True, help="Output IR JSONL path")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description="Convert enriched chunks to the Feniks IR format.")
+    parser.add_argument("--in", dest="input_path", type=Path, required=True, help="Path to the enriched JSONL file.")
+    parser.add_argument("--out", dest="output_path", type=Path, required=True, help="Path to write the IR JSONL file.")
+    args = parser.parse_args()
 
-    inp = Path(args.inp); outp = Path(args.out)
-    outp.parent.mkdir(parents=True, exist_ok=True)
+    log.info(f"Converting {args.input_path} to IR format at {args.output_path}")
 
-    n_in = n_out = 0
-    with inp.open("r", encoding="utf-8") as f, outp.open("w", encoding="utf-8") as w:
-        for line in f:
-            line = line.strip()
-            if not line: 
-                continue
+    records_written = 0
+    with args.input_path.open("r", encoding="utf-8") as infile, \
+         args.output_path.open("w", encoding="utf-8") as outfile:
+        
+        for line in infile:
             try:
-                row = json.loads(line)
-            except Exception:
-                continue
-            if isinstance(row, dict) and "error" in row:
-                continue
-            ir = to_ir(row)
-            w.write(json.dumps(ir, ensure_ascii=False) + "\n")
-            n_in += 1; n_out += 1
-    print(f"[OK] Converted {n_in} → {n_out} rows to {outp}")
+                chunk = json.loads(line)
+
+                # --- Transformation to IR ---
+                ir_record = {
+                    # Passthrough fields
+                    "id": chunk.get("id"),
+                    "file_path": chunk.get("filePath"),
+                    "start_line": chunk.get("start"),
+                    "end_line": chunk.get("end"),
+                    "text": chunk.get("text"),
+                    "chunk_name": chunk.get("name"),
+                    "module": chunk.get("module"),
+                    "kind": chunk.get("kind"),
+                    "ast_node_type": chunk.get("ast_node_type"),
+                    "dependencies_di": chunk.get("dependencies_di", []),
+                    "calls_functions": chunk.get("calls_functions", []),
+                    "api_endpoints": chunk.get("api_endpoints", []),
+                    "ui_routes": chunk.get("ui_routes", []),
+                    "cyclomatic_complexity": chunk.get("cyclomatic_complexity", 0),
+                    "business_tags": chunk.get("business_tags", []),
+                    "git_last_commit": chunk.get("git_last_commit"),
+
+                    # New IR fields (with heuristics)
+                    "confidence": 0.85, # Placeholder confidence
+                    "criticality_score": calculate_criticality(chunk),
+                    "migration_target": determine_migration_target(chunk),
+                    "evidence": [], # To be filled by more advanced steps
+                    "invariants": [],
+                    "io_contract": {},
+                    "api_contract_ref": None
+                }
+
+                outfile.write(json.dumps(ir_record) + "\n")
+                records_written += 1
+
+            except (json.JSONDecodeError, KeyError) as e:
+                log.warning(f"Skipping corrupted or incomplete line: {e} -> {line.strip()}")
+
+    log.info(f"Successfully converted {records_written} records to IR format.")
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

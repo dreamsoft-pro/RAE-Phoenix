@@ -31,27 +31,24 @@ def run_external_script(cmd: List[str], cwd: Path):
         log.error(f"Stderr: {e.stderr}")
         raise RuntimeError(f"External script failed: {' '.join(cmd)}") from e
 
-def load_enriched_chunks(path: Path) -> List[Chunk]:
-    """Loads chunks from the enriched JSONL file."""
+def load_ir_chunks(path: Path) -> List[Chunk]:
+    """Loads chunks from the Feniks IR JSONL file."""
     chunks = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             try:
                 data = json.loads(line)
-                # Map git info and migration suggestion to dataclasses
+                # Map git info and other nested objects
                 git_info_data = data.get("git_last_commit")
                 git_info = GitInfo(**git_info_data) if git_info_data else None
-                
-                ms_data = data.get("migration_suggestion")
-                migration_suggestion = MigrationSuggestion(**ms_data) if ms_data else None
 
                 chunks.append(Chunk(
                     id=data["id"],
-                    file_path=data["filePath"],
-                    start_line=data["start"],
-                    end_line=data["end"],
+                    file_path=data["file_path"],
+                    start_line=data["start_line"],
+                    end_line=data["end_line"],
                     text=data["text"],
-                    chunk_name=data["name"],
+                    chunk_name=data["chunk_name"],
                     module=data.get("module"),
                     kind=data.get("kind"),
                     ast_node_type=data.get("ast_node_type"),
@@ -62,13 +59,19 @@ def load_enriched_chunks(path: Path) -> List[Chunk]:
                     cyclomatic_complexity=data.get("cyclomatic_complexity", 0),
                     business_tags=data.get("business_tags", []),
                     git_last_commit=git_info,
-                    migration_suggestion=migration_suggestion
+                    evidence=data.get("evidence", []),
+                    confidence=data.get("confidence", 1.0),
+                    criticality_score=data.get("criticality_score", 0.0),
+                    migration_target=data.get("migration_target"),
+                    invariants=data.get("invariants", []),
+                    io_contract=data.get("io_contract", {}),
+                    api_contract_ref=data.get("api_contract_ref")
                 ))
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                log.error(f"Could not parse enriched chunk line: {e} -> {line}")
+                log.error(f"Could not parse IR chunk line: {e} -> {line}")
     return chunks
 
-def run_build_process(reset_collection: bool = False):
+def run_build_process(reset_collection: bool = False, collection_name: str = settings.QDRANT_COLLECTION):
     log.info("--- Starting Feniks Knowledge Base Build (Advanced) ---")
     try:
         # --- 0. Setup output directories ---
@@ -103,12 +106,12 @@ def run_build_process(reset_collection: bool = False):
         validator_cmd = ["python3", str(validator_path), "--schema", str(schema_path), "--in", str(ir_chunks_path)]
         run_external_script(validator_cmd, cwd=settings.PROJECT_ROOT)
 
-        # --- 3. Load Enriched Chunks ---
-        log.info("Step 3: Loading enriched chunks into Python...")
-        chunks = load_enriched_chunks(enriched_chunks_path)
+        # --- 3. Load IR Chunks ---
+        log.info("Step 3: Loading IR chunks into Python...")
+        chunks = load_ir_chunks(ir_chunks_path)
         if not chunks:
-            raise RuntimeError("No chunks were loaded after enrichment. Aborting.")
-        log.info(f"Loaded {len(chunks)} enriched chunks.")
+            raise RuntimeError("No chunks were loaded from IR file. Aborting.")
+        log.info(f"Loaded {len(chunks)} IR chunks.")
 
         # --- 4. Embeddings ---
         log.info("Step 4: Creating dense and sparse embeddings...")
@@ -120,9 +123,9 @@ def run_build_process(reset_collection: bool = False):
         # --- 5. Qdrant Ingestion ---
         log.info("Step 5: Connecting to Qdrant and upserting points...")
         qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
-        ensure_collection(client=qdrant_client, name=settings.QDRANT_COLLECTION, dim=dense_embs.shape[1], reset=reset_collection)
-        upsert_points(client=qdrant_client, collection=settings.QDRANT_COLLECTION, chunks=chunks, dense=dense_embs, X_tfidf=tfidf_matrix, vocab=tfidf_vec.vocabulary_)
-        log.info(f"Upserted {len(chunks)} points to Qdrant collection '{settings.QDRANT_COLLECTION}'.")
+        ensure_collection(client=qdrant_client, name=collection_name, dim=dense_embs.shape[1], reset=reset_collection)
+        upsert_points(client=qdrant_client, collection=collection_name, chunks=chunks, dense=dense_embs, X_tfidf=tfidf_matrix, vocab=tfidf_vec.vocabulary_)
+        log.info(f"Upserted {len(chunks)} points to Qdrant collection '{collection_name}'.")
 
         log.info("--- Feniks Knowledge Base Build Finished Successfully ---")
 

@@ -49,8 +49,12 @@ class Chunk:
     business_tags: List[str] = field(default_factory=list)
     git_last_commit: Optional[GitInfo] = None
 
-    # Migracja
-    migration_suggestion: Optional[MigrationSuggestion] = None
-
-    # Dowody (Source of Truth) - na przyszłość
+    # --- Nowe Pola IR ---
     evidence: List[Evidence] = field(default_factory=list)
+    confidence: float = 1.0
+    criticality_score: float = 0.0
+    migration_target: Optional[str] = None
+    migration_suggestion: Optional[MigrationSuggestion] = None
+    invariants: List[str] = field(default_factory=list)
+    io_contract: Dict[str, Any] = field(default_factory=dict)
+    api_contract_ref: Optional[str] = None
