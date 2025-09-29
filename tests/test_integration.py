@@ -1,6 +1,8 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+import numpy as np
+from pydantic import ValidationError as PydanticValidationError
 
 from scripts.feniks_cli import run_build_process
 from feniks.config import settings
@@ -78,3 +80,50 @@ def test_ensure_collection_with_reset():
 
     mock_client.delete_collection.assert_called_once_with("test_coll")
     mock_client.create_collection.assert_called_once()
+
+
+@patch('scripts.feniks.qdrant.QdrantClient')
+def test_upsert_fallback_on_pydantic_error(mock_qdrant_client_constructor, caplog):
+    """Tests the fallback mechanism on PydanticValidationError during upsert."""
+    from scripts.feniks.qdrant import upsert_points
+    mock_client = MagicMock()
+    mock_qdrant_client_constructor.return_value = mock_client
+
+    # First call raises Pydantic error, second succeeds
+    mock_client.upsert.side_effect = [
+        PydanticValidationError.from_exception_data(title="dummy", line_errors=[]),
+        None
+    ]
+
+    # Dummy data
+    chunks = [MagicMock()] * 2
+    dense_embs = np.array([[0.1] * 10] * 2)
+    tfidf_matrix = MagicMock()
+    tfidf_matrix.tocoo.return_value = MagicMock(col=[], data=[])
+
+    upsert_points(mock_client, "test_coll", chunks, dense_embs, tfidf_matrix, {})
+
+    assert mock_client.upsert.call_count == 2
+    assert "falling back to dense-only" in caplog.text
+
+
+@patch('scripts.feniks.qdrant.QdrantClient')
+def test_upsert_fallback_on_generic_error(mock_qdrant_client_constructor, caplog):
+    """Tests the fallback mechanism on a generic Exception during upsert."""
+    from scripts.feniks.qdrant import upsert_points
+    mock_client = MagicMock()
+    mock_qdrant_client_constructor.return_value = mock_client
+
+    # First call raises a generic error, second succeeds
+    mock_client.upsert.side_effect = [Exception("some generic error"), None]
+
+    # Dummy data
+    chunks = [MagicMock()] * 2
+    dense_embs = np.array([[0.1] * 10] * 2)
+    tfidf_matrix = MagicMock()
+    tfidf_matrix.tocoo.return_value = MagicMock(col=[], data=[])
+
+    upsert_points(mock_client, "test_coll", chunks, dense_embs, tfidf_matrix, {})
+
+    assert mock_client.upsert.call_count == 2
+    assert "Dense+sparse upsert failed" in caplog.text
