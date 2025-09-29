@@ -83,10 +83,10 @@ def build_module_cards_from_chunks(chunks: List[Chunk]) -> Dict[str, Any]:
 
         if chunk.ast_node_type == "CallExpression":
             name = chunk.chunk_name.lower()
-            if "service" in name: reg[mkey]["services"].add(chunk.chunk_name)
-            elif "controller" in name: reg[mkey]["controllers"].add(chunk.chunk_name)
-            elif "factory" in name: reg[mkey]["factories"].add(chunk.chunk_name)
-            elif "directive" in name: reg[mkey]["directives"].add(chunk.chunk_name)
+            if name.endswith("service"): reg[mkey]["services"].add(chunk.chunk_name)
+            elif name.endswith("ctrl") or name.endswith("controller"): reg[mkey]["controllers"].add(chunk.chunk_name)
+            elif name.endswith("factory"): reg[mkey]["factories"].add(chunk.chunk_name)
+            elif name.endswith("directive"): reg[mkey]["directives"].add(chunk.chunk_name)
         elif chunk.ast_node_type == "NgTemplate":
             reg[mkey]["templates"].add(Path(chunk.file_path).name)
 
