@@ -61,18 +61,15 @@ def upsert_points(client: QdrantClient,
         payloads = []
         for k in batch_ids:
             c = chunks[k]
-            payloads.append({
-                "chunk_name": c.chunk_name,
-                "file_path": c.file_path,
-                "module": c.module or "",
-                "ast_node_type": c.ast_node_type,
-                "kind": c.kind,
-                "dependencies_di": c.dependencies_di,
-                "anti_patterns": c.anti_patterns,
-                "start_line": c.start_line,
-                "end_line": c.end_line,
-                "tags": sorted(set(c.dependencies_di + c.anti_patterns)),
-            })
+            # Dynamically create payload from chunk, excluding large fields
+            payload = c.__dict__.copy()
+            payload.pop('text', None) # Exclude raw text from payload
+            # Convert dataclass sub-objects to dicts for JSON compatibility
+            if payload.get('git_last_commit'):
+                payload['git_last_commit'] = payload['git_last_commit'].__dict__
+            if payload.get('migration_suggestion'):
+                payload['migration_suggestion'] = payload['migration_suggestion'].__dict__
+            payloads.append(payload)
 
         # 1) Try hybrid (dense + sparse) upsert
         try:
