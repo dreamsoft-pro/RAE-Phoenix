@@ -1,0 +1,25 @@
+# Feniks Ignore Rules
+
+# 1. Standardowe wykluczenia
+**/node_modules/**
+**/bower_components/**
+**/dist/**
+**/build/**
+**/vendor/**
+**/.cache/**
+**/.git/**
+**/tmp/**
+
+# Ignoruj zminimalizowane pliki, mapy i pliki testowe
+**/*.min.js
+**/*.map
+**/*.spec.js
+**/*.test.js
+**/*.d.ts
+
+# 2. Specyficzne reguły dla projektu
+# Wyklucz biblioteki firm trzecich z katalogu 'assets', ale zachowaj resztę.
+app/assets/libraries/**
+app/assets/vendor/**
+app/assets/bower_components/**
+app/assets/plugins/**

@@ -192,10 +192,30 @@ async function indexHTML(files, out) {
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, ""); // reset
 
-  const jsFiles = await glob("**/*.js", { cwd: ROOT, absolute: true, nodir: true });
-  const htmlFiles = await glob("**/*.html", { cwd: ROOT, absolute: true, nodir: true });
+  // Wczytaj reguły ignorowania z .feniksignore
+  const ignorePatterns = [];
+  const ignoreFilePath = path.join(ROOT, '.feniksignore');
+  if (fs.existsSync(ignoreFilePath)) {
+    const ignoreFileContent = fs.readFileSync(ignoreFilePath, 'utf8');
+    ignorePatterns.push(...ignoreFileContent.split(/\r?\n/).filter(line => line.trim() && !line.startsWith('#')));
+  }
 
-  console.log(`[Feniks] JS: ${jsFiles.length} plików, HTML: ${htmlFiles.length} plików`);
+  const globOptions = {
+    cwd: ROOT,
+    absolute: true,
+    nodir: true,
+  };
+
+  if (ignorePatterns.length > 0) {
+    globOptions.ignore = ignorePatterns;
+  }
+
+  console.log(`[DEBUG] Glob options: ${JSON.stringify(globOptions, null, 2)}`);
+
+  const jsFiles = await glob("**/*.js", globOptions);
+  const htmlFiles = await glob("**/*.html", globOptions);
+
+  console.log(`[Feniks] JS: ${jsFiles.length} plików, HTML: ${htmlFiles.length} plików (po zastosowaniu .feniksignore)`);
   await indexJS(jsFiles, OUT);
   await indexHTML(htmlFiles, OUT);
   console.log(`[Feniks] Zapisano: ${OUT}`);
