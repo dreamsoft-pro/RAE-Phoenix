@@ -16,3 +16,5 @@ npm-debug.log*
 # Inne ciężkie / zbędne
 *.odt
 .DS_Store
+data/
+kb/
