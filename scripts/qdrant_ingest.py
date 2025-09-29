@@ -1,101 +1,76 @@
+# scripts/qdrant_ingest.py
 #!/usr/bin/env python3
-import argparse, os, json, uuid
-from tqdm import tqdm
-from typing import List, Dict
-from qdrant_client import QdrantClient, models
-from sentence_transformers import SentenceTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from joblib import dump, load
+from __future__ import annotations
 
-def load_chunks(path):
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                yield json.loads(line)
+import argparse
+import json
+import sys
+from pathlib import Path
 
-def build_dense_model(name: str):
-    # Dobry, wielojęzyczny model do zapytań PL i treści kodu:
-    # intfloat/multilingual-e5-base (sprawdza się w RAG)
-    return SentenceTransformer(name)
+from qdrant_client import QdrantClient
 
-def to_sparse_struct(vec):
-    # SciKit CSR -> Qdrant SparseVector
-    coo = vec.tocoo()
-    return models.SparseVector(
-        indices=coo.col.tolist(),
-        values=coo.data.tolist()
-    )
+from feniks.config import Config
+from feniks.embed import get_embedding_model, create_dense_embeddings, build_tfidf
+from feniks.qdrant import ensure_collection, upsert_points
+from feniks.types import Chunk
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--chunks", required=True)
-    ap.add_argument("--collection", default="frontend_feniks")
-    ap.add_argument("--qdrant-url", default="http://localhost:6333")
-    ap.add_argument("--reset", action="store_true")
-    ap.add_argument("--dense-model", default="intfloat/multilingual-e5-base")
-    ap.add_argument("--batch", type=int, default=128)
+def _load_chunks(path: Path) -> list[Chunk]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return [Chunk(**row) for row in data]
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Feniks → Qdrant ingest")
+    ap.add_argument("--reset", action="store_true", help="Drop & recreate collection")
+    ap.add_argument("--collection", type=str, default=None, help="Override collection name")
+    ap.add_argument("--batch-size", type=int, default=None)
+    ap.add_argument("--no-sparse", action="store_true", help="Disable sparse TF-IDF vectors")
+    ap.add_argument("--chunks", type=str, default="runs/latest/chunks.json", help="Path to chunks.json")
+    ap.add_argument("--out", type=str, default="runs/latest", help="Artifacts dir")
     args = ap.parse_args()
 
-    client = QdrantClient(url=args.qdrant_url)
+    cfg = Config.from_env()
+    collection = args.collection or cfg.qdrant_collection
+    batch_size = args.batch_size or cfg.qdrant_batch_size
+    use_sparse = not args.no_sparse and cfg.qdrant_use_sparse
 
-    chunks = list(load_chunks(args.chunks))
-    texts = [c["code_snippet"] or "" for c in chunks]
+    chunks_path = Path(args.chunks)
+    chunks = _load_chunks(chunks_path)
 
-    # === Dense embeddings ===
-    dense_model = build_dense_model(args.dense_model)
-    dense_dim = dense_model.get_sentence_embedding_dimension()
+    # Embeddings
+    model = get_embedding_model(cfg.embed_model)
+    dense = create_dense_embeddings(model, chunks, max_chars=cfg.embed_max_chars, batch_size=cfg.embed_batch_size)
 
-    # === Sparse TF-IDF (uni+bi-gram) ===
-    # Fit na całym korpusie -> zapisujemy vektoryzer dla zapytań
-    tfidf = TfidfVectorizer(ngram_range=(1,2), min_df=2, token_pattern=r"(?u)\b\w+\b")
-    X = tfidf.fit_transform(texts)
-    os.makedirs("feniks/data", exist_ok=True)
-    dump(tfidf, "feniks/data/tfidf.joblib")
+    tfidf_vec = None
+    tfidf_mat = None
+    if use_sparse:
+        tfidf_vec, tfidf_mat = build_tfidf(chunks)
 
-    # === Kolekcja Qdrant: dense + sparse ===
-    if args.reset and client.collection_exists(args.collection):
-        client.delete_collection(args.collection)
+    # Qdrant client
+    client = QdrantClient(
+        url=cfg.qdrant_url,
+        api_key=cfg.qdrant_api_key,
+        timeout=cfg.qdrant_timeout_s,
+    )
+    ensure_collection(client, collection, dim=dense.shape[1], reset=args.reset, use_sparse=use_sparse)
+    upsert_points(
+        client, collection, chunks, dense,
+        tfidf_vocab_to_index=(tfidf_vec.vocabulary_ if tfidf_vec else None),
+        tfidf_matrix=tfidf_mat,
+        batch_size=batch_size,
+        use_sparse=use_sparse
+    )
 
-    if not client.collection_exists(args.collection):
-        client.create_collection(
-            collection_name=args.collection,
-            vectors_config={
-                "dense_code": models.VectorParams(
-                    size=dense_dim, distance=models.Distance.COSINE
-                )
-            },
-            sparse_vectors_config={
-                "sparse_keywords": models.SparseVectorParams()
-            },
-        )
+    # artifacts
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "ingest_summary.json").write_text(json.dumps({
+        "collection": collection,
+        "count": len(chunks),
+        "use_sparse": use_sparse
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
 
-        # Indeksy payloadu do szybkiego filtrowania
-        for field in ["file_path","ast_node_type","chunk_name","template_url"]:
-            client.create_payload_index(args.collection, field_name=field, field_schema=models.PayloadSchemaType.KEYWORD)
-        for field in ["dependencies_di","tags"]:
-            client.create_payload_index(args.collection, field_name=field, field_schema=models.PayloadSchemaType.KEYWORD)
-
-    # === Upsert w partiach ===
-    points = []
-    for i in tqdm(range(0, len(chunks), args.batch), desc="Upsert"):
-        batch = chunks[i:i+args.batch]
-        dense = dense_model.encode([b["code_snippet"] or "" for b in batch], show_progress_bar=False, normalize_embeddings=True)
-        sparse = X[i:i+args.batch]
-        pts = []
-        for j, c in enumerate(batch):
-            s = to_sparse_struct(sparse[j])
-            pts.append(models.PointStruct(
-                id=c["chunk_id"],
-                vector={
-                    "dense_code": dense[j].tolist(),
-                    "sparse_keywords": s
-                },
-                payload=c
-            ))
-        client.upsert(collection_name=args.collection, points=pts)
-
-    info = client.get_collection(args.collection)
-    print("Collection created:", info)
+    print(f"[OK] Ingested {len(chunks)} chunks into '{collection}' (sparse={use_sparse})")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

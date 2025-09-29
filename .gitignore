@@ -16,3 +16,26 @@ npm-debug.log*
 # Inne ciężkie / zbędne
 *.odt
 .DS_Store
+.env
+# env & OS
+.env
+*.log
+*.tmp
+*.swp
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# artefakty generowane przez Feniks
+runs/
+kb/
+data/*.jsonl
+*.zip
+
+# front-end źródło do ingestu (traktuj jako zewnętrzne)
+frontend-master/
+
+# node/build
+node_modules/
+dist/
+build/

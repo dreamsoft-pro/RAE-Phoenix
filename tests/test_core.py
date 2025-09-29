@@ -1,5 +1,5 @@
 import pytest
-from scripts.feniks.core import sha1
+from src.feniks.core import sha1
 
 def test_sha1_consistency():
     """
