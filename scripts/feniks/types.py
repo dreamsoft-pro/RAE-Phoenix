@@ -41,7 +41,7 @@ class Chunk:
     # Relacje
     dependencies_di: List[str] = field(default_factory=list)
     calls_functions: List[str] = field(default_factory=list)
-    api_endpoints: List[str] = field(default_factory=list)
+    api_endpoints: List[Dict[str, Any]] = field(default_factory=list)
     ui_routes: List[str] = field(default_factory=list)
 
     # Jakość i Kontekst
