@@ -210,6 +210,7 @@ function parseJS(filePath, code, modulesCtx) {
     const calls = new Set();
     const api = new Set();
     let complexity = 1;
+    let watchers = 0, emits = 0, broadcasts = 0;
 
     traverse.default(ast, {
       enter(p) {
@@ -223,7 +224,12 @@ function parseJS(filePath, code, modulesCtx) {
         if (p.isCallExpression()) {
           const c = p.node.callee;
           const name = calleeNameFromNode(c);
-          if (name) calls.add(name);
+          if (name) {
+            if (name.endsWith('$watch')) watchers++;
+            if (name.endsWith('$emit')) emits++;
+            if (name.endsWith('$broadcast')) broadcasts++;
+            calls.add(name);
+          }
           // API endpoints
           if (name && (/^\$?http$/.test(name) || /^\$?http\./.test(name))) {
             apiEndpointsFromCall(name, p.node.arguments).forEach(a => api.add(JSON.stringify(a)));
@@ -259,6 +265,11 @@ function parseJS(filePath, code, modulesCtx) {
         api_endpoints: Array.from(api).map(a => JSON.parse(a)),
         ui_routes: [],
         cyclomatic_complexity: complexity,
+        eventfulness: {
+            watchers,
+            emits,
+            broadcasts
+        },
         summary_en: null,
         business_tags
       }

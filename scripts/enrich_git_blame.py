@@ -49,6 +49,17 @@ def blame_slice(repo_root: Path, file_path: str, start: int, end: int):
       return last_commit
   return None
 
+def get_file_churn(repo_root: Path, file_path: str) -> int:
+  """Calculates the churn for a file (number of commits in the last 90 days)."""
+  if not file_path:
+    return 0
+  try:
+    cmd = f'git -C {repo_root} log --since="90 days ago" --follow --format=oneline -- "{file_path}" | wc -l'
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+    return int(result.stdout.strip())
+  except (subprocess.CalledProcessError, ValueError):
+    return 0
+
 def main():
   import argparse
   ap = argparse.ArgumentParser(description="Enrich chunks JSONL with git blame metadata")
@@ -61,6 +72,8 @@ def main():
   inp = Path(args.inp).resolve()
   outp = Path(args.out).resolve()
   outp.parent.mkdir(parents=True, exist_ok=True)
+
+  churn_cache = {}
 
   with inp.open("r", encoding="utf-8") as f, outp.open("w", encoding="utf-8") as w:
     for line in f:
@@ -75,6 +88,11 @@ def main():
       start = int(row.get("start", 1))
       end = int(row.get("end", start))
       meta = row.setdefault("metadata", {})
+
+      if fp not in churn_cache:
+          churn_cache[fp] = get_file_churn(repo, fp)
+      meta['churn'] = churn_cache[fp]
+
       info = blame_slice(repo, fp, start, end)
       if info:
         meta["git_last_commit"] = info

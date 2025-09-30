@@ -24,28 +24,28 @@ preconditions:
 # The first pattern that matches will be used.
 patterns:
   - type: ast_match
-    type: CallExpression
-    callee:
-      type: MemberExpression
-      object:
-        type: CallExpression
-        callee:
-          type: MemberExpression
-          object:
-            type: Identifier
-            name: angular
-          property:
-            type: Identifier
-            name: module
-      property:
-        type: Identifier
-        name: factory
+    match:
+      type: CallExpression
+      callee:
+        type: MemberExpression
+        object:
+          type: CallExpression
+          callee:
+            type: MemberExpression
+            object:
+              type: Identifier
+              name: angular
+            property:
+              type: Identifier
+              name: module
+        property:
+          type: Identifier
+          name: factory
   
 # Actions to be performed on the matched code.
 actions:
-  - type: replace_string
-    old: "angular.module"
-    new: "// angular.module"
+  - type: ast_transform
+    description: "Transforms the AngularJS factory into exported TypeScript functions."
 
 # Postconditions to verify that the transformation was successful.
 postconditions:

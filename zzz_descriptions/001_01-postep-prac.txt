@@ -28,7 +28,7 @@
    2. Kontrakty I/O dla funkcji: Nie jest generowany kontrakt dla każdej funkcji (parametry, typy zwrotne, efekty uboczne) w formie, która mogłaby być użyta do generacji kodu TypeScript (DTO).
   
   
-   xxxxxxxxxxxxxxxxxxxxx--zrobione-xxxxxxxxxxxxxxxxxxxxxxxx   
+
   
    3. Deklaratywne Recepty Migracyjne (DSL): Nie ma jeszcze języka (DSL w YAML/JSON) do opisywania reguł transformacji kodu. To kluczowy element dla agenta Refactor.
    
@@ -52,7 +52,7 @@
    4. Integracja z CLI: Dodam nową komendę apply-recipe do feniks_cli.py, aby można było uruchamiać recepty z linii poleceń.
 
    
-   
+      xxxxxxxxxxxxxxxxxxxxx--zrobione-xxxxxxxxxxxxxxxxxxxxxxxx   
    
    
    
