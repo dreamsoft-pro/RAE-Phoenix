@@ -1,3 +1,7 @@
+[DETECTION] factoryFound=true exported=[initCodeRegister, initCodeWithoutRegister, selectCountryRegister, selectCountryWithoutRegister, findFormAreaCode]
+
+--- MODIFIED (dry-run) ---
+
 export function initCodeRegister(scope, countries) {
     var upCode = $filter('uppercase')($rootScope.currentLang.code);
 
@@ -73,3 +77,4 @@ export function findFormAreaCode(scope, formName, code, oldVal) {
         }
     }
 }
+
