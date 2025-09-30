@@ -93,14 +93,14 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         # --- 2. Run Python Git Blame Enricher ---
         log.info("Step 2: Enriching chunks with git blame information...")
         enricher_path = settings.PROJECT_ROOT / "scripts" / "enrich_git_blame.py"
-        enricher_cmd = ["python3", str(enricher_path), "--repo", str(frontend_path), "--in", str(raw_chunks_path), "--out", str(enriched_chunks_path)]
+        enricher_cmd = [sys.executable, str(enricher_path), "--repo", str(frontend_path), "--in", str(raw_chunks_path), "--out", str(enriched_chunks_path)]
         run_external_script(enricher_cmd, cwd=settings.PROJECT_ROOT)
         log.info("Step 2: Finished enriching chunks with git blame information.")
 
         # --- 2.5. Convert to IR ---
         log.info("Step 2.5: Converting to Feniks Intermediate Representation (IR)...")
         converter_path = settings.PROJECT_ROOT / "scripts" / "convert_to_ir.py"
-        converter_cmd = ["python3", str(converter_path), "--in", str(enriched_chunks_path), "--out", str(ir_chunks_path)]
+        converter_cmd = [sys.executable, str(converter_path), "--in", str(enriched_chunks_path), "--out", str(ir_chunks_path)]
         run_external_script(converter_cmd, cwd=settings.PROJECT_ROOT)
         log.info("Step 2.5: Finished converting to Feniks IR.")
 
@@ -108,7 +108,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         log.info("Step 2.6: Validating Feniks IR against schema...")
         validator_path = settings.PROJECT_ROOT / "scripts" / "validate_ir.py"
         schema_path = settings.PROJECT_ROOT / "schemas" / "ir.schema.json"
-        validator_cmd = ["python3", str(validator_path), "--schema", str(schema_path), "--in", str(ir_chunks_path)]
+        validator_cmd = [sys.executable, str(validator_path), "--schema", str(schema_path), "--in", str(ir_chunks_path)]
         run_external_script(validator_cmd, cwd=settings.PROJECT_ROOT)
         log.info("Step 2.6: Finished validating Feniks IR.")
 
@@ -142,12 +142,30 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         log.error(f"A critical error occurred during the build process: {e}", exc_info=True)
         sys.exit(1)
 
+def run_apply_recipe(recipe_path: Path, file_path: Path, dry_run: bool):
+    """Wrapper to call the apply_recipe.py script."""
+    script_path = settings.PROJECT_ROOT / "scripts" / "apply_recipe.py"
+    cmd = [sys.executable, str(script_path), "--recipe", str(recipe_path), "--file-path", str(file_path)]
+    if dry_run:
+        cmd.append("--dry-run")
+    run_external_script(cmd, cwd=settings.PROJECT_ROOT)
+
 def main():
     parser = argparse.ArgumentParser(description="Feniks Knowledge Base Builder CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    
+    # Build command
     build_parser = subparsers.add_parser("build", help="Run the full knowledge base build process.")
     build_parser.add_argument("--reset", action="store_true", help="Reset the Qdrant collection.")
     build_parser.set_defaults(func=lambda args: run_build_process(reset_collection=args.reset))
+
+    # Apply-recipe command
+    recipe_parser = subparsers.add_parser("apply-recipe", help="Apply a migration recipe.")
+    recipe_parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file.")
+    recipe_parser.add_argument("--file-path", type=Path, required=True, help="Path to the file to be transformed.")
+    recipe_parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
+    recipe_parser.set_defaults(func=lambda args: run_apply_recipe(args.recipe, args.file_path, args.dry_run))
+
     args = parser.parse_args()
     args.func(args)
 

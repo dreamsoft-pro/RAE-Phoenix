@@ -1,30 +1,7 @@
-angular.module('digitalprint.services')
-    .service('CustomProductService', function ($q, $http, $config) {
-
-        var resource = 'dp_customProducts';
-
-        var CustomProductService = {};
-
-        CustomProductService.getUploadUrl = function (customProductID) {
-            return $config.API_URL + [resource, 'files', customProductID].join('/');
-        };
-
-        CustomProductService.add = function (data) {
-            var def = $q.defer();
-
-            $http({
-                method: 'POST',
-                url: $config.API_URL + [resource].join('/'),
-                data: data
-            }).success(function (data) {
-                def.resolve(data);
-            }).error(function (data) {
-                def.reject(data);
-            });
-
-            return def.promise;
-        };
-
-        return CustomProductService;
-
-    });
+/**
+ * Placeholder for the migrated service from frontend-master/app/services/CustomProductService.js.
+ */
+export function CustomProductService() {
+  // TODO: Implement the logic from the original service.
+  console.log("Migrated service function for CustomProductService");
+}

@@ -1,29 +1,7 @@
-angular.module('digitalprint.services')
-    .factory('LoadingService', function () {
-
-        var loadingCount = 0;
-        var errorCount = 0;
-        return {
-            isLoading: function () {
-                return loadingCount > 0;
-            },
-            requested: function () {
-                loadingCount++
-            },
-            responsed: function (status) {
-                if (status != 200 && status != 401) {
-                    errorCount++
-                }
-                loadingCount--
-            },
-            countError: function () {
-                errorCount++
-            },
-            count: function () {
-                return loadingCount
-            },
-            errorCount: function () {
-                return errorCount
-            }
-        };
-    });
+/**
+ * Placeholder for the migrated service from frontend-master/app/services/LoadingService.js.
+ */
+export function LoadingService() {
+  // TODO: Implement the logic from the original service.
+  console.log("Migrated service function for LoadingService");
+}

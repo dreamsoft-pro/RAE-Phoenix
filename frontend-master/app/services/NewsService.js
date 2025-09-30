@@ -1,32 +1,7 @@
 /**
- * Created by Rafał on 18-09-2017.
+ * Placeholder for the migrated service from frontend-master/app/services/NewsService.js.
  */
-angular.module('digitalprint.services')
-    .service('NewsService', function ($q, Restangular, $http, $config) {
-
-        var NewsService = {};
-
-        NewsService.getResource = function () {
-            return 'dp_news'
-        };
-
-        NewsService.getRss = function (data) {
-            var def = $q.defer();
-
-            var resource = this.getResource();
-
-            $http({
-                method: 'GET',
-                url: $config.API_URL + [resource, 'rss'].join('/')
-            }).success(function (data) {
-                def.resolve(data);
-            }).error(function (data) {
-                def.reject(data);
-            });
-
-            return def.promise;
-        };
-
-        return NewsService;
-
-    });
+export function NewsService() {
+  // TODO: Implement the logic from the original service.
+  console.log("Migrated service function for NewsService");
+}

@@ -1,35 +1,7 @@
 /**
- * Created by Rafał on 19-06-2017.
+ * Placeholder for the migrated service from frontend-master/app/services/StaticContentService.js.
  */
-'use strict';
-
-angular.module('digitalprint.services')
-    .factory('StaticContentService', function($q, $http, $config) {
-
-        var StaticContentService = {};
-        var resource = getResource();
-
-        function getResource() {
-            return ['dp_static_contents'];
-        }
-
-        StaticContentService.getContent = function(key) {
-
-            var def = $q.defer();
-
-            $http({
-                method: 'GET',
-                url: $config.API_URL + [resource, 'getContent', key].join('/')
-            }).success(function(data) {
-                def.resolve(data);
-            }).error(function(data) {
-                def.reject(data);
-                console.log(data);
-            });
-
-            return def.promise;
-        };
-
-        return StaticContentService;
-
-    });
+export function StaticContentService() {
+  // TODO: Implement the logic from the original service.
+  console.log("Migrated service function for StaticContentService");
+}

@@ -1,6 +1,20 @@
 Przeczytaj kod programu, oraz opis wymagań do refaktoryzacji w plikach 001_kluczowe_podejscie_do_bazy_dla_agentow.txt i 001_01-postep-prac.txt w katalogu /home/grzegorz/cloud/Dockerized/feniks/zzz_descriptions/.
 Zapoznaj się z plikami 002_co-juz-jest-i-jak-to-rozbudowac.txt i 001_02-wykonane-z-postep-prac.txt
 
-Rozpocznij pracę od wymiany biblioteki która 
+Rozpocznij pace od 
 
-WARN: qdrant-client does not support 'sparse_vectors' — falling back to dense-only. 
+  Plan Działania:
+
+   1. Rozszerzenie Parsowania (Node.js): Zmodyfikuję skrypt js_html_indexer.mjs, aby wydobywał dodatkowe, kluczowe metadane:
+       * Mapowanie Endpointów API: Będzie wykrywał wywołania $http i zapisywał, z jakimi adresami API komunikuje się dany fragment kodu.
+       * Sugestie Migracyjne: Doda automatyczne sugestie dotyczące migracji do React/Next.js na podstawie typu komponentu AngularJS.
+
+
+       Gdy skończysz daj mi znać, chyba, że ten punkt jest rbobione to wykonaj punkt 2 planu
+    2. Aktualizacja Struktur Danych (Python): Zaktualizuję definicję Chunk w Pythonie, aby mogła przechowywać te nowe informacje.
+
+
+
+wylogowanie z gemini
+/auth logout
+/auth login    

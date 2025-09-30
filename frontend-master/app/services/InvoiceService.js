@@ -1,35 +1,7 @@
 /**
- * Created by Rafał on 17-07-2017.
+ * Placeholder for the migrated service from frontend-master/app/services/InvoiceService.js.
  */
-'use strict';
-
-angular.module('digitalprint.services')
-    .factory('InvoiceService', function ($q, $http, $config) {
-
-        var InvoiceService = {};
-
-        var resource = getResource();
-
-        function getResource() {
-            return 'dp_invoices';
-        }
-
-        InvoiceService.getForUser = function (orderID) {
-            var def = $q.defer();
-
-            $http({
-                method: 'GET',
-                url: $config.API_URL + [resource, 'getForUser',orderID].join("/"),
-                responseType: 'arraybuffer',
-                dataType:'blob'
-            }).success(function (data) {
-                def.resolve(data);
-            }).error(function (data) {
-                def.reject(data);
-            });
-
-            return def.promise;
-        };
-
-        return InvoiceService;
-    });
+export function InvoiceService() {
+  // TODO: Implement the logic from the original service.
+  console.log("Migrated service function for InvoiceService");
+}
