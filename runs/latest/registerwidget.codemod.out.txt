@@ -1,0 +1,80 @@
+[DETECTION] factoryFound=true exported=[initCodeRegister, initCodeWithoutRegister, selectCountryRegister, selectCountryWithoutRegister, findFormAreaCode]
+
+--- MODIFIED (dry-run) ---
+
+export function initCodeRegister(scope, countries) {
+    var upCode = $filter('uppercase')($rootScope.currentLang.code);
+
+    scope.form.ad_countryCode = upCode;
+    scope.form.del_countryCode = upCode;
+    scope.form.fv_countryCode = upCode;
+
+    var idx = _.findIndex(countries, {code: upCode});
+
+    if (idx > -1) {
+        if (countries[idx].areaCode !== undefined) {
+            scope.form.ad_areaCode = countries[idx].areaCode;
+            scope.form.del_areaCode = countries[idx].areaCode;
+        }
+    }
+}
+
+export function initCodeWithoutRegister(scope, countries) {
+
+    var upCode = $filter('uppercase')($rootScope.currentLang.code);
+
+    scope.noRegisterForm.ad_countryCode = upCode;
+    scope.noRegisterForm.fv_countryCode = upCode;
+
+    var idx = _.findIndex(countries, {code: upCode});
+
+    if (idx > -1) {
+        if (countries[idx].areaCode !== undefined) {
+            scope.noRegisterForm.ad_areaCode = countries[idx].areaCode;
+        }
+    }
+}
+
+export function selectCountryRegister(scope, prefix) {
+    var code = scope.form[prefix + '_countryCode'];
+
+    var idx = _.findIndex(scope.countries, {code: code});
+
+    if (idx > -1) {
+        if (scope.countries[idx].areaCode !== undefined) {
+            scope.form[prefix + '_areaCode'] = scope.countries[idx].areaCode;
+        } else {
+            scope.form[prefix + '_areaCode'] = '';
+        }
+    }
+}
+
+export function selectCountryWithoutRegister(scope, prefix) {
+    var code = scope.noRegisterForm[prefix + '_countryCode'];
+
+    var idx = _.findIndex(scope.countries, {code: code});
+
+    if (idx > -1) {
+        if (scope.countries[idx].areaCode !== undefined) {
+            scope.noRegisterForm[prefix + '_areaCode'] = scope.countries[idx].areaCode;
+        } else {
+            scope.noRegisterForm[prefix + '_areaCode'] = '';
+        }
+    }
+}
+
+export function findFormAreaCode(scope, formName, code, oldVal) {
+    if( code !== oldVal ) {
+
+        var idx = _.findIndex(scope.countries, {code: code});
+
+        if (idx > -1) {
+            if (scope.countries[idx].areaCode !== undefined) {
+                scope[formName].areaCode = scope.countries[idx].areaCode;
+            } else {
+                scope[formName].areaCode = '';
+            }
+        }
+    }
+}
+
