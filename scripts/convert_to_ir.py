@@ -10,13 +10,42 @@ sys.path.insert(0, str(project_root))
 from feniks.logger import log
 
 def calculate_criticality(chunk: dict) -> float:
-    """Heuristically calculate a criticality score."""
-    score = 0.0
-    score += chunk.get("cyclomatic_complexity", 0) * 0.5
-    if "/api/" in chunk.get("text", ""):
-        score += 10
-    # Simple heuristic: more dependencies, more critical
-    score += len(chunk.get("dependencies_di", [])) * 0.2
+    """Calculates an advanced migration difficulty score based on multiple factors."""
+    
+    meta = chunk.get("metadata", {})
+    
+    # Weights for different factors
+    w_complexity = 0.5
+    w_churn = 1.0
+    w_watchers = 2.0
+    w_events = 1.5
+    w_coupling = 0.2
+    w_route_exposure = 5.0
+
+    # Extract values with defaults
+    complexity = meta.get("cyclomatic_complexity", 0)
+    churn = meta.get("churn", 0)
+    
+    events_meta = meta.get("eventfulness", {})
+    watchers = events_meta.get("watchers", 0)
+    emits = events_meta.get("emits", 0)
+    broadcasts = events_meta.get("broadcasts", 0)
+    
+    coupling = len(chunk.get("dependencies_di", []))
+    
+    # A chunk is considered exposed if it's linked to a UI route
+    is_exposed = 1 if meta.get("ui_routes") else 0
+
+    # Calculate the weighted score
+    score = (
+        (complexity * w_complexity) +
+        (churn * w_churn) +
+        (watchers * w_watchers) +
+        ((emits + broadcasts) * w_events) +
+        (coupling * w_coupling) +
+        (is_exposed * w_route_exposure)
+    )
+    
     return round(score, 2)
 
 def determine_migration_target(chunk: dict) -> str:
