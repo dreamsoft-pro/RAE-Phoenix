@@ -34,6 +34,7 @@ function toUnix(p) { return p.split(path.sep).join('/'); }
 function decisionCount(node) {
   // Simple cyclomatic complexity approximation
   let count = 1;
+  if (!node) return count;
   traverse.default(node, {
     enter(path) {
       switch (path.node.type) {
@@ -73,15 +74,109 @@ function businessTagsFromName(name, file) {
   return Array.from(tags);
 }
 
+function getObjectKeys(node) {
+  if (!node || node.type !== 'ObjectExpression') return [];
+  return node.properties.map(p => {
+    if (p.type === 'SpreadElement') return null; // Ignore spread elements for now
+    const key = p.key;
+    if (key) {
+      if (key.type === 'Identifier') return key.name;
+      if (key.type === 'StringLiteral') return key.value;
+    }
+    return null;
+  }).filter(Boolean);
+}
+
+function evaluateUrlNode(node) {
+    if (!node) return '';
+    switch (node.type) {
+        case 'StringLiteral':
+            return node.value;
+        case 'Identifier':
+            return `\${{node.name}}`;
+        case 'MemberExpression':
+            const obj = node.object.name || '...';
+            const prop = node.property.name || '...';
+            return `\${{obj}.${prop}}`;
+        case 'BinaryExpression':
+            if (node.operator === '+') {
+                return evaluateUrlNode(node.left) + evaluateUrlNode(node.right);
+            }
+            break;
+        case 'TemplateLiteral':
+            return node.quasis.map(q => q.value.cooked).join('\${...}');
+        case 'CallExpression':
+            if (node.callee.type === 'MemberExpression' && node.callee.property.name === 'join') {
+                if (node.callee.object.type === 'ArrayExpression') {
+                    return node.callee.object.elements.map(evaluateUrlNode).join(node.arguments[0].value);
+                }
+            }
+            return '{...}';
+    }
+    return '{...}';
+}
+
+
 function apiEndpointsFromCall(calleeName, args) {
   const endpoints = [];
-  const first = args?.[0];
-  const collect = (v) => {
-    if (typeof v === 'string' && /(\/api\/|^https?:\/\/)/.test(v)) endpoints.push(v);
-  };
-  if (first && first.type === 'StringLiteral') collect(first.value);
-  else if (first && first.type === 'TemplateLiteral' && first.quasis?.length) {
-    collect(first.quasis.map(q => q.value.cooked).join('${}'));
+  if (!args || args.length === 0) return [];
+
+  let url, method, dataKeys = [], paramKeys = [];
+
+  // Case 1: $http.get(url, config), $http.post(url, data, config)
+  const match = calleeName.match(/\$http\.(get|delete|head|jsonp|post|put|patch)/);
+  if (match) {
+    method = match[1].toUpperCase();
+    const urlArg = args[0];
+    url = evaluateUrlNode(urlArg);
+    console.log('apiEndpointsFromCall: url=', url, 'method=', method);
+
+    const isPostLike = ['POST', 'PUT', 'PATCH'].includes(method);
+    const dataArg = isPostLike ? args[1] : null;
+    const configArg = isPostLike ? args[2] : args[1];
+
+    if (dataArg && dataArg.type === 'ObjectExpression') {
+      dataKeys = getObjectKeys(dataArg);
+    }
+
+    if (configArg && configArg.type === 'ObjectExpression') {
+      const paramsProp = configArg.properties.find(p => p.key && (p.key.name === 'params' || p.key.value === 'params'));
+      if (paramsProp && paramsProp.value.type === 'ObjectExpression') {
+        paramKeys = getObjectKeys(paramsProp.value);
+      }
+    }
+
+  } else if (calleeName === '$http') {
+    // Case 2: $http({ method, url, ... })
+    const config = args[0];
+    if (config && config.type === 'ObjectExpression') {
+      for (const prop of config.properties) {
+        if (prop.type === 'SpreadElement') continue;
+        const key = prop.key?.name || prop.key?.value;
+        if (key === 'method' && prop.value.type === 'StringLiteral') {
+          method = prop.value.value.toUpperCase();
+        }
+        if (key === 'url') {
+          url = evaluateUrlNode(prop.value);
+        }
+        if (key === 'data' && prop.value.type === 'ObjectExpression') {
+          dataKeys = getObjectKeys(prop.value);
+        }
+        if (key === 'params') {
+            if (prop.value.type === 'ObjectExpression') {
+                paramKeys = getObjectKeys(prop.value);
+            } else if (prop.value.type === 'Identifier') {
+                // Cannot resolve variable, but we know params exist
+                paramKeys = ['...'];
+            }
+        }
+      }
+      console.log('apiEndpointsFromCall: url=', url, 'method=', method);
+    }
+  }
+
+  if (url && method && (url.includes('/api/') || url.startsWith('http') || url.startsWith('${'))) {
+    endpoints.push({ url, method, dataKeys, paramKeys });
   }
   return endpoints;
 }
@@ -123,15 +218,15 @@ function parseJS(filePath, code, modulesCtx) {
           const n = p.node;
           if (!n.loc) return;
           const s = n.loc.start.line, e = n.loc.end.line;
-          if (e < start || s > end) return;
+          if (e < start || s > end) p.skip();
         }
         if (p.isCallExpression()) {
           const c = p.node.callee;
           const name = calleeNameFromNode(c);
           if (name) calls.add(name);
           // API endpoints
-          if (name && (/^\$?http(\.|$)/.test(name) || /resource/i.test(name))) {
-            apiEndpointsFromCall(name, p.node.arguments).forEach(a => api.add(a));
+          if (name && (/^\$?http$/.test(name) || /^\$?http\./.test(name))) {
+            apiEndpointsFromCall(name, p.node.arguments).forEach(a => api.add(JSON.stringify(a)));
           }
         }
       }
@@ -161,7 +256,7 @@ function parseJS(filePath, code, modulesCtx) {
       symbol: name,
       metadata: {
         calls_functions: Array.from(calls),
-        api_endpoints: Array.from(api),
+        api_endpoints: Array.from(api).map(a => JSON.parse(a)),
         ui_routes: [],
         cyclomatic_complexity: complexity,
         summary_en: null,

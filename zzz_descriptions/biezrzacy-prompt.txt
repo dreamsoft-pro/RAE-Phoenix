@@ -1,0 +1,6 @@
+Przeczytaj kod programu, oraz opis wymagań do refaktoryzacji w plikach 001_kluczowe_podejscie_do_bazy_dla_agentow.txt i 001_01-postep-prac.txt w katalogu /home/grzegorz/cloud/Dockerized/feniks/zzz_descriptions/.
+Zapoznaj się z plikami 002_co-juz-jest-i-jak-to-rozbudowac.txt i 001_02-wykonane-z-postep-prac.txt
+
+Rozpocznij pracę od wymiany biblioteki która 
+
+WARN: qdrant-client does not support 'sparse_vectors' — falling back to dense-only. 

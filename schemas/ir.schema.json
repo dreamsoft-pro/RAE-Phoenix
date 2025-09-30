@@ -16,7 +16,19 @@
         "ast_node_type": { "type": ["string", "null"] },
         "dependencies_di": { "type": "array", "items": { "type": "string" } },
         "calls_functions": { "type": "array", "items": { "type": "string" } },
-        "api_endpoints": { "type": "array", "items": { "type": "string" } },
+        "api_endpoints": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "url": { "type": "string" },
+                    "method": { "type": "string" },
+                    "dataKeys": { "type": "array", "items": { "type": "string" } },
+                    "paramKeys": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["url", "method"]
+            }
+        },
         "ui_routes": { "type": "array", "items": { "type": "string" } },
         "cyclomatic_complexity": { "type": "integer" },
         "business_tags": { "type": "array", "items": { "type": "string" } },

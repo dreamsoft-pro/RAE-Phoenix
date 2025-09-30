@@ -3,7 +3,7 @@
 from __future__ import annotations
 import json, subprocess, sys
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 def blame_slice(repo_root: Path, file_path: str, start: int, end: int):
   fp = repo_root / file_path
@@ -28,7 +28,7 @@ def blame_slice(repo_root: Path, file_path: str, start: int, end: int):
     elif line.startswith("author-time "):
       try:
         ts = int(line[len("author-time "):])
-        current["date"] = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+        current["date"] = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
       except:
         pass
     elif line.startswith("summary "):
