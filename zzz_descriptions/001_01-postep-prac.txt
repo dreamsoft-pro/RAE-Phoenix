@@ -16,7 +16,7 @@
          pod dalszy rozwój.
 
 
- xxxxxxxxxxxxxxxxxxxxx--zrobione-xxxxxxxxxxxxxxxxxxxxxxxx        
+     
 
   Czego brakuje do pełnej wizji?
 
@@ -26,7 +26,38 @@
    1. Kontrakty API (OpenAPI): System obecnie tylko listuje api_endpoints. Brakuje mechanizmu, który analizuje te wywołania ($http/$resource), aby automatycznie wygenerować specyfikację OpenAPI z metodami, 
       parametrami i schematami body.
    2. Kontrakty I/O dla funkcji: Nie jest generowany kontrakt dla każdej funkcji (parametry, typy zwrotne, efekty uboczne) w formie, która mogłaby być użyta do generacji kodu TypeScript (DTO).
+  
+  
+   xxxxxxxxxxxxxxxxxxxxx--zrobione-xxxxxxxxxxxxxxxxxxxxxxxx   
+  
    3. Deklaratywne Recepty Migracyjne (DSL): Nie ma jeszcze języka (DSL w YAML/JSON) do opisywania reguł transformacji kodu. To kluczowy element dla agenta Refactor.
+   
+   ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  > wykonaj    3. Deklaratywne Recepty Migracyjne (DSL): Nie ma jeszcze języka (DSL w YAML/JSON) do opisywania reguł transformacji kodu. To │
+│     kluczowy element dla agenta Refactor.                                                                                                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+    To kluczowa i złożona funkcjonalność. Podejdę do tego ewolucyjnie, tworząc fundament pod silnik transformacji.
+
+    Mój plan implementacji DSL do transformacji kodu:
+
+   1. Projekt DSL (w YAML): Zaprojektuję prostą strukturę "recepty" w pliku YAML. Będzie ona zawierać sekcje pattern (do znajdowania kodu), 
+      action (do jego modyfikacji) i postconditions (do weryfikacji).
+   2. Stworzenie pierwszej "recepty": Utworzę przykładową receptę, np. angularjs-service-to-ts-function.yml, która będzie definiować prostą 
+      transformację. Umieszczę ją w nowym katalogu recipes/.
+   3. Implementacja silnika receptur: Stworzę nowy skrypt w Pythonie (scripts/apply_recipe.py), który będzie potrafił:
+       * Parsować plik YAML z receptą.
+       * Wykonywać zdefiniowane w niej akcje (na początek proste operacje na plikach).
+       * Weryfikować warunki końcowe.
+   4. Integracja z CLI: Dodam nową komendę apply-recipe do feniks_cli.py, aby można było uruchamiać recepty z linii poleceń.
+
+   
+   
+   
+   
+   
+   
+   
    4. Testy-Wyrocznie (Oracle Tests): Poza testem samego potoku danych, brakuje testów weryfikujących poprawność migracji aplikacji, takich jak:
        * DOM parity: Porównywanie struktury HTML.
        * Visual parity: Porównywanie zrzutów ekranu.
@@ -35,27 +66,4 @@
    6. Śledzenie w czasie rzeczywistym (Runtime Tracing): Brakuje mechanizmu, który dynamicznie analizowałby działającą aplikację, aby uzupełnić graf wywołań o dane, których nie da się uzyskać statycznie.
 
   Propozycja następnego kroku
-
-  Sugeruję, abyśmy teraz skupili się na punkcie #1: Kontrakty API (OpenAPI). Jest to logiczny następny krok, ponieważ mamy już zidentyfikowane api_endpoints. Rozbudowa tego modułu dałaby agentom potężne narzędzie 
-  do automatycznego generowania klientów API w nowej technologii.
-
-  Plan na implementację Kontraktów API:
-   1. Zmodyfikować parser js_html_indexer.mjs, aby oprócz samego URL (api_endpoints) wyciągał również metodę HTTP (GET, POST, etc.) oraz, jeśli to możliwe, klucze z params i data wywołania $http.
-   2. Stworzyć nowy skrypt, np. generate_openapi.py, który na podstawie wzbogaconych danych z potoku generowałby plik openapi.json.
-
-  Czy zgadzasz się z tą oceną i czy chcesz, abym rozpoczął pracę nad implementacją Kontraktów API?
-
-
-  ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│  > zwróciłeś uwagę, że któryś raz powtarza się to ostrzeżenie? WARN: qdrant-client does not support 'sparse_vectors' — falling back to dense-only.  │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
-✦ Tak, zauważyłem to ostrzeżenie. Dziękuję za zwrócenie na nie uwagi.
-
-  Oznacza ono, że używana przez nas biblioteka klienta Qdrant (qdrant-client) jest w wersji, która nie obsługuje jeszcze "wektorów rzadkich" (sparse vectors). W efekcie, nasz system, mimo że generuje te wektory 
-  (w kroku build_tfidf), nie może ich zapisać w bazie danych i korzysta jedynie z "wektorów gęstych" (dense vectors).
-
-  Nie blokuje to naszego obecnego zadania, czyli generowania OpenAPI, ale w przyszłości ograniczy jakość wyszukiwania w kodzie.
-
-  Sugeruję, abyśmy po zakończeniu pracy nad OpenAPI zajęli się aktualizacją biblioteki qdrant-client do nowszej wersji, która wspiera wektory rzadkie. Czy zgadzasz się z takim planem?
 
