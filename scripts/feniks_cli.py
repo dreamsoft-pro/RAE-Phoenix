@@ -75,29 +75,34 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
     log.info("--- Starting Feniks Knowledge Base Build (Advanced) ---")
     try:
         # --- 0. Setup output directories ---
+        log.info("Step 0: Setting up output directories...")
         run_dir = settings.PROJECT_ROOT / "runs" / "latest"
         run_dir.mkdir(parents=True, exist_ok=True)
         raw_chunks_path = run_dir / "chunks.mjs.jsonl"
         enriched_chunks_path = run_dir / "chunks.enriched.jsonl"
         ir_chunks_path = run_dir / "chunks.ir.jsonl"
+        log.info("Step 0: Finished setting up output directories.")
 
         # --- 1. Run Node.js Indexer ---
         log.info("Step 1: Running advanced Node.js indexer...")
         frontend_path = settings.PROJECT_ROOT / "frontend-master"
         indexer_cmd = ["node", str(settings.NODE_INDEXER_PATH), "--root", str(frontend_path), "--out", str(raw_chunks_path)]
         run_external_script(indexer_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 1: Finished running advanced Node.js indexer.")
 
         # --- 2. Run Python Git Blame Enricher ---
         log.info("Step 2: Enriching chunks with git blame information...")
         enricher_path = settings.PROJECT_ROOT / "scripts" / "enrich_git_blame.py"
         enricher_cmd = ["python3", str(enricher_path), "--repo", str(frontend_path), "--in", str(raw_chunks_path), "--out", str(enriched_chunks_path)]
         run_external_script(enricher_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 2: Finished enriching chunks with git blame information.")
 
         # --- 2.5. Convert to IR ---
         log.info("Step 2.5: Converting to Feniks Intermediate Representation (IR)...")
         converter_path = settings.PROJECT_ROOT / "scripts" / "convert_to_ir.py"
         converter_cmd = ["python3", str(converter_path), "--in", str(enriched_chunks_path), "--out", str(ir_chunks_path)]
         run_external_script(converter_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 2.5: Finished converting to Feniks IR.")
 
         # --- 2.6. Validate IR ---
         log.info("Step 2.6: Validating Feniks IR against schema...")
@@ -105,6 +110,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         schema_path = settings.PROJECT_ROOT / "schemas" / "ir.schema.json"
         validator_cmd = ["python3", str(validator_path), "--schema", str(schema_path), "--in", str(ir_chunks_path)]
         run_external_script(validator_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 2.6: Finished validating Feniks IR.")
 
         # --- 3. Load IR Chunks ---
         log.info("Step 3: Loading IR chunks into Python...")
@@ -112,6 +118,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         if not chunks:
             raise RuntimeError("No chunks were loaded from IR file. Aborting.")
         log.info(f"Loaded {len(chunks)} IR chunks.")
+        log.info("Step 3: Finished loading IR chunks.")
 
         # --- 4. Embeddings ---
         log.info("Step 4: Creating dense and sparse embeddings...")
@@ -119,6 +126,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         dense_embs = create_dense_embeddings(model, chunks)
         tfidf_vec, tfidf_matrix = build_tfidf(chunks)
         log.info(f"Created {dense_embs.shape[0]} dense embeddings.")
+        log.info("Step 4: Finished creating embeddings.")
 
         # --- 5. Qdrant Ingestion ---
         log.info("Step 5: Connecting to Qdrant and upserting points...")
@@ -126,6 +134,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         ensure_collection(client=qdrant_client, name=collection_name, dim=dense_embs.shape[1], reset=reset_collection)
         upsert_points(client=qdrant_client, collection=collection_name, chunks=chunks, dense=dense_embs, X_tfidf=tfidf_matrix, vocab=tfidf_vec.vocabulary_)
         log.info(f"Upserted {len(chunks)} points to Qdrant collection '{collection_name}'.")
+        log.info("Step 5: Finished Qdrant ingestion.")
 
         log.info("--- Feniks Knowledge Base Build Finished Successfully ---")
 

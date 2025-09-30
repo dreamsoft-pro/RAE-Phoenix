@@ -62,10 +62,10 @@ def main():
                     "ast_node_type": chunk.get("ast_node_type"),
                     "dependencies_di": chunk.get("dependencies_di", []),
                     "calls_functions": chunk.get("calls_functions", []),
-                    "api_endpoints": chunk.get("api_endpoints", []),
-                    "ui_routes": chunk.get("ui_routes", []),
-                    "cyclomatic_complexity": chunk.get("cyclomatic_complexity", 0),
-                    "business_tags": chunk.get("business_tags", []),
+                    "api_endpoints": chunk.get("metadata", {}).get("api_endpoints", []),
+                    "ui_routes": chunk.get("metadata", {}).get("ui_routes", []),
+                    "cyclomatic_complexity": chunk.get("metadata", {}).get("cyclomatic_complexity", 0),
+                    "business_tags": chunk.get("metadata", {}).get("business_tags", []),
                     "git_last_commit": chunk.get("git_last_commit"),
 
                     # New IR fields (with heuristics)

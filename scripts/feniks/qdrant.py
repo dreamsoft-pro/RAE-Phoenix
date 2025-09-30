@@ -71,30 +71,14 @@ def upsert_points(client: QdrantClient,
                 payload['migration_suggestion'] = payload['migration_suggestion'].__dict__
             payloads.append(payload)
 
-        # 1) Try hybrid (dense + sparse) upsert
-        try:
-            pts = [
-                PointStruct(
-                    id=k,
-                    vector={"dense_code": vecs_dense[idx]},
-                    payload=payloads[idx],
-                    sparse_vectors={"sparse_keywords": sv[idx]}
-                ) for idx, k in enumerate(batch_ids)
-            ]
-            client.upsert(collection_name=collection, points=pts)
-            continue  # Success, next batch
-        except Exception as e:
-            if isinstance(e, PydanticValidationError) or "sparse_vectors" in str(e).lower():
-                print("[KB] WARN: qdrant-client does not support 'sparse_vectors' — falling back to dense-only.", file=sys.stderr)
-            else:
-                print(f"[KB] WARN: Dense+sparse upsert failed: {e}. Retrying with dense-only.", file=sys.stderr)
-
-        # 2) Fallback to dense-only upsert
-        pts_dense = [
+        pts = [
             PointStruct(
                 id=k,
-                vector={"dense_code": vecs_dense[idx]},
-                payload=payloads[idx]
+                payload=payloads[idx],
+                vector={
+                    "dense_code": vecs_dense[idx],
+                    "sparse_keywords": sv[idx]
+                }
             ) for idx, k in enumerate(batch_ids)
         ]
-        client.upsert(collection_name=collection, points=pts_dense)
+        client.upsert(collection_name=collection, points=pts)
