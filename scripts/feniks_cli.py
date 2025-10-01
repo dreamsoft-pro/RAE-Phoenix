@@ -12,7 +12,7 @@ sys.path.insert(0, str(project_root))
 
 from feniks.logger import log
 from feniks.config import settings
-from feniks.types import Chunk, GitInfo, MigrationSuggestion
+from feniks.types import Chunk, GitInfo, MigrationSuggestion, ApiEndpoint
 from feniks.embed import get_embedding_model, create_dense_embeddings, build_tfidf
 from feniks.qdrant import ensure_collection, upsert_points
 from qdrant_client import QdrantClient
@@ -38,9 +38,13 @@ def load_ir_chunks(path: Path) -> List[Chunk]:
         for line in f:
             try:
                 data = json.loads(line)
-                # Map git info and other nested objects
+                
+                # Map nested objects
                 git_info_data = data.get("git_last_commit")
                 git_info = GitInfo(**git_info_data) if git_info_data else None
+                
+                api_endpoints_data = data.get("api_endpoints", [])
+                api_endpoints = [ApiEndpoint(**ep) for ep in api_endpoints_data]
 
                 chunks.append(Chunk(
                     id=data["id"],
@@ -54,7 +58,7 @@ def load_ir_chunks(path: Path) -> List[Chunk]:
                     ast_node_type=data.get("ast_node_type"),
                     dependencies_di=data.get("dependencies_di", []),
                     calls_functions=data.get("calls_functions", []),
-                    api_endpoints=data.get("api_endpoints", []),
+                    api_endpoints=api_endpoints,
                     ui_routes=data.get("ui_routes", []),
                     cyclomatic_complexity=data.get("cyclomatic_complexity", 0),
                     business_tags=data.get("business_tags", []),
@@ -142,16 +146,37 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
         log.error(f"A critical error occurred during the build process: {e}", exc_info=True)
         sys.exit(1)
 
-def run_apply_recipe(recipe_path: Path, file_path: Path, dry_run: bool):
-    """Wrapper to call the apply_recipe.py script."""
-    script_path = settings.PROJECT_ROOT / "scripts" / "apply_recipe.py"
-    cmd = [sys.executable, str(script_path), "--recipe", str(recipe_path), "--file-path", str(file_path)]
+def run_refactor_agent(query: str, recipe: Path, dry_run: bool, filter_: str | None, score_threshold: float, limit: int | None):
+    """Wrapper to call the refactor_agent.py script."""
+    script_path = settings.PROJECT_ROOT / "scripts" / "refactor_agent.py"
+    cmd = [
+        sys.executable, str(script_path),
+        "--query", query,
+        "--recipe", str(recipe),
+        f"--score-threshold", str(score_threshold),
+    ]
     if dry_run:
         cmd.append("--dry-run")
+    if filter_:
+        cmd.extend(["--filter", filter_])
+    if limit:
+        cmd.extend(["--limit", str(limit)])
+    
+    # Use run_external_script but be mindful of streaming output if needed later
+    run_external_script(cmd, cwd=settings.PROJECT_ROOT)
+
+def run_generate_openapi(input_path: Path, output_path: Path):
+    """Wrapper to call the generate_openapi.py script."""
+    script_path = settings.PROJECT_ROOT / "scripts" / "generate_openapi.py"
+    cmd = [
+        sys.executable, str(script_path),
+        "--in", str(input_path),
+        "--out", str(output_path),
+    ]
     run_external_script(cmd, cwd=settings.PROJECT_ROOT)
 
 def main():
-    parser = argparse.ArgumentParser(description="Feniks Knowledge Base Builder CLI")
+    parser = argparse.ArgumentParser(description="Feniks Knowledge Base Builder and Refactoring CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
     
     # Build command
@@ -159,12 +184,23 @@ def main():
     build_parser.add_argument("--reset", action="store_true", help="Reset the Qdrant collection.")
     build_parser.set_defaults(func=lambda args: run_build_process(reset_collection=args.reset))
 
-    # Apply-recipe command
-    recipe_parser = subparsers.add_parser("apply-recipe", help="Apply a migration recipe.")
-    recipe_parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file.")
-    recipe_parser.add_argument("--file-path", type=Path, required=True, help="Path to the file to be transformed.")
-    recipe_parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
-    recipe_parser.set_defaults(func=lambda args: run_apply_recipe(args.recipe, args.file_path, args.dry_run))
+    # Refactor Agent command
+    refactor_parser = subparsers.add_parser("refactor", help="Run the refactoring agent.")
+    refactor_parser.add_argument("--query", type=str, required=True, help="Natural language query to find refactoring targets.")
+    refactor_parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file to apply.")
+    refactor_parser.add_argument("--filter", type=str, default=None, help="Optional metadata filter, e.g., 'kind:js_function'")
+    refactor_parser.add_argument("--score-threshold", type=float, default=0.5, help="Minimum score for a search result to be considered a match.")
+    refactor_parser.add_argument("--limit", type=int, default=None, help="Limit the number of files to process.")
+    refactor_parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
+    refactor_parser.set_defaults(func=lambda args: run_refactor_agent(
+        args.query, args.recipe, args.dry_run, args.filter, args.score_threshold, args.limit
+    ))
+
+    # OpenAPI Generator command
+    openapi_parser = subparsers.add_parser("generate-openapi", help="Generate an OpenAPI spec from the IR.")
+    openapi_parser.add_argument("--in", dest="input_path", type=Path, required=True, help="Path to the Feniks IR JSONL file (e.g., runs/latest/chunks.ir.jsonl).")
+    openapi_parser.add_argument("--out", dest="output_path", type=Path, required=True, help="Path to write the OpenAPI JSON file.")
+    openapi_parser.set_defaults(func=lambda args: run_generate_openapi(args.input_path, args.output_path))
 
     args = parser.parse_args()
     args.func(args)

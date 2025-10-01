@@ -25,6 +25,13 @@ class Evidence:
     end_line: int
 
 @dataclass
+class ApiEndpoint:
+    url: str
+    method: str
+    dataKeys: List[str] = field(default_factory=list)
+    paramKeys: List[str] = field(default_factory=list)
+
+@dataclass
 class Chunk:
     id: str
     file_path: str
@@ -41,7 +48,7 @@ class Chunk:
     # Relacje
     dependencies_di: List[str] = field(default_factory=list)
     calls_functions: List[str] = field(default_factory=list)
-    api_endpoints: List[Dict[str, Any]] = field(default_factory=list)
+    api_endpoints: List[ApiEndpoint] = field(default_factory=list)
     ui_routes: List[str] = field(default_factory=list)
 
     # Jakość i Kontekst
