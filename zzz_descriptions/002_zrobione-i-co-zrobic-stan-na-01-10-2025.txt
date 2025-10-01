@@ -1,0 +1,71 @@
+ 1. Czy skuteczność narzędzi została zmniejszona?
+
+  Absolutnie nie. Wręcz przeciwnie – skuteczność i inteligencja kluczowego narzędzia, czyli agenta refaktoryzacji, 
+  znacząco wzrosła.
+
+   * Przed zmianą: Agent potrafił operować tylko na prostych filtrach (np. znajdź wszystkie pliki z kind:service). Nie 
+     rozumiał intencji zapytania.
+   * Po zmianie: Agent został przebudowany tak, aby korzystał z wyszukiwania semantycznego (wektorowego). Teraz rozumie 
+     zapytania w języku naturalnym (np. "serwisy angularowe do refaktoryzacji") i znajduje pliki na podstawie ich 
+     znaczenia, a nie tylko metadanych. To fundamentalny krok naprzód.
+
+  Stara, bardzo prosta komenda apply-recipe została zastąpiona przez znacznie potężniejszą komendę refactor, która 
+  uruchamia tego nowego, inteligentniejszego agenta.
+
+  2. Wyjaśnienie "zbyt skomplikowanego pliku"
+
+  Mój komentarz dotyczył pliku scripts/search_demo.py. Określenie "zbyt skomplikowany" odnosiło się do kontekstu 
+  budowy zautomatyzowanego agenta.
+
+  Plik search_demo.py to świetne, interaktywne narzędzie dla człowieka – ma wiele opcji filtrowania, re-rankingu 
+  wyników, tłumaczenia itp. Jednak dla agenta, który ma działać autonomicznie, ta cała złożoność jest niepotrzebna i 
+  niepraktyczna. Agent potrzebuje prostego, szybkiego i jednoznacznego sposobu na uzyskanie listy plików do pracy.
+
+  Dlatego, zamiast "przerabiać" skomplikowane demo, zaimplementowałem w agencie (refactor_agent.py) bezpośrednie i 
+  czyste wyszukiwanie semantyczne. To jest objaw dobrej inżynierii – zamiast adaptować narzędzie, które nie do końca 
+  pasuje, stworzyłem rozwiązanie idealnie dopasowane do zadania.
+
+  3. Jak program działa obecnie?
+
+  Główny proces opiera się teraz na nowej komendzie refactor. Oto jego działanie krok po kroku:
+
+   1. Inicjacja przez użytkownika: Użytkownik uruchamia agenta przez terminal, podając dwa kluczowe argumenty:
+       * --query: Zapytanie w języku naturalnym, np. "refaktoryzuj serwisy, które używają $http".
+       * --recipe: Ścieżkę do pliku YAML z "recepturą" opisującą, jak przeprowadzić transformację kodu.
+
+   2. Wyszukiwanie semantyczne: Agent (refactor_agent.py) odbiera zapytanie, tworzy z niego wektor (reprezentację 
+      matematyczną) i wysyła go do bazy danych Qdrant.
+
+   3. Identyfikacja celów: Qdrant zwraca listę fragmentów kodu, które są najbardziej podobne znaczeniowo do zapytania 
+      użytkownika. Agent filtruje je według trafności i zbiera unikalne ścieżki do plików, które mają zostać 
+      zmodyfikowane.
+
+   4. Automatyczna refaktoryzacja: Agent przechodzi pętlą po każdym zidentyfikowanym pliku i uruchamia na nim silnik 
+      transformacji (apply_recipe.py) z podaną przez użytkownika recepturą. Silnik ten dokonuje faktycznych zmian w 
+      kodzie, np. modyfikując strukturę AST (Abstract Syntax Tree).
+
+   5. Zakończenie: Zmiany są zapisywane na dysku lub, w przypadku użycia opcji --dry-run, wyświetlane w konsoli do 
+      wglądu, bez modyfikacji plików.
+
+  4. Pozostałe kroki do zakończenia planu
+
+  Bazując na Twoich dokumentach (001_kluczowe_podejscie... i 001_01-postep-prac...), obecny stan to solidny 
+  fundament. Do osiągnięcia pełnej, autonomicznej wizji pozostały następujące kluczowe elementy:
+
+   1. Automatyczne generowanie kontraktów API (OpenAPI): Obecnie system tylko listuje znalezione endpointy. Następnym 
+      krokiem jest analiza wywołań $http i $resource w celu automatycznego tworzenia specyfikacji OpenAPI. To pozwoli na 
+      generowanie w pełni typowanych klientów API w TypeScript.
+
+   2. Testy-Wyrocznie (Oracle Tests): To absolutnie kluczowy element. Należy stworzyć mechanizmy, które będą 
+      automatycznie weryfikować poprawność migracji poprzez:
+       * Porównywanie struktury DOM (przed i po).
+       * Porównywanie wizualne (zrzuty ekranu).
+       * Testy behawioralne E2E dla kluczowych ścieżek użytkownika.
+
+   3. Zaawansowany "Migration Difficulty Score": Obecny criticality_score jest prosty. Należy go rozbudować o algorytm 
+      uwzględniający dane z systemu kontroli wersji (np. churn – jak często plik się zmienia), aby jeszcze 
+      inteligentniej priorytetyzować pracę.
+
+   4. Śledzenie w czasie rzeczywistym (Runtime Tracing): Wdrożenie mechanizmu, który dynamicznie analizuje działającą 
+      aplikację, aby zebrać dane o wywołaniach, których nie da się znaleźć statycznie. To uzupełniłoby "mapę" systemu o 
+      100% pewne informacje.

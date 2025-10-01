@@ -15,7 +15,7 @@ class Settings:
     Reads settings from environment variables with sensible defaults.
     """
     # The root directory of the project.
-    PROJECT_ROOT: Path = Path(__file__).parent.parent.parent
+    PROJECT_ROOT: Path = Path(__file__).parent.parent
 
     # Path to the frontend source code to be indexed.
     # Can be overridden by the FENIKS_FRONTEND_ROOT environment variable.

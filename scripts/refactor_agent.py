@@ -12,14 +12,48 @@ from feniks.logger import log
 from feniks.config import settings
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
+from sentence_transformers import SentenceTransformer
+from deep_translator import GoogleTranslator
+from langdetect import detect as ld_detect
+import re
 
-def parse_query(query_str: str) -> models.Filter:
-    """Parses a simple 'key:value' query string into a Qdrant filter."""
-    if ':' not in query_str:
-        raise ValueError("Invalid query format. Expected 'key:value'.")
+# --- Utility functions from search_demo.py ---
+
+def detect_lang(s: str) -> str:
+    try:
+        return ld_detect(s)
+    except Exception:
+        if re.search(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", s):
+            return "pl"
+        return "en"
+
+def translate_pl_to_en(q: str) -> str:
+    lang = detect_lang(q)
+    if lang.startswith("en"):
+        return q
+    try:
+        return GoogleTranslator(source="auto", target="en").translate(q)
+    except Exception:
+        log.warning("Translation failed, using simple replacement.")
+        repl = {
+            "refaktoryzuj":"refactor","serwis":"service","autentykacji":"authentication",
+            "autentykacja":"authentication","logowanie":"login","wylogowanie":"logout",
+            "użytkownika":"user","hasło":"password","token":"token","sesja":"session",
+            "uprawnienia":"permissions","rola":"role","rejestracja":"registration"
+        }
+        t = q.lower()
+        for k,v in repl.items():
+            t = re.sub(rf"\b{re.escape(k)}\b", v, t)
+        return t + " auth authentication login user service refactor token session password"
+
+def parse_filter(filter_str: str | None) -> models.Filter | None:
+    """Parses a simple 'key:value' string into a Qdrant filter."""
+    if not filter_str or ':' not in filter_str:
+        return None
     
-    key, value = query_str.split(':', 1)
+    key, value = filter_str.split(':', 1)
     
+    log.info(f"Applying metadata filter: {key}={value}")
     return models.Filter(
         must=[
             models.FieldCondition(
@@ -46,47 +80,53 @@ def run_sub_process(cmd: list[str]):
 def main():
     parser = argparse.ArgumentParser(description="Feniks Refactoring Agent")
     parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file.")
-    parser.add_argument("--query", type=str, required=True, help="Simple query to find targets, e.g., 'kind:service'")
+    parser.add_argument("--query", type=str, required=True, help="Natural language query to find refactoring targets.")
+    parser.add_argument("--filter", type=str, default=None, help="Optional metadata filter, e.g., 'kind:js_function'")
+    parser.add_argument("--score-threshold", type=float, default=0.5, help="Minimum score for a search result to be considered a match.")
     parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
-    parser.add_argument("--limit", type=int, default=None, help="Limit the number of files to process.")
+    parser.add_argument("--limit", type=int, default=50, help="Limit the number of files to process.")
     args = parser.parse_args()
 
     log.info("--- Starting Feniks Refactoring Agent ---")
 
-    # 1. Parse query and connect to DB
-    try:
-        qdrant_filter = parse_query(args.query)
-        log.info(f"Parsed query to filter: {qdrant_filter}")
-    except ValueError as e:
-        log.error(f"Invalid query string: {e}")
-        sys.exit(1)
-
+    # 1. Connect to DB and embedding model
     try:
         client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        model = SentenceTransformer(settings.EMBEDDING_MODEL)
         log.info(f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+        log.info(f"Loaded embedding model: {settings.EMBEDDING_MODEL}")
     except Exception as e:
-        log.error(f"Failed to connect to Qdrant: {e}")
+        log.error(f"Failed to initialize Qdrant client or embedding model: {e}")
         sys.exit(1)
 
-    # 2. Find refactoring targets
+    # 2. Find refactoring targets via semantic search
     log.info(f"Searching for targets in collection '{settings.QDRANT_COLLECTION}'...")
     try:
-        scroll_response, _ = client.scroll(
+        query_en = translate_pl_to_en(args.query)
+        log.info(f"Original query: '{args.query}' -> Translated: '{query_en}'")
+        
+        query_vector = model.encode(query_en, normalize_embeddings=True)
+        
+        qdrant_filter = parse_filter(args.filter)
+
+        search_response = client.search(
             collection_name=settings.QDRANT_COLLECTION,
-            scroll_filter=qdrant_filter,
-            limit=2000, # A reasonable upper limit for a single run
+            query_vector=query_vector,
+            query_filter=qdrant_filter,
+            score_threshold=args.score_threshold,
+            limit=args.limit or 50, # Ensure limit is not None
             with_payload=True,
         )
         
-        # Get unique file paths
-        target_files = sorted(list(set(hit.payload['file_path'] for hit in scroll_response)))
+        # Get unique file paths from scored points
+        target_files = sorted(list(set(hit.payload['file_path'] for hit in search_response)))
         
         if args.limit:
             target_files = target_files[:args.limit]
 
-        log.info(f"Found {len(target_files)} unique files to process.")
+        log.info(f"Found {len(target_files)} unique files to process with score >= {args.score_threshold}.")
         if not target_files:
-            log.warning("No files matched the query. Exiting.")
+            log.warning("No files matched the query and threshold. Exiting.")
             return
 
     except Exception as e:
