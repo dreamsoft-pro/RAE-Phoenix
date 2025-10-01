@@ -13,3 +13,4 @@ pytest-cov
 jsonschema
 esprima
 escodegen
+python-dotenv
