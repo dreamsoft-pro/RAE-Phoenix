@@ -13,4 +13,5 @@ pytest-cov
 jsonschema
 esprima
 escodegen
-python-dotenv
+pytest-playwright
+beautifulsoup4

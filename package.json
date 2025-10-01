@@ -8,6 +8,8 @@
     "@babel/traverse": "^7.28.4",
     "ast-types": "^0.16.1",
     "fast-glob": "^3.3.3",
+    "http-server": "^14.1.1",
+    "playwright": "^1.55.1",
     "recast": "^0.23.11"
   }
 }

@@ -2,6 +2,12 @@
 
 Feniks to zaawansowany system do budowy bazy wiedzy z kodu źródłowego AngularJS (1.x) oraz do przeprowadzania automatycznych refaktoryzacji. Jego celem jest przygotowanie precyzyjnych danych i narzędzi dla agentów AI, aby zautomatyzować i wspomóc proces migracji starych aplikacji do nowoczesnych technologii.
 
+### Ważna Uwaga: Środowisko Uruchomieniowe
+
+`feniks` jest narzędziem zaprojektowanym do pracy w ramach większego, skonteneryzowanego środowiska deweloperskiego, dostępnego w repozytorium [dreamsoft-pro/Dockerized](https://github.com/dreamsoft-pro/Dockerized).
+
+**Uruchomienie pełnego środowiska deweloperskiego z tego repozytorium jest warunkiem koniecznym do poprawnego działania niektórych kluczowych funkcji `feniks`, w tym testów E2E (Oracle Tests) oraz agentów wchodzących w interakcję z aplikacją.**
+
 **Kluczowe Cechy:**
 
 *   **Parsowanie oparte na AST:** Wykorzystuje parser Babel do precyzyjnego rozumienia struktury kodu JavaScript, identyfikując kontrolery, serwisy, dyrektywy i ich zależności.

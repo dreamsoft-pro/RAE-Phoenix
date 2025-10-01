@@ -56,6 +56,8 @@
       krokiem jest analiza wywołań $http i $resource w celu automatycznego tworzenia specyfikacji OpenAPI. To pozwoli na 
       generowanie w pełni typowanych klientów API w TypeScript.
 
+      powyższe zrealizowano 01-10-2025 23:07
+
    2. Testy-Wyrocznie (Oracle Tests): To absolutnie kluczowy element. Należy stworzyć mechanizmy, które będą 
       automatycznie weryfikować poprawność migracji poprzez:
        * Porównywanie struktury DOM (przed i po).
