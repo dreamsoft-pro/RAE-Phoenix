@@ -1,14 +1,15 @@
-# Feniks: Baza Wiedzy dla Projektów AngularJS
+# Feniks: Baza Wiedzy i Silnik Refaktoryzacji dla Projektów AngularJS
 
-Feniks to zaawansowany silnik do budowy bazy wiedzy z kodu źródłowego AngularJS (1.x). Jego celem jest przygotowanie precyzyjnych danych dla agentów AI, aby zautomatyzować i wspomóc proces migracji starych aplikacji do nowoczesnych technologii.
+Feniks to zaawansowany system do budowy bazy wiedzy z kodu źródłowego AngularJS (1.x) oraz do przeprowadzania automatycznych refaktoryzacji. Jego celem jest przygotowanie precyzyjnych danych i narzędzi dla agentów AI, aby zautomatyzować i wspomóc proces migracji starych aplikacji do nowoczesnych technologii.
 
 **Kluczowe Cechy:**
 
 *   **Parsowanie oparte na AST:** Wykorzystuje parser Babel do precyzyjnego rozumienia struktury kodu JavaScript, identyfikując kontrolery, serwisy, dyrektywy i ich zależności.
-*   **Semantyczne Chunkowanie:** Dzieli kod JS i HTML na logiczne, semantycznie spójne fragmenty (chunki), zachowując ich kontekst.
-*   **Wzbogacone Metadane:** Każdy chunk jest wzbogacony o cenne metadane, takie jak zależności (dependency injection), komentarze z kodu i typy węzłów AST.
-*   **Wyszukiwanie Hybrydowe:** Tworzy wektory gęste (dense) i rzadkie (sparse, TF-IDF) i zapisuje je w bazie wektorowej Qdrant, umożliwiając zaawansowane wyszukiwanie hybrydowe.
-*   **Modułowa Architektura:** Kod jest w pełni zmodularyzowany i przetestowany, co ułatwia jego dalszy rozwój i konserwację.
+*   **Wzbogacone Metadane:** Każdy fragment kodu jest wzbogacony o cenne metadane, takie jak zależności (DI), częstotliwość zmian (churn), złożoność cyklomatyczna i użycie wzorców `$watch` czy `$emit`.
+*   **Zaawansowana Ocena Trudności Migracji:** Automatycznie oblicza `criticality_score` dla każdego fragmentu kodu, umożliwiając inteligentne priorytetyzowanie zadań refaktoryzacyjnych.
+*   **Wyszukiwanie Hybrydowe:** Zapisuje wektory w bazie Qdrant, umożliwiając zaawansowane wyszukiwanie semantyczne i filtrowanie.
+*   **Deklaratywny Silnik Refaktoryzacji:** Umożliwia definiowanie złożonych transformacji kodu (np. migracja serwisu AngularJS do zbioru funkcji TS) za pomocą prostych "receptur" w formacie YAML.
+*   **Agent Automatyzujący Refaktoryzację:** Posiada agenta, który wykorzystuje bazę wiedzy do inteligentnego wyszukiwania celów i automatycznego stosowania na nich receptur.
 
 ---
 
@@ -22,19 +23,25 @@ Feniks to zaawansowany silnik do budowy bazy wiedzy z kodu źródłowego Angular
 
 ### 2. Instalacja
 
+Zalecane jest uruchomienie projektu w izolowanym środowisku wirtualnym Pythona.
+
 ```bash
 # Sklonuj repozytorium
 git clone https://github.com/dreamsoft-pro/feniks.git
 cd feniks
 
+# Stwórz i aktywuj środowisko wirtualne
+python3 -m venv .venv
+source .venv/bin/activate
+
 # Zainstaluj zależności Python i Node.js
-npm install
 pip install -r requirements.txt
+npm install
 ```
 
 ### 3. Uruchomienie Bazy Danych
 
-Feniks używa Qdrant jako wektorowej bazy danych. Najprostszym sposobem na jej uruchomienie jest użycie dostarczonego pliku Docker Compose.
+Feniks używa Qdrant jako wektorowej bazy danych.
 
 ```bash
 # Uruchom kontener Qdrant w tle
@@ -44,30 +51,26 @@ sudo docker compose -f docker-compose.qdrant.yml up -d
 
 ### 4. Budowanie Bazy Wiedzy
 
-Głównym poleceniem jest `build_kb.py index`. Wskazuje ono na katalog z kodem AngularJS i buduje całą bazę wiedzy.
+Głównym poleceniem jest `feniks_cli.py build`. Wskazuje ono na katalog z kodem AngularJS i buduje całą bazę wiedzy.
 
 ```bash
-# Przykład budowania bazy wiedzy
-python scripts/build_kb.py index \
-  --root /sciezka/do/twojego/frontendu \
-  --collection moj-projekt-angular \
-  --reset
+# Uruchom pełen proces budowania bazy wiedzy
+python3 scripts/feniks_cli.py build --reset
 ```
 
-### 5. Wyszukiwanie w Bazie Wiedzy
+### 5. Automatyczna Refaktoryzacja (Nowość!)
 
-Po zbudowaniu bazy, możesz w niej wyszukiwać za pomocą polecenia `search`.
+Feniks zawiera agenta do automatycznej refaktoryzacji kodu na podstawie zdefiniowanych reguł (receptur).
 
 ```bash
-# Przykład: znajdź logikę związaną z autentykacją
-python scripts/build_kb.py search "refaktoryzuj serwis logowania" \
-  --collection moj-projekt-angular \
-  --mode js
+# Przykład: Uruchom agenta, aby znalazł do 5 serwisów ('kind:service')
+# i zastosował na nich recepturę migracji w trybie symulacji (--dry-run).
 
-# Przykład: znajdź szablony formularzy
-python scripts/build_kb.py search "formularz rejestracji użytkownika" \
-  --collection moj-projekt-angular \
-  --mode html
+python3 scripts/refactor_agent.py \
+  --recipe recipes/angularjs-service-to-ts-function.yml \
+  --query "kind:service" \
+  --limit 5 \
+  --dry-run
 ```
 
 ---
@@ -84,15 +87,12 @@ pytest
 ---
 ## Struktura Projektu
 
-*   `scripts/build_kb.py`: Główny punkt wejścia CLI.
-*   `scripts/js_html_indexer.mjs`: Silnik parsowania AST dla kodu JS i HTML (wywoływany automatycznie).
-*   `scripts/feniks/`: Pakiet Pythona zawierający główną logikę aplikacji.
-    *   `core.py`: Centralne funkcje orkiestrujące.
-    *   `embed.py`: Logika tworzenia embeddingów.
-    *   `qdrant.py`: Klient i operacje na Qdrant.
-    *   `types.py`: Definicje typów danych.
+*   `scripts/feniks_cli.py`: Główny punkt wejścia CLI do budowania bazy wiedzy.
+*   `scripts/refactor_agent.py`: Agent automatyzujący, który wyszukuje cele w bazie wiedzy i uruchamia na nich refaktoryzację.
+*   `scripts/apply_recipe.py`: Silnik wykonujący pojedynczą recepturę refaktoryzacyjną na pliku.
+*   `scripts/js_html_indexer.mjs`: Silnik parsowania AST dla kodu JS i HTML.
+*   `recipes/`: Katalog z recepturami refaktoryzacyjnymi w formacie YAML.
+*   `scripts/feniks/`: Pakiet Pythona zawierający główną logikę aplikacji (konfiguracja, typy, logger).
 *   `tests/`: Testy jednostkowe i integracyjne.
-*   `AUDIT_REPORT.md`: Szczegółowy raport z audytu przeprowadzonego przed refaktoryzacją.
-*   `docker-compose.qdrant.yml`: Konfiguracja Docker Compose dla Qdrant.
 *   `requirements.txt`: Zależności Pythona.
 *   `package.json`: Zależności Node.js.

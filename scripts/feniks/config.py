@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+import sys
 
-# Load environment variables from a .env file if it exists
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    # Load environment variables from a .env file if it exists
+    load_dotenv()
+except ModuleNotFoundError:
+    print("WARNING: python-dotenv not found. Skipping .env file loading.", file=sys.stderr)
 
 class Settings:
     """
