@@ -222,24 +222,31 @@ def _is_node_match(node, pattern_dict: dict) -> bool:
 
 class AstMatcher:
     """Traverses an AST to find if any node matches the given pattern."""
+
     def __init__(self, pattern: dict):
         self.pattern = pattern
         self.match_found = False
 
     def visit(self, node):
-        if self.match_found or not hasattr(node, 'type'):
+        if self.match_found or not node:
             return
-        
+
+        if isinstance(node, list):
+            for item in node:
+                self.visit(item)
+            return
+
+        if not hasattr(node, 'type'):
+            return
+
         if _is_node_match(node, self.pattern):
             self.match_found = True
             return
 
-        for key in node.keys():
-            child = getattr(node, key)
-            if isinstance(child, list):
-                for item in child:
-                    self.visit(item)
-            elif hasattr(child, 'type'):
+        # Manually traverse known properties that can contain child nodes
+        for prop in ['body', 'expression', 'callee', 'object', 'property', 'arguments', 'declarations', 'init', 'update', 'test', 'consequent', 'alternate', 'left', 'right', 'elements', 'id', 'params', 'argument']:
+            if hasattr(node, prop):
+                child = getattr(node, prop)
                 self.visit(child)
 
 def handle_ast_match(content: str, pattern: dict) -> bool:

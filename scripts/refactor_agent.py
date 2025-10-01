@@ -23,7 +23,7 @@ def parse_query(query_str: str) -> models.Filter:
     return models.Filter(
         must=[
             models.FieldCondition(
-                key=f"payload.{key.strip()}",
+                key=key.strip(),
                 match=models.MatchValue(value=value.strip()),
             )
         ]
@@ -113,7 +113,7 @@ def main():
             "--recipe", str(args.recipe),
             "--file-path", str(absolute_file_path),
         ]
-        if args.dry-run:
+        if args.dry_run:
             cmd.append("--dry-run")
         
         run_sub_process(cmd)
