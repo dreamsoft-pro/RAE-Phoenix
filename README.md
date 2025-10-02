@@ -1,12 +1,14 @@
 # Feniks: Baza Wiedzy i Silnik Refaktoryzacji dla Projektów AngularJS
 
+**WAŻNE: Uruchomienie środowiska jest wymagane**
+
+Przed użyciem `feniks`, **zawsze należy najpierw uruchomić lokalne środowisko deweloperskie** zgodnie z instrukcjami w repozytorium [dreamsoft-pro/Dockerized](https://github.com/dreamsoft-pro/Dockerized).
+
+Jest to warunek konieczny do poprawnego działania kluczowych funkcji, w tym testów E2E (Oracle Tests) oraz agentów wchodzących w interakcję z aplikacją.
+
+---
+
 Feniks to zaawansowany system do budowy bazy wiedzy z kodu źródłowego AngularJS (1.x) oraz do przeprowadzania automatycznych refaktoryzacji. Jego celem jest przygotowanie precyzyjnych danych i narzędzi dla agentów AI, aby zautomatyzować i wspomóc proces migracji starych aplikacji do nowoczesnych technologii.
-
-### Ważna Uwaga: Środowisko Uruchomieniowe
-
-`feniks` jest narzędziem zaprojektowanym do pracy w ramach większego, skonteneryzowanego środowiska deweloperskiego, dostępnego w repozytorium [dreamsoft-pro/Dockerized](https://github.com/dreamsoft-pro/Dockerized).
-
-**Uruchomienie pełnego środowiska deweloperskiego z tego repozytorium jest warunkiem koniecznym do poprawnego działania niektórych kluczowych funkcji `feniks`, w tym testów E2E (Oracle Tests) oraz agentów wchodzących w interakcję z aplikacją.**
 
 **Kluczowe Cechy:**
 
@@ -89,6 +91,13 @@ Projekt zawiera zestaw testów jednostkowych i integracyjnych. Aby je uruchomić
 # Uruchom wszystkie testy
 pytest
 ```
+
+### Dane Logowania do Testów
+
+Do testowania funkcjonalności wymagających zalogowania, można użyć następujących danych:
+
+*   **Login:** `office@diditalprint.pro`
+*   **Hasło:** `1234`
 
 ---
 ## Struktura Projektu

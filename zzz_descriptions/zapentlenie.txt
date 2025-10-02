@@ -1,0 +1,1099 @@
+The previous command failed because it attempted to install packages globally in a system-managed Python environment. 
+  I'll correct this by using the existing virtual environment located at .venv. I will now install the required 
+  pytest-playwright package and its browser dependencies within that virtual environment.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pip install pytest-playwright && /home/grzegorz/cloud/Doc…  │
+ │                                                                                                                       │
+ │    Requirement already satisfied: pytest-playwright in ./.venv/lib/python3.12/site-packages (0.7.1)                   │
+ │    Requirement already satisfied: playwright>=1.18 in ./.venv/lib/python3.12/site-packages (from                      │
+ │    pytest-playwright) (1.55.0)                                                                                        │
+ │    Requirement already satisfied: pytest<9.0.0,>=6.2.4 in ./.venv/lib/python3.12/site-packages (from                  │
+ │    pytest-playwright) (8.4.2)                                                                                         │
+ │    Requirement already satisfied: pytest-base-url<3.0.0,>=1.0.0 in ./.venv/lib/python3.12/site-packages               │
+ │    (from pytest-playwright) (2.1.0)                                                                                   │
+ │    Requirement already satisfied: python-slugify<9.0.0,>=6.0.0 in ./.venv/lib/python3.12/site-packages                │
+ │    (from pytest-playwright) (8.0.4)                                                                                   │
+ │    Requirement already satisfied: pyee<14,>=13 in ./.venv/lib/python3.12/site-packages (from                          │
+ │    playwright>=1.18->pytest-playwright) (13.0.0)                                                                      │
+ │    Requirement already satisfied: greenlet<4.0.0,>=3.1.1 in ./.venv/lib/python3.12/site-packages (from                │
+ │    playwright>=1.18->pytest-playwright) (3.2.4)                                                                       │
+ │    Requirement already satisfied: iniconfig>=1 in ./.venv/lib/python3.12/site-packages (from                          │
+ │    pytest<9.0.0,>=6.2.4->pytest-playwright) (2.1.0)                                                                   │
+ │    Requirement already satisfied: packaging>=20 in ./.venv/lib/python3.12/site-packages (from                         │
+ │    pytest<9.0.0,>=6.2.4->pytest-playwright) (25.0)                                                                    │
+ │    Requirement already satisfied: pluggy<2,>=1.5 in ./.venv/lib/python3.12/site-packages (from                        │
+ │    pytest<9.0.0,>=6.2.4->pytest-playwright) (1.6.0)                                                                   │
+ │    Requirement already satisfied: pygments>=2.7.2 in ./.venv/lib/python3.12/site-packages (from                       │
+ │    pytest<9.0.0,>=6.2.4->pytest-playwright) (2.19.2)                                                                  │
+ │    Requirement already satisfied: requests>=2.9 in ./.venv/lib/python3.12/site-packages (from                         │
+ │    pytest-base-url<3.0.0,>=1.0.0->pytest-playwright) (2.32.5)                                                         │
+ │    Requirement already satisfied: text-unidecode>=1.3 in ./.venv/lib/python3.12/site-packages (from                   │
+ │    python-slugify<9.0.0,>=6.0.0->pytest-playwright) (1.3)                                                             │
+ │    Requirement already satisfied: typing-extensions in ./.venv/lib/python3.12/site-packages (from                     │
+ │    pyee<14,>=13->playwright>=1.18->pytest-playwright) (4.15.0)                                                        │
+ │    Requirement already satisfied: charset_normalizer<4,>=2 in ./.venv/lib/python3.12/site-packages (from              │
+ │    requests>=2.9->pytest-base-url<3.0.0,>=1.0.0->pytest-playwright) (3.4.3)                                           │
+ │    Requirement already satisfied: idna<4,>=2.5 in ./.venv/lib/python3.12/site-packages (from                          │
+ │    requests>=2.9->pytest-base-url<3.0.0,>=1.0.0->pytest-playwright) (3.10)                                            │
+ │    Requirement already satisfied: urllib3<3,>=1.21.1 in ./.venv/lib/python3.12/site-packages (from                    │
+ │    requests>=2.9->pytest-base-url<3.0.0,>=1.0.0->pytest-playwright) (2.5.0)                                           │
+ │    Requirement already satisfied: certifi>=2017.4.17 in ./.venv/lib/python3.12/site-packages (from                    │
+ │    requests>=2.9->pytest-base-url<3.0.0,>=1.0.0->pytest-playwright) (2025.8.3)                                        │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Dependencies are installed. Running tests.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl'>, story_name = 'User Login'                                              │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/login"]'}, {'action...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │    >               page.locator(selector).click()                                                                     │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:39:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15543: in click                               │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:160: in click                                      │
+ │        return await self._frame.click(self._selector, strict=True, **params)                                          │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                          │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:549: in click                                        │
+ │        await self._channel.send("click", self._timeout, locals_to_params(locals()))                                   │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x7e3d6ee4bbc0>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x7e3d6ec9b600>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.                        │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("a[href=\"/pl/login\"]")                                                       │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                               │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 31.83s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ The test timed out while searching for the login link, meaning the selector a[href="/pl/login"] is incorrect. To 
+  diagnose this, I will modify the test to save a screenshot and the page's HTML content immediately after navigation. 
+  This will allow me to inspect the page structure and find the correct selector for the login link.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         if action == "goto":... =>         if action == "goto":...   │
+ │                                                                                                             │
+ │    35                                                                                                       │
+ │    36   if action == "goto":                                                                                │
+ │    37       page.goto(url)                                                                                  │
+ │    38 +     page.screenshot(path="debug_behavior_screenshot.png")                                           │
+ │    39 +     with open("debug_behavior_page.html", "w") as f:                                                │
+ │    40 +         f.write(page.content())                                                                     │
+ │    41   elif action == "click":                                                                             │
+ │    42       page.locator(selector).click()                                                                  │
+ │    43   elif action == "fill":                                                                              │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Okay, I've added the debugging steps. Rerunning the test now to get the screenshot and HTML for selector 
+  identification.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl'>, story_name = 'User Login'                                              │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/login"]'}, {'action...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                    page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │                    with open("debug_behavior_page.html", "w") as f:                                                   │
+ │                        f.write(page.content())                                                                        │
+ │                elif action == "click":                                                                                │
+ │    >               page.locator(selector).click()                                                                     │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:42:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15543: in click                               │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:160: in click                                      │
+ │        return await self._frame.click(self._selector, strict=True, **params)                                          │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                          │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:549: in click                                        │
+ │        await self._channel.send("click", self._timeout, locals_to_params(locals()))                                   │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x7bc651893cb0>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x7bc650555080>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.                        │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("a[href=\"/pl/login\"]")                                                       │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                               │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 32.47s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Test failed. I'll check debug_behavior_page.html and debug_behavior_screenshot.png for the login link selector, 
+  starting with the HTML file.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  ReadFile debug_behavior_page.html                                                                        │
+ │                                                                                                             │
+ │    Read lines 1-2000 of 3375 from debug_behavior_page.html (some lines were shortened)                      │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ I've examined debug_behavior_page.html and found the login link's href is /pl/zaloguj-sie, not /pl/login as I'd 
+  thought. I'll correct the selector in behavior_oracles.json, remove the debugging code from 
+  tests/test_behavior_oracle.py, and rerun the test.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/behavior_oracles.json: a[href=\"/pl/login\"] => a[href=\"/pl/zaloguj-sie\"]                   │
+ │                                                                                                             │
+ │     8   },                                                                                                  │
+ │     9   {                                                                                                   │
+ │    10       "action": "click",                                                                              │
+ │    11 -     "selector": "a[href=\"/pl/login\"]"                                                             │
+ │    11 +     "selector": "a[href=\"/pl/zaloguj-sie\"]"                                                       │
+ │    12   },                                                                                                  │
+ │    13   {                                                                                                   │
+ │    14       "action": "fill",                                                                               │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected. Debugging code removed.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         if action == "goto":... =>         if action == "goto":...   │
+ │                                                                                                             │
+ │    35                                                                                                       │
+ │    36   if action == "goto":                                                                                │
+ │    37       page.goto(url)                                                                                  │
+ │    38 -     page.screenshot(path="debug_behavior_screenshot.png")                                           │
+ │    39 -     with open("debug_behavior_page.html", "w") as f:                                                │
+ │    40 -         f.write(page.content())                                                                     │
+ │    38   elif action == "click":                                                                             │
+ │    39       page.locator(selector).click()                                                                  │
+ │    40   elif action == "fill":                                                                              │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected, debug code gone. Rerunning tests.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │                    page.locator(selector).click()                                                                     │
+ │                elif action == "fill":                                                                                 │
+ │    >               page.locator(selector).fill(value)                                                                 │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:41:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15889: in fill                                │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:212: in fill                                       │
+ │        return await self._frame.fill(self._selector, strict=True, **params)                                           │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                           │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:590: in fill                                         │
+ │        await self._fill(**locals_to_params(locals()))                                                                 │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:602: in _fill                                        │
+ │        await self._channel.send("fill", self._timeout, locals_to_params(locals()))                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x7e22abe67890>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x7e22aa90f240>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.TimeoutError: Locator.fill: Timeout 30000ms exceeded.                         │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("input[name=\"login\"]")                                                       │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                               │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 32.40s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ The test failed, timing out while waiting for the login input. The login page isn't loading as expected after the 
+  click. I'll re-add screenshot and HTML-saving steps after the login link click to debug the page's state.
+ ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         elif action == "click"... =>         elif action == "click"...  │
+ │                                                                                                                │
+ │    37       page.goto(url)                                                                                     │
+ │    38   elif action == "click":                                                                                │
+ │    39       page.locator(selector).click()                                                                     │
+ │    40 +     page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │    41 +     with open("debug_behavior_page.html", "w") as f:                                                   │
+ │    42 +         f.write(page.content())                                                                        │
+ │    43   elif action == "fill":                                                                                 │
+ │    44       page.locator(selector).fill(value)                                                                 │
+ │    45   elif action == "wait_for_selector":                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Okay, debugging steps are in. Rerunning the test to get the screenshot and HTML to figure out why the login form is 
+  MIA.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │                    page.locator(selector).click()                                                                     │
+ │                    page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │                    with open("debug_behavior_page.html", "w") as f:                                                   │
+ │                        f.write(page.content())                                                                        │
+ │                elif action == "fill":                                                                                 │
+ │    >               page.locator(selector).fill(value)                                                                 │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:44:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15889: in fill                                │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:212: in fill                                       │
+ │        return await self._frame.fill(self._selector, strict=True, **params)                                           │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                           │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:590: in fill                                         │
+ │        await self._fill(**locals_to_params(locals()))                                                                 │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:602: in _fill                                        │
+ │        await self._channel.send("fill", self._timeout, locals_to_params(locals()))                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x7a91ca62f2f0>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x7a91ca659080>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.TimeoutError: Locator.fill: Timeout 30000ms exceeded.                         │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("input[name=\"login\"]")                                                       │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                               │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 32.49s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Test failed. I'll check debug_behavior_page.html and debug_behavior_screenshot.png for the login link selector, 
+  starting with the HTML file.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  ReadFile debug_behavior_page.html                                                                        │
+ │                                                                                                             │
+ │    Read all 1670 lines from debug_behavior_page.html (some lines were shortened)                            │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ I've found the error: the login form's name attribute is "email," not "login." I'll correct the selector in 
+  behavior_oracles.json to input[name="email"], remove the debugging code from tests/test_behavior_oracle.py, and rerun 
+  the test.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/behavior_oracles.json: input[name=\"login\"] => input[name=\"email\"]                         │
+ │                                                                                                             │
+ │    12   },                                                                                                  │
+ │    13   {                                                                                                   │
+ │    14       "action": "fill",                                                                               │
+ │    15 -     "selector": "input[name=\"login\"]",                                                            │
+ │    15 +     "selector": "input[name=\"email\"]",                                                            │
+ │    16       "value": "offce@digitalprint.pro"                                                               │
+ │    17   },                                                                                                  │
+ │    18   {                                                                                                   │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected. Debugging code removed.
+ ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         elif action == "click"... =>         elif action == "click"...  │
+ │                                                                                                                │
+ │    37       page.goto(url)                                                                                     │
+ │    38   elif action == "click":                                                                                │
+ │    39       page.locator(selector).click()                                                                     │
+ │    40 -     page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │    41 -     with open("debug_behavior_page.html", "w") as f:                                                   │
+ │    42 -         f.write(page.content())                                                                        │
+ │    40   elif action == "fill":                                                                                 │
+ │    41       page.locator(selector).fill(value)                                                                 │
+ │    42   elif action == "wait_for_selector":                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected, debug code gone. Rerunning tests.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │                    page.locator(selector).click()                                                                     │
+ │                elif action == "fill":                                                                                 │
+ │    >               page.locator(selector).fill(value)                                                                 │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:41:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15889: in fill                                │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:212: in fill                                       │
+ │        return await self._frame.fill(self._selector, strict=True, **params)                                           │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                           │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:590: in fill                                         │
+ │        await self._fill(**locals_to_params(locals()))                                                                 │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:602: in _fill                                        │
+ │        await self._channel.send("fill", self._timeout, locals_to_params(locals()))                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x742697137a40>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x742696f7f600>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.TimeoutError: Locator.fill: Timeout 30000ms exceeded.                         │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("input[name=\"pass\"]")                                                        │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                               │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    - Executing step: fill                                                                                             │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 32.40s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Test failed, timeout on password input. Something's wrong after login fill. I'll add screenshot and HTML dump after 
+  the login fill to debug the page state.
+ ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         elif action == "fill":... =>         elif action == "fill":...  │
+ │                                                                                                                │
+ │    39       page.locator(selector).click()                                                                     │
+ │    40   elif action == "fill":                                                                                 │
+ │    41       page.locator(selector).fill(value)                                                                 │
+ │    42 +     page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │    43 +     with open("debug_behavior_page.html", "w") as f:                                                   │
+ │    44 +         f.write(page.content())                                                                        │
+ │    45   elif action == "wait_for_selector":                                                                    │
+ │    46       page.wait_for_selector(selector)                                                                   │
+ │    47   elif action == "wait_for_url":                                                                         │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Okay, debugging steps are in. Rerunning the test to get the screenshot and HTML to figure out why the password field 
+  is broken.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │                    page.locator(selector).click()                                                                     │
+ │                elif action == "fill":                                                                                 │
+ │    >               page.locator(selector).fill(value)                                                                 │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:41:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15889: in fill                                │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:212: in fill                                       │
+ │        return await self._frame.fill(self._selector, strict=True, **params)                                           │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                           │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:590: in fill                                         │
+ │        await self._fill(**locals_to_params(locals()))                                                                 │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:602: in _fill                                        │
+ │        await self._channel.send("fill", self._timeout, locals_to_params(locals()))                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x755336051d30>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x755334cfcb80>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.TimeoutError: Locator.fill: Timeout 30000ms exceeded.                         │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("input[name=\"pass\"]")                                                        │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                               │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    - Executing step: fill                                                                                             │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 32.51s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Test failed. I'll check debug_behavior_page.html and the screenshot to see why the password input is broken. Starting 
+  with the HTML file.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  ReadFile debug_behavior_page.html                                                                        │
+ │                                                                                                             │
+ │    Read all 1670 lines from debug_behavior_page.html (some lines were shortened)                            │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ I've reviewed debug_behavior_page.html and found the password input's name is "password," not "pass." I'll update the 
+  selector in behavior_oracles.json to input[name="password"], remove the debugging code from 
+  tests/test_behavior_oracle.py, and rerun the test.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/behavior_oracles.json: input[name=\"pass\"] => input[name=\"password\"]                       │
+ │                                                                                                             │
+ │    17   },                                                                                                  │
+ │    18   {                                                                                                   │
+ │    19       "action": "fill",                                                                               │
+ │    20 -     "selector": "input[name=\"pass\"]",                                                             │
+ │    20 +     "selector": "input[name=\"password\"]",                                                         │
+ │    21       "value": "1234"                                                                                 │
+ │    22   },                                                                                                  │
+ │    23   {                                                                                                   │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected. Debugging code removed.
+ ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         elif action == "fill":... =>         elif action == "fill":...  │
+ │                                                                                                                │
+ │    39       page.locator(selector).click()                                                                     │
+ │    40   elif action == "fill":                                                                                 │
+ │    41       page.locator(selector).fill(value)                                                                 │
+ │    42 -     page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │    43 -     with open("debug_behavior_page.html", "w") as f:                                                   │
+ │    44 -         f.write(page.content())                                                                        │
+ │    42   elif action == "wait_for_selector":                                                                    │
+ │    43       page.wait_for_selector(selector)                                                                   │
+ │    44   elif action == "wait_for_url":                                                                         │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected, debug code gone. Rerunning tests.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...'click', 'selector': 'button[type="submit"]'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │    >               page.locator(selector).click()                                                                     │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:39:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15543: in click                               │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:160: in click                                      │
+ │        return await self._frame.click(self._selector, strict=True, **params)                                          │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                          │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:549: in click                                        │
+ │        await self._channel.send("click", self._timeout, locals_to_params(locals()))                                   │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x75b7a40e71d0>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x75b7a3f231a0>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.Error: Locator.click: Error: strict mode violation:                           │
+ │    locator("button[type=\"submit\"]") resolved to 3 elements:                                                         │
+ │    E               1) <button type="submit" class="btn btn-info btn-search">…</button> aka                            │
+ │    get_by_role("button", name="")                                                                                    │
+ │    E               2) <button type="submit" data-toggle="submit" class="btn btn-success btn-block                     │
+ │    btn-submit btn-login ng-binding">↵                Zaloguj się↵            </button> aka                            │
+ │    get_by_role("button", name="Zaloguj się")                                                                          │
+ │    E               3) <button type="submit" class="btn btn-info btn-submit ng-binding">↵                              │
+ │    Zapisz się↵         …</button> aka get_by_role("button", name="Zapisz się")                                        │
+ │    E                                                                                                                  │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("button[type=\"submit\"]")                                                     │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: Error                                      │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    - Executing step: fill                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 2.53s ===============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ The test failed due to a strict mode violation—the selector button[type="submit"] matched three buttons. To fix this, 
+  I'll target the login button specifically. Instead of the generic selector, I'll use the unique class btn-login. I'm 
+  updating the behavior_oracles.json to use "selector": "button.btn-login" for the login click action and will retry the
+   test.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/behavior_oracles.json: button[type=\"submit\"] => button.btn-login                            │
+ │                                                                                                             │
+ │    22   },                                                                                                  │
+ │    23   {                                                                                                   │
+ │    24       "action": "click",                                                                              │
+ │    25 -     "selector": "button[type=\"submit\"]"                                                           │
+ │    25 +     "selector": "button.btn-login"                                                                  │
+ │    26   },                                                                                                  │
+ │    27   {                                                                                                   │
+ │    28       "action": "wait_for_url",                                                                       │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Selector corrected. Rerunning tests.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...on': 'click', 'selector': 'button.btn-login'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │                    page.locator(selector).click()                                                                     │
+ │                elif action == "fill":                                                                                 │
+ │                    page.locator(selector).fill(value)                                                                 │
+ │                elif action == "wait_for_selector":                                                                    │
+ │                    page.wait_for_selector(selector)                                                                   │
+ │                elif action == "wait_for_url":                                                                         │
+ │    >               page.wait_for_url(url)                                                                             │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:45:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9162: in wait_for_url                         │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_page.py:584: in wait_for_url                                  │
+ │        return await self._main_frame.wait_for_url(**locals_to_params(locals()))                                       │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:263: in wait_for_url                                 │
+ │        async with self.expect_navigation(                                                                             │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_event_context_manager.py:33: in __aexit__                     │
+ │        await self._future                                                                                             │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │        async def continuation() -> Optional[Response]:                                                                │
+ │    >       event = await waiter.result()                                                                              │
+ │                    ^^^^^^^^^^^^^^^^^^^^^                                                                              │
+ │    E       playwright._impl._errors.TimeoutError: Timeout 30000ms exceeded.                                           │
+ │    E       =========================== logs ===========================                                               │
+ │    E       waiting for navigation to "http://localtest.me/pl/office" until 'load'                                     │
+ │    E       ============================================================                                               │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:239: TimeoutError                                    │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    - Executing step: fill                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: wait_for_url                                                                                     │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 33.04s ==============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Test failed: URL didn't change to http://localtest.me/pl/office after login. The cause is unclear—could be bad 
+  credentials, a redirect issue, or a server error. I'll add screenshot and HTML dump steps after the login button 
+  click to debug the page's state.
+ ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/test_behavior_oracle.py:         elif action == "click"... =>         elif action == "click"...  │
+ │                                                                                                                │
+ │    37       page.goto(url)                                                                                     │
+ │    38   elif action == "click":                                                                                │
+ │    39       page.locator(selector).click()                                                                     │
+ │    40 +     page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │    41 +     with open("debug_behavior_page.html", "w") as f:                                                   │
+ │    42 +         f.write(page.content())                                                                        │
+ │    43   elif action == "fill":                                                                                 │
+ │    44       page.locator(selector).fill(value)                                                                 │
+ │    45   elif action == "wait_for_selector":                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Okay, debugging steps are in. Rerunning the test to get the screenshot and HTML to figure out why the redirect is 
+  failing.
+ ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell /home/grzegorz/cloud/Dockerized/feniks/.venv/bin/pytest /home/grzegorz/cloud/Dockerized/feniks/tests/test_…  │
+ │                                                                                                                       │
+ │    ============================= test session starts ==============================                                   │
+ │    platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0                                                        │
+ │    rootdir: /home/grzegorz/cloud/Dockerized/feniks                                                                    │
+ │    configfile: pytest.ini                                                                                             │
+ │    plugins: base-url-2.1.0, playwright-0.7.1, mock-3.15.1, anyio-4.11.0, cov-7.0.0                                    │
+ │    collected 1 item                                                                                                   │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py F                                          [100%]                                    │
+ │                                                                                                                       │
+ │    =================================== FAILURES ===================================                                   │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                                   │
+ │                                                                                                                       │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                             │
+ │    story_name = 'User Login'                                                                                          │
+ │    steps = [{'action': 'goto', 'url': 'http://localtest.me/pl'}, {'action': 'click', 'selector':                      │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'...on': 'click', 'selector': 'button.btn-login'}, {'action':                       │
+ │    'wait_for_url', 'url': 'http://localtest.me/pl/office'}, ...]                                                      │
+ │                                                                                                                       │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                             │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                            │
+ │            """                                                                                                        │
+ │            Testuje scenariusze behawioralne zdefiniowane w pliku JSON.                                                │
+ │            """                                                                                                        │
+ │            print(f"Running story: {story_name}")                                                                      │
+ │                                                                                                                       │
+ │            for step in steps:                                                                                         │
+ │                action = step.get("action")                                                                            │
+ │                selector = step.get("selector")                                                                        │
+ │                value = step.get("value")                                                                              │
+ │                url = step.get("url")                                                                                  │
+ │                assertion = step.get("assertion")                                                                      │
+ │                                                                                                                       │
+ │                print(f"- Executing step: {action}")                                                                   │
+ │                                                                                                                       │
+ │                if action == "goto":                                                                                   │
+ │                    page.goto(url)                                                                                     │
+ │                elif action == "click":                                                                                │
+ │                    page.locator(selector).click()                                                                     │
+ │                    page.screenshot(path="debug_behavior_screenshot.png")                                              │
+ │                    with open("debug_behavior_page.html", "w") as f:                                                   │
+ │                        f.write(page.content())                                                                        │
+ │                elif action == "fill":                                                                                 │
+ │    >               page.locator(selector).fill(value)                                                                 │
+ │                                                                                                                       │
+ │    tests/test_behavior_oracle.py:44:                                                                                  │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:15889: in fill                                │
+ │        self._sync(                                                                                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_locator.py:212: in fill                                       │
+ │        return await self._frame.fill(self._selector, strict=True, **params)                                           │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                           │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:590: in fill                                         │
+ │        await self._fill(**locals_to_params(locals()))                                                                 │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:602: in _fill                                        │
+ │        await self._channel.send("fill", self._timeout, locals_to_params(locals()))                                    │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                                     │
+ │        return await self._connection.wrap_api_call(                                                                   │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                                    │
+ │                                                                                                                       │
+ │    self = <playwright._impl._connection.Connection object at 0x78c77253b380>                                          │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x78c77237f600>                                                   │
+ │    is_internal = False, title = None                                                                                  │
+ │                                                                                                                       │
+ │        async def wrap_api_call(                                                                                       │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                                  │
+ │        ) -> Any:                                                                                                      │
+ │            if self._api_zone.get():                                                                                   │
+ │                return await cb()                                                                                      │
+ │            task = asyncio.current_task(self._loop)                                                                    │
+ │            st: List[inspect.FrameInfo] = getattr(                                                                     │
+ │                task, "__pw_stack__", None                                                                             │
+ │            ) or inspect.stack(0)                                                                                      │
+ │                                                                                                                       │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                            │
+ │            self._api_zone.set(parsed_st)                                                                              │
+ │            try:                                                                                                       │
+ │                return await cb()                                                                                      │
+ │            except Exception as error:                                                                                 │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                               │
+ │    E           playwright._impl._errors.Error: Locator.fill: Error: strict mode violation:                            │
+ │    locator("input[name=\"email\"]") resolved to 2 elements:                                                           │
+ │    E               1) <input type="text" required="" name="email" id="user-email" placeholder="Login"                 │
+ │    ng-model="credentials.email" ng-keyup="$event.keyCode == 13 ? login(credentials) : null"                           │
+ │    class="form-control ng-pristine ng-untouched ng-invalid ng-invalid-required"/> aka                                 │
+ │    get_by_role("textbox", name="Login")                                                                               │
+ │    E               2) <input type="email" name="email" ng-model="email" placeholder="e-mail..."                       │
+ │    class="form-control ng-pristine ng-untouched ng-valid ng-valid-email"/> aka get_by_role("textbox",                 │
+ │    name="e-mail...")                                                                                                  │
+ │    E                                                                                                                  │
+ │    E           Call log:                                                                                              │
+ │    E             - waiting for locator("input[name=\"email\"]")                                                       │
+ │                                                                                                                       │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: Error                                      │
+ │    ----------------------------- Captured stdout call -----------------------------                                   │
+ │    Running story: User Login                                                                                          │
+ │    - Executing step: goto                                                                                             │
+ │    - Executing step: click                                                                                            │
+ │    - Executing step: fill                                                                                             │
+ │    =========================== short test summary info ============================                                   │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                                    │
+ │    ============================== 1 failed in 2.54s ===============================                                   │
+ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Test failed: strict mode violation due to multiple "email" inputs. The login input has a unique ID, user-email. I'll 
+  update behavior_oracles.json to use the selector #user-email for the login field and retry.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Edit tests/behavior_oracles.json: input[name=\"email\"] => #user-email                                   │
+ │                                                                                                             │
+ │    12   },                                                                                                  │
+ │    13   {                                                                                                   │
+ │    14       "action": "fill",                                                                               │
+ │    15 -     "selector": "input[name=\"email\"]",                                                            │
+ │    15 +     "selector": "#user-email",                                                                      │
+ │    16       "value": "offce@digitalprint.pro"                                                               │
+ │    17   },                                                                                                  │
+ │    18   {                                                                                                   │
+ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ℹA potential loop was detected. This can happen due to repetitive tool calls or other model behavior. The request has 
+  been halted.

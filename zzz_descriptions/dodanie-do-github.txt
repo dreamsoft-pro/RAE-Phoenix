@@ -1,3 +1,62 @@
 git add -A
-git commit -m "Zaawansowany "Migration Difficulty Score""
+git commit -m "stworzenie Testów-Wyroczni""
 git push
+
+
+
+feat: Implement OpenAPI specification generator
+
+  Opis (opcjonalny):
+
+   1 Implements the automatic generation of an OpenAPI 3.0 specification from API endpoints found in the source 
+     code. This addresses a key milestone in the project's strategic plan.
+   2 
+   3 Key changes:
+   4 - Adds a new `scripts/generate_openapi.py` script that reads the Feniks IR file and builds the OpenAPI JSON
+     structure.
+   5 - Integrates the generator into the main CLI via a new `generate-openapi` command.
+   6 - Introduces a typed `ApiEndpoint` dataclass for improved code clarity and type safety.
+   7 - Updates the data loading logic to use the new dataclass.
+   8 
+   9 This commit also includes fixes for the E2E test environment that were necessary to validate the new 
+     functionality.
+
+
+
+
+git commit \
+  -m " feat(testing): Implement data-driven content oracle framework" \
+  -m "1 This commit introduces the foundational framework for "Oracle Tests" by implementing a DOM snapshot test, 
+     which is the first step in verifying migration correctness.
+   2 
+   3 Key changes:
+   4 - Adds a new test file `tests/test_oracle_dom_snapshot.py`.
+   5 - The test uses Playwright to navigate to the live application running in the Dockerized environment.
+   6 - It captures the HTML of the main `ui-view`, normalizes it, and compares it against a stored snapshot file
+     in `tests/snapshots/`.
+   7 - If a snapshot does not exist, it is created automatically, and the test prompts the user for review and 
+     commit.
+   8 - Adds `pytest-playwright`, `beautifulsoup4`, `playwright`, and `http-server` as new dependencies.
+   9 - Updates `README.md` to clarify that a running local development environment is a prerequisite for E2E 
+     tests."
+
+ Temat:
+  feat(testing): Add DOM snapshot oracle test framework
+
+  Opis (opcjonalny):
+
+
+
+
+  git commit -m "feat(testing): Implement data-driven content oracle framework" -m "Replaces previous 
+     snapshot tests with a scalable, data-driven framework for end-to-end content verification.
+     This new approach addresses the need to test multiple pages and authenticated routes in a maintainable way.
+        Key changes:
+    - Adds a generic test runner `tests/test_content_oracle.py` that is parameterized by oracle data.
+    - Introduces a new `tests/oracles/` directory with a JSON file to define page URLs and their content 
+     assertions.
+    - Implements a login helper to handle testing of authenticated pages.
+    - Removes the previous, more brittle DOM and visual snapshot tests."
+
+
+   

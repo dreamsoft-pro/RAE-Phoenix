@@ -1,20 +1,22 @@
 Przeczytaj kod programu, oraz opis wymagań do refaktoryzacji w plikach 001_kluczowe_podejscie_do_bazy_dla_agentow.txt i 001_01-postep-prac.txt w katalogu /home/grzegorz/cloud/Dockerized/feniks/zzz_descriptions/.
 Zapoznaj się z plikami 002_co-juz-jest-i-jak-to-rozbudowac.txt i 001_02-wykonane-z-postep-prac.txt
+                Następnym krokiem jest stworzenie generycznego skryptu testowego tests/test_behavior_oracle.py, który będzie 
+                wykonywał zdefiniowane w nim scenariusze behawioralne.
 
-Rozpocznij pace od 
+                Plan dla `tests/test_behavior_oracle.py`:
 
-  Plan Działania:
+                1. Importy: Dodam niezbędne biblioteki: pytest, json, pathlib, playwright.sync_api, expect.
+                2. Wczytanie danych:
+                    * Zdefiniuję ścieżkę do pliku behavior_oracles.json.
+                    * Wczytam dane z pliku JSON.
+                    * Przygotuję dane do parametryzacji testów, tak aby Pytest mógł dynamicznie tworzyć testy dla każdego 
+                        scenariusza.
+                3. Parametryzacja testu: Użyję dekoratora @pytest.mark.parametrize, aby test był uruchamiany dla każdego scenariusza 
+                    z pliku JSON.
+                4. Funkcja testowa `test_behavior_oracle(page: Page, story_name: str, steps: list)`:
+                    * Wewnątrz funkcji testowej, przejdę przez każdy krok zdefiniowany w scenariuszu.
+                    * Dla każdego kroku, na podstawie jego typu (action), wykonam odpowiednią operację Playwright (np. page.goto(), 
+                        page.locator().click(), page.locator().fill(), page.wait_for_selector(), page.wait_for_url(), expect()).
+                    * Dodam obsługę różnych typów asercji (visible, count, contains_text).
 
-   1. Rozszerzenie Parsowania (Node.js): Zmodyfikuję skrypt js_html_indexer.mjs, aby wydobywał dodatkowe, kluczowe metadane:
-       * Mapowanie Endpointów API: Będzie wykrywał wywołania $http i zapisywał, z jakimi adresami API komunikuje się dany fragment kodu.
-       * Sugestie Migracyjne: Doda automatyczne sugestie dotyczące migracji do React/Next.js na podstawie typu komponentu AngularJS.
-
-
-       Gdy skończysz daj mi znać, chyba, że ten punkt jest rbobione to wykonaj punkt 2 planu
-    2. Aktualizacja Struktur Danych (Python): Zaktualizuję definicję Chunk w Pythonie, aby mogła przechowywać te nowe informacje.
-
-
-
-wylogowanie z gemini
-/auth logout
-/auth login    
+Test powinien być gotowy. Srodowisko deweloperskie jest utworzone i dostępne pod adresem http://localtest.me/pl, promocje oferta druk offsetowy to treści pochowane w tabach nie linki do nowych stron. Ważne widoki są dostępne po zalogowaniu login offce@digitalprint.pro hasło 1234

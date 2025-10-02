@@ -1,0 +1,143 @@
+> Poprawiłem plik testu i json spróbuj jeszcze raz, może tak: # lokalnie  │
+│    export BASE_URL="http://localtest.me"                                   │
+│    # (opcjonalnie) debug                                                   │
+│    export DEBUG_BEHAVIOR=1                                                 │
+│                                                                            │
+│    pytest -k behavior_oracle -q                                            │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+✦ User updated test files and wants me to retry. I'll set the provided environment variables, then run the test.
+ ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ✓  Shell export BASE_URL="http://localtest.me"                                                              │
+ │    …                                                                                                        │
+ │                                                                                                             │
+ │                                                                                                             │
+ │    F                                                                        [100%]                          │
+ │    =================================== FAILURES ===================================                         │
+ │    __________________ test_behavior_oracle[chromium-User Login] ___________________                         │
+ │                                                                                                             │
+ │    page = <Page url='http://localtest.me/pl/zaloguj-sie'>                                                   │
+ │    story_name = 'User Login'                                                                                │
+ │    steps = [{'action': 'goto', 'url': '{{BASE_URL}}/pl'}, {'action': 'click', 'selector':                   │
+ │    'a[href="/pl/zaloguj-sie"]'}, {'action'..., 'value': '1234'}, {'action': 'click', 'selector':            │
+ │    'form[ng-submit="login(credentials)"] button[type="submit"]'}, ...]                                      │
+ │                                                                                                             │
+ │        @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))                   │
+ │        def test_behavior_oracle(page: Page, story_name: str, steps: list):                                  │
+ │            print(f"Running story: {story_name}")                                                            │
+ │                                                                                                             │
+ │            for step in steps:                                                                               │
+ │                action = step.get("action")                                                                  │
+ │                raw_selector = step.get("selector")                                                          │
+ │                selector = raw_selector                                                                      │
+ │                value = step.get("value")                                                                    │
+ │                raw_url = step.get("url")                                                                    │
+ │                url = expand_vars(raw_url)                                                                   │
+ │                assertion = step.get("assertion")                                                            │
+ │                                                                                                             │
+ │                print(f"- Executing step: {action}")                                                         │
+ │                                                                                                             │
+ │                if action == "goto":                                                                         │
+ │                    goto_url = expand_vars(step["url"])                                                      │
+ │                    if goto_url is None:                                                                     │
+ │                        raise ValueError(f"Step 'goto' requires a non-None url in story '{story_name}'")     │
+ │                    page.goto(goto_url)                                                                      │
+ │                    if DEBUG:                                                                                │
+ │                        page.screenshot(path="debug_goto.png")                                               │
+ │                        Path("debug_goto.html").write_text(page.content(), encoding="utf-8")                 │
+ │                                                                                                             │
+ │                elif action == "click":                                                                      │
+ │                    # BEZ debugowego bałaganu i bez psucia wcięć                                             │
+ │                    # Zawsze klikamy w kontekście strict=True (domyślnie)                                    │
+ │                    page.locator(selector).click()                                                           │
+ │                    if DEBUG:                                                                                │
+ │                        page.screenshot(path="debug_after_click.png")                                        │
+ │                        Path("debug_after_click.html").write_text(page.content(), encoding="utf-8")          │
+ │                                                                                                             │
+ │                elif action == "fill":                                                                       │
+ │                    # Nie używamy selektorów z przecinkiem – jeżeli potrzebujemy wariantów,                  │
+ │                    # to dostarczamy je jako 'sel1 || sel2'                                                  │
+ │                    if "||" in selector:                                                                     │
+ │                        first_existing_locator(page, selector).fill(value)                                   │
+ │                    else:                                                                                    │
+ │                        page.locator(selector).fill(value)                                                   │
+ │                                                                                                             │
+ │                elif action == "wait_for_selector":                                                          │
+ │                    # Akceptujemy listę wariantów przez '||'                                                 │
+ │                    if "||" in selector:                                                                     │
+ │                        # czekamy aż któryś istnieje                                                         │
+ │                        parts = [p.strip() for p in selector.split("||")]                                    │
+ │                        page.wait_for_selector(parts[0])  # start timer                                      │
+ │                        # sprawdzamy iteracyjnie                                                             │
+ │                        found = False                                                                        │
+ │                        for sel in parts:                                                                    │
+ │                            try:                                                                             │
+ │                                page.wait_for_selector(sel, timeout=300)  # krótki check                     │
+ │                                found = True                                                                 │
+ │                                break                                                                        │
+ │                            except Exception:                                                                │
+ │                                continue                                                                     │
+ │                        if not found:                                                                        │
+ │                            # finalnie normalny timeout dla pierwszego                                       │
+ │                            page.wait_for_selector(parts[0])                                                 │
+ │                    else:                                                                                    │
+ │    >                   page.wait_for_selector(selector)                                                     │
+ │                                                                                                             │
+ │    tests/test_behavior_oracle.py:101:                                                                       │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                          │
+ │    .venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:8182: in wait_for_selector          │
+ │        self._sync(                                                                                          │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_page.py:423: in wait_for_selector                   │
+ │        return await self._main_frame.wait_for_selector(**locals_to_params(locals()))                        │
+ │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                        │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector                  │
+ │        await self._channel.send(                                                                            │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send                           │
+ │        return await self._connection.wrap_api_call(                                                         │
+ │    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _                          │
+ │                                                                                                             │
+ │    self = <playwright._impl._connection.Connection object at 0x7a6df3b7c200>                                │
+ │    cb = <function Channel.send.<locals>.<lambda> at 0x7a6df34674c0>                                         │
+ │    is_internal = False, title = None                                                                        │
+ │                                                                                                             │
+ │        async def wrap_api_call(                                                                             │
+ │            self, cb: Callable[[], Any], is_internal: bool = False, title: str = None                        │
+ │        ) -> Any:                                                                                            │
+ │            if self._api_zone.get():                                                                         │
+ │                return await cb()                                                                            │
+ │            task = asyncio.current_task(self._loop)                                                          │
+ │            st: List[inspect.FrameInfo] = getattr(                                                           │
+ │                task, "__pw_stack__", None                                                                   │
+ │            ) or inspect.stack(0)                                                                            │
+ │                                                                                                             │
+ │            parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)                  │
+ │            self._api_zone.set(parsed_st)                                                                    │
+ │            try:                                                                                             │
+ │                return await cb()                                                                            │
+ │            except Exception as error:                                                                       │
+ │    >           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None                     │
+ │    E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 30000ms exceeded.     │
+ │    E           Call log:                                                                                    │
+ │    E             - waiting for locator("main .orders, main .orders-list, main h1") to be visible            │
+ │                                                                                                             │
+ │    .venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:558: TimeoutError                     │
+ │    ----------------------------- Captured stdout call -----------------------------                         │
+ │    Running story: User Login                                                                                │
+ │    - Executing step: goto                                                                                   │
+ │    - Executing step: click                                                                                  │
+ │    - Executing step: wait_for_selector                                                                      │
+ │    - Executing step: fill                                                                                   │
+ │    - Executing step: fill                                                                                   │
+ │    - Executing step: click                                                                                  │
+ │    - Executing step: wait_for_selector                                                                      │
+ │    =============================== warnings summary ===============================                         │
+ │    tests/test_e2e_pipeline.py:18                                                                            │
+ │      /home/grzegorz/cloud/Dockerized/feniks/tests/test_e2e_pipeline.py:18: PytestUnknownMarkWarning:        │
+ │    Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for     │
+ │    details, see https://docs.pytest.org/en/stable/how-to/mark.html                                          │
+ │        @pytest.mark.e2e                                                                                     │
+ │                                                                                                             │
+ │    -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html                                  │
+ │    =========================== short test summary info ============================                         │
+ │    FAILED tests/test_behavior_oracle.py::test_behavior_oracle[chromium-User Login]                          │
+ │    1 failed, 3 deselected, 1 warning in 38.71s                        
