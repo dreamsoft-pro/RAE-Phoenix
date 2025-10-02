@@ -1,164 +1,124 @@
-#!/usr/bin/env python3
 import argparse
-import subprocess
-import sys
-from pathlib import Path
-
-# Add project root to allow sibling imports
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
-
-from feniks.logger import log
-from feniks.config import settings
+import os
 from qdrant_client import QdrantClient
-from qdrant_client.http import models
-from sentence_transformers import SentenceTransformer
-from deep_translator import GoogleTranslator
-from langdetect import detect as ld_detect
-import re
+import yaml
+from feniks.config import get_config
+from feniks.utils import get_git_root, get_llm
+from feniks.plugins import get_plugin
 
-# --- Utility functions from search_demo.py ---
 
-def detect_lang(s: str) -> str:
-    try:
-        return ld_detect(s)
-    except Exception:
-        if re.search(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", s):
-            return "pl"
-        return "en"
+def score_recipe(recipe, chunk):
+    """
+    Scores how well a recipe matches a code chunk.
+    """
+    score = 0
+    recipe_tags = recipe.get("tags", [])
+    recipe_lang = recipe.get("language")
+    chunk_lang = chunk.payload.get("language")
+    chunk_kind = chunk.payload.get("meta", {}).get("kind")
+    chunk_content = chunk.payload.get("content", "")
 
-def translate_pl_to_en(q: str) -> str:
-    lang = detect_lang(q)
-    if lang.startswith("en"):
-        return q
-    try:
-        return GoogleTranslator(source="auto", target="en").translate(q)
-    except Exception:
-        log.warning("Translation failed, using simple replacement.")
-        repl = {
-            "refaktoryzuj":"refactor","serwis":"service","autentykacji":"authentication",
-            "autentykacja":"authentication","logowanie":"login","wylogowanie":"logout",
-            "użytkownika":"user","hasło":"password","token":"token","sesja":"session",
-            "uprawnienia":"permissions","rola":"role","rejestracja":"registration"
-        }
-        t = q.lower()
-        for k,v in repl.items():
-            t = re.sub(rf"\b{re.escape(k)}\b", v, t)
-        return t + " auth authentication login user service refactor token session password"
+    if recipe_lang and chunk_lang and recipe_lang == chunk_lang:
+        score += 10
 
-def parse_filter(filter_str: str | None) -> models.Filter | None:
-    """Parses a simple 'key:value' string into a Qdrant filter."""
-    if not filter_str or ':' not in filter_str:
-        return None
-    
-    key, value = filter_str.split(':', 1)
-    
-    log.info(f"Applying metadata filter: {key}={value}")
-    return models.Filter(
-        must=[
-            models.FieldCondition(
-                key=key.strip(),
-                match=models.MatchValue(value=value.strip()),
-            )
-        ]
-    )
+    if chunk_kind and chunk_kind in recipe_tags:
+        score += 10
 
-def run_sub_process(cmd: list[str]):
-    """Helper to run an external script and stream its output."""
-    log.info(f"Executing: {' '.join(cmd)}")
-    try:
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding='utf-8') as proc:
-            if proc.stdout:
-                for line in proc.stdout:
-                    log.info(line.strip())
-        if proc.returncode != 0:
-            log.error(f"Sub-process failed with exit code {proc.returncode}")
-    except Exception as e:
-        log.error(f"Sub-process execution failed: {e}")
+    for tag in recipe_tags:
+        if tag in chunk_content:
+            score += 5
+
+    return score
+
+
+def find_best_recipe(recipe_path, chunk):
+    """
+    Finds the best recipe in a directory for a given chunk.
+    """
+    if not os.path.isdir(recipe_path):
+        if os.path.exists(recipe_path):
+            return recipe_path
+        else:
+            return None
+
+    best_recipe_path = None
+    max_score = -1
+
+    for filename in os.listdir(recipe_path):
+        if filename.endswith((".yml", ".yaml")):
+            filepath = os.path.join(recipe_path, filename)
+            try:
+                with open(filepath, "r") as f:
+                    recipe = yaml.safe_load(f)
+
+                current_score = score_recipe(recipe, chunk)
+
+                if current_score > max_score:
+                    max_score = current_score
+                    best_recipe_path = filepath
+            except Exception as e:
+                print(f"Error processing recipe {filepath}: {e}")
+
+    return best_recipe_path
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Feniks Refactoring Agent")
-    parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file.")
-    parser.add_argument("--query", type=str, required=True, help="Natural language query to find refactoring targets.")
-    parser.add_argument("--filter", type=str, default=None, help="Optional metadata filter, e.g., 'kind:js_function'")
-    parser.add_argument("--score-threshold", type=float, default=0.5, help="Minimum score for a search result to be considered a match.")
-    parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
-    parser.add_argument("--limit", type=int, default=50, help="Limit the number of files to process.")
+    parser = argparse.ArgumentParser(description="Refactor agent")
+    parser.add_argument("--query", required=True, help="Query for retrieving code chunks")
+    parser.add_argument("--recipe", required=True, help="Path to the recipe file or directory")
+    parser.add_argument("--limit", type=int, default=3, help="Number of chunks to retrieve")
     args = parser.parse_args()
 
-    log.info("--- Starting Feniks Refactoring Agent ---")
+    config = get_config()
+    client = QdrantClient(config.qdrant_url)
 
-    # 1. Connect to DB and embedding model
-    try:
-        client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
-        model = SentenceTransformer(settings.EMBEDDING_MODEL)
-        log.info(f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
-        log.info(f"Loaded embedding model: {settings.EMBEDDING_MODEL}")
-    except Exception as e:
-        log.error(f"Failed to initialize Qdrant client or embedding model: {e}")
-        sys.exit(1)
+    chunks = client.search(
+        collection_name=config.qdrant_collection,
+        query_text=args.query,
+        limit=args.limit,
+        with_payload=True,
+    )
 
-    # 2. Find refactoring targets via semantic search
-    log.info(f"Searching for targets in collection '{settings.QDRANT_COLLECTION}'...")
-    try:
-        query_en = translate_pl_to_en(args.query)
-        log.info(f"Original query: '{args.query}' -> Translated: '{query_en}'")
-        
-        query_vector = model.encode(query_en, normalize_embeddings=True)
-        
-        qdrant_filter = parse_filter(args.filter)
+    llm = get_llm()
 
-        search_response = client.search(
-            collection_name=settings.QDRANT_COLLECTION,
-            query_vector=query_vector,
-            query_filter=qdrant_filter,
-            score_threshold=args.score_threshold,
-            limit=args.limit or 50, # Ensure limit is not None
-            with_payload=True,
-        )
-        
-        # Get unique file paths from scored points
-        target_files = sorted(list(set(hit.payload['file_path'] for hit in search_response)))
-        
-        if args.limit:
-            target_files = target_files[:args.limit]
+    for chunk in chunks:
+        print(f"Processing chunk {chunk.id} from {chunk.payload['file_path']}...")
 
-        log.info(f"Found {len(target_files)} unique files to process with score >= {args.score_threshold}.")
-        if not target_files:
-            log.warning("No files matched the query and threshold. Exiting.")
-            return
-
-    except Exception as e:
-        log.error(f"Failed to query Qdrant: {e}")
-        sys.exit(1)
-
-    # 3. Apply recipe to each target
-    apply_recipe_script = project_root / "scripts" / "apply_recipe.py"
-    processed_count = 0
-    for file_path in target_files:
-        processed_count += 1
-        log.info(f"--- Processing file {processed_count}/{len(target_files)}: {file_path} ---")
-        
-        # The file_path from the DB is already relative to the project root,
-        # but we construct a full path for clarity and safety.
-        absolute_file_path = project_root / file_path
-        if not absolute_file_path.exists():
-            log.warning(f"File not found: {absolute_file_path}. Skipping.")
+        # Dynamic plugin selection
+        language = chunk.payload.get("language")
+        if not language:
+            print(f"Skipping chunk {chunk.id} due to missing language.")
             continue
 
-        cmd = [
-            sys.executable,
-            str(apply_recipe_script),
-            "--recipe", str(args.recipe),
-            "--file-path", str(absolute_file_path),
-        ]
-        if args.dry_run:
-            cmd.append("--dry-run")
-        
-        run_sub_process(cmd)
+        try:
+            plugin = get_plugin(language)
+            print(f"Using '{language}' plugin for chunk {chunk.id}")
+        except ValueError as e:
+            print(e)
+            continue
 
-    log.info("--- Feniks Refactoring Agent Finished ---")
+        # Find best recipe if a directory is provided
+        recipe_path = find_best_recipe(args.recipe, chunk)
+        if not recipe_path:
+            print(f"No suitable recipe found for chunk {chunk.id} in {args.recipe}")
+            continue
 
-if __name__ == "__main__":
-    main()
+        print(f"Using recipe: {recipe_path}")
+        with open(recipe_path, "r") as f:
+            recipe = yaml.safe_load(f)
+
+        prompt = recipe["prompt_template"].format(
+            code=chunk.payload["content"],
+            file_path=chunk.payload["file_path"],
+            description=recipe["description"],
+        )
+
+        response = llm.invoke(prompt)
+        print("=" * 20)
+        print("Refactored code suggestion:")
+        print(response.content)
+        print("=" * 20)
+
+        # TODO: Apply changes to the file using the selected plugin
+        # transformed_code = plugin.transform(chunk.payload["content"], response.content)
+        # print("Transformation result:", transformed_code)
