@@ -101,7 +101,7 @@
       zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
 
 
-!!!-wydaje mi się że jesteśmy w tym miejscu
+
    
     3. Następnym krokiem byłoby napisanie agenta, który używa bazy wektorowej do wyszukiwania celów 
         i naszego nowego narzędzia do ich automatycznej modyfikacji.
@@ -117,6 +117,10 @@
    * Wykonalność: Bardzo wysoka. To idealny następny krok.
 
 
+
+!!!-wydaje mi się że jesteśmy w tym miejscu i przeszliśmy do realizacji tests/test_behavior_oracle.py
+
+
   5. Testy-Wyrocznie (Oracle Tests)
 
    * Ocena: To najbardziej złożony, ale i najważniejszy element gwarantujący jakość migracji. Jego implementacja to w praktyce budowa całego frameworka do testów regresji.
@@ -124,6 +128,54 @@
        * Pierwszy krok: Stworzenie skryptu (np. przy użyciu Playwright), który zrobi zrzut ekranu (Visual Parity) dla jednego, konkretnego widoku w starej aplikacji. To pozwoli nam zbudować podstawy pod 
          automatyzację przeglądarki.
    * Wykonalność: Wysoka, ale wymaga podejścia krok po kroku.
+
+
+
+                Wykonano realizację kluczowego etapu: budowy "Testów-Wyroczni" (Oracle Tests). To fundamentalny element, który 
+                zapewni, że proces migracji jest bezpieczny i nie wprowadza regresji.
+
+                Zgodnie z planem, zacznę od implementacji pierwszego i najbardziej podstawowego rodzaju testu: porównywania 
+                struktury DOM.
+
+                Ponieważ nie mamy jeszcze docelowej aplikacji w Next.js, stworzę fundament pod przyszłe testy porównawcze. Zbuduję 
+                mechanizm "snapshot testing" dla istniejącej aplikacji AngularJS. Będzie on działał następująco:
+                1. Uruchomi aplikację frontend-master na lokalnym serwerze.
+                2. Za pomocą przeglądarki w trybie headless (bez interfejsu graficznego) otworzy konkretną stronę.
+                3. Zrobi "migawkę" (snapshot) struktury HTML kluczowego elementu na tej stronie i zapisze ją do pliku.
+                4. Podczas kolejnych uruchomień, test będzie porównywał aktualną strukturę DOM z zapisaną migawką. Każda niezgodność 
+                    spowoduje błąd testu.
+
+                Ten mechanizm posłuży w przyszłości do porównywania wersji AngularJS z wersją Next.js.
+
+                Mój plan działania:
+
+                1. Sprawdzenie zależności: Zweryfikuję pliki package.json i requirements.txt, aby sprawdzić, czy w projekcie są już 
+                    narzędzia, których potrzebuję (Playwright do sterowania przeglądarką, BeautifulSoup do analizy HTML).
+                2. Instalacja narzędzi: Jeśli potrzebne pakiety nie są zainstalowane, dodam je do projektu.
+                3. Stworzenie skryptu testowego: Napiszę nowy plik testowy (tests/test_oracle_dom_snapshot.py), który będzie zawierał 
+                    całą logikę: od uruchomienia serwera, przez nawigację w przeglądarce, aż po logikę porównywania snapshotów.
+
+
+                !!!---Na tym stanęliśmy
+
+                Następnym krokiem jest stworzenie generycznego skryptu testowego tests/test_behavior_oracle.py, który będzie 
+                wykonywał zdefiniowane w nim scenariusze behawioralne.
+
+                Plan dla `tests/test_behavior_oracle.py`:
+
+                1. Importy: Dodam niezbędne biblioteki: pytest, json, pathlib, playwright.sync_api, expect.
+                2. Wczytanie danych:
+                    * Zdefiniuję ścieżkę do pliku behavior_oracles.json.
+                    * Wczytam dane z pliku JSON.
+                    * Przygotuję dane do parametryzacji testów, tak aby Pytest mógł dynamicznie tworzyć testy dla każdego 
+                        scenariusza.
+                3. Parametryzacja testu: Użyję dekoratora @pytest.mark.parametrize, aby test był uruchamiany dla każdego scenariusza 
+                    z pliku JSON.
+                4. Funkcja testowa `test_behavior_oracle(page: Page, story_name: str, steps: list)`:
+                    * Wewnątrz funkcji testowej, przejdę przez każdy krok zdefiniowany w scenariuszu.
+                    * Dla każdego kroku, na podstawie jego typu (action), wykonam odpowiednią operację Playwright (np. page.goto(), 
+                        page.locator().click(), page.locator().fill(), page.wait_for_selector(), page.wait_for_url(), expect()).
+                    * Dodam obsługę różnych typów asercji (visible, count, contains_text).
 
 
 
