@@ -18,3 +18,8 @@ npm-debug.log*
 .DS_Store
 data/
 kb/
+# Playwright debug artifacts
+debug_*.html
+debug_*.png
+# lokalne zrzuty/notatki
+zzz_descriptions/
