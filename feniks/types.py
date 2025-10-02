@@ -31,6 +31,13 @@ class ApiEndpoint:
     dataKeys: List[str] = field(default_factory=list)
     paramKeys: List[str] = field(default_factory=list)
 
+
+@dataclass
+class Dependency:
+    type: str
+    value: str
+
+
 @dataclass
 class Chunk:
     id: str
@@ -39,6 +46,7 @@ class Chunk:
     end_line: int
     text: str
     chunk_name: str
+    language: str
     
     # --- Wzbogacone Metadane ---
     module: Optional[str] = None
@@ -46,7 +54,7 @@ class Chunk:
     ast_node_type: Optional[str] = None
     
     # Relacje
-    dependencies_di: List[str] = field(default_factory=list)
+    dependencies: List[Dependency] = field(default_factory=list)
     calls_functions: List[str] = field(default_factory=list)
     api_endpoints: List[ApiEndpoint] = field(default_factory=list)
     ui_routes: List[str] = field(default_factory=list)

@@ -31,7 +31,7 @@ def calculate_criticality(chunk: dict) -> float:
     emits = events_meta.get("emits", 0)
     broadcasts = events_meta.get("broadcasts", 0)
     
-    coupling = len(chunk.get("dependencies_di", []))
+    coupling = len(chunk.get("dependencies", []))
     
     # A chunk is considered exposed if it's linked to a UI route
     is_exposed = 1 if meta.get("ui_routes") else 0
@@ -86,10 +86,11 @@ def main():
                     "end_line": chunk.get("end"),
                     "text": chunk.get("text"),
                     "chunk_name": chunk.get("name"),
+                    "language": chunk.get("language"),
                     "module": chunk.get("module"),
                     "kind": chunk.get("kind"),
                     "ast_node_type": chunk.get("ast_node_type"),
-                    "dependencies_di": chunk.get("dependencies_di", []),
+                    "dependencies": chunk.get("dependencies", []),
                     "calls_functions": chunk.get("calls_functions", []),
                     "api_endpoints": chunk.get("metadata", {}).get("api_endpoints", []),
                     "ui_routes": chunk.get("metadata", {}).get("ui_routes", []),

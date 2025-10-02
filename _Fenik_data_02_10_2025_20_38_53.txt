@@ -1,0 +1,4710 @@
+# README.md
+# Feniks: Baza Wiedzy i Silnik Refaktoryzacji dla Projektów AngularJS
+
+**WAŻNE: Uruchomienie środowiska jest wymagane**
+
+Przed użyciem `feniks`, **zawsze należy najpierw uruchomić lokalne środowisko deweloperskie** zgodnie z instrukcjami w repozytorium [dreamsoft-pro/Dockerized](https://github.com/dreamsoft-pro/Dockerized).
+
+Jest to warunek konieczny do poprawnego działania kluczowych funkcji, w tym testów E2E (Oracle Tests) oraz agentów wchodzących w interakcję z aplikacją.
+
+---
+
+Feniks to zaawansowany system do budowy bazy wiedzy z kodu źródłowego AngularJS (1.x) oraz do przeprowadzania automatycznych refaktoryzacji. Jego celem jest przygotowanie precyzyjnych danych i narzędzi dla agentów AI, aby zautomatyzować i wspomóc proces migracji starych aplikacji do nowoczesnych technologii.
+
+**Kluczowe Cechy:**
+
+*   **Parsowanie oparte na AST:** Wykorzystuje parser Babel do precyzyjnego rozumienia struktury kodu JavaScript, identyfikując kontrolery, serwisy, dyrektywy i ich zależności.
+*   **Wzbogacone Metadane:** Każdy fragment kodu jest wzbogacony o cenne metadane, takie jak zależności (DI), częstotliwość zmian (churn), złożoność cyklomatyczna i użycie wzorców `$watch` czy `$emit`.
+*   **Zaawansowana Ocena Trudności Migracji:** Automatycznie oblicza `criticality_score` dla każdego fragmentu kodu, umożliwiając inteligentne priorytetyzowanie zadań refaktoryzacyjnych.
+*   **Wyszukiwanie Hybrydowe:** Zapisuje wektory w bazie Qdrant, umożliwiając zaawansowane wyszukiwanie semantyczne i filtrowanie.
+*   **Deklaratywny Silnik Refaktoryzacji:** Umożliwia definiowanie złożonych transformacji kodu (np. migracja serwisu AngularJS do zbioru funkcji TS) za pomocą prostych "receptur" w formacie YAML.
+*   **Agent Automatyzujący Refaktoryzację:** Posiada agenta, który wykorzystuje bazę wiedzy do inteligentnego wyszukiwania celów i automatycznego stosowania na nich receptur.
+
+---
+
+## Szybki Start
+
+### 1. Wymagania
+
+*   Python 3.10+
+*   Node.js 18+
+*   Docker
+
+### 2. Instalacja
+
+Zalecane jest uruchomienie projektu w izolowanym środowisku wirtualnym Pythona.
+
+```bash
+# Sklonuj repozytorium
+git clone https://github.com/dreamsoft-pro/feniks.git
+cd feniks
+
+# Stwórz i aktywuj środowisko wirtualne
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Zainstaluj zależności Python i Node.js
+pip install -r requirements.txt
+npm install
+```
+
+### 3. Uruchomienie Bazy Danych
+
+Feniks używa Qdrant jako wektorowej bazy danych.
+
+```bash
+# Uruchom kontener Qdrant w tle
+sudo docker compose -f docker-compose.qdrant.yml up -d
+```
+*Uwaga: `sudo` może być wymagane w zależności od konfiguracji Dockera.*
+
+### 4. Budowanie Bazy Wiedzy
+
+Głównym poleceniem jest `feniks_cli.py build`. Wskazuje ono na katalog z kodem AngularJS i buduje całą bazę wiedzy.
+
+```bash
+# Uruchom pełen proces budowania bazy wiedzy
+python3 scripts/feniks_cli.py build --reset
+```
+
+### 5. Automatyczna Refaktoryzacja (Nowość!)
+
+Feniks zawiera agenta do automatycznej refaktoryzacji kodu na podstawie zdefiniowanych reguł (receptur).
+
+```bash
+# Przykład: Uruchom agenta, aby znalazł do 5 serwisów ('kind:service')
+# i zastosował na nich recepturę migracji w trybie symulacji (--dry-run).
+
+python3 scripts/refactor_agent.py \
+  --recipe recipes/angularjs-service-to-ts-function.yml \
+  --query "kind:service" \
+  --limit 5 \
+  --dry-run
+```
+
+---
+
+## Testowanie
+
+Projekt zawiera zestaw testów jednostkowych i integracyjnych. Aby je uruchomić, użyj `pytest`.
+
+```bash
+# Uruchom wszystkie testy
+pytest
+```
+
+### Dane Logowania do Testów
+
+Do testowania funkcjonalności wymagających zalogowania, można użyć następujących danych:
+
+*   **Login:** `office@diditalprint.pro`
+*   **Hasło:** `1234`
+
+---
+## Struktura Projektu
+
+*   `scripts/feniks_cli.py`: Główny punkt wejścia CLI do budowania bazy wiedzy.
+*   `scripts/refactor_agent.py`: Agent automatyzujący, który wyszukuje cele w bazie wiedzy i uruchamia na nich refaktoryzację.
+*   `scripts/apply_recipe.py`: Silnik wykonujący pojedynczą recepturę refaktoryzacyjną na pliku.
+*   `scripts/js_html_indexer.mjs`: Silnik parsowania AST dla kodu JS i HTML.
+*   `recipes/`: Katalog z recepturami refaktoryzacyjnymi w formacie YAML.
+*   `scripts/feniks/`: Pakiet Pythona zawierający główną logikę aplikacji (konfiguracja, typy, logger).
+*   `tests/`: Testy jednostkowe i integracyjne.
+*   `requirements.txt`: Zależności Pythona.
+*   `package.json`: Zależności Node.js.
+
+# feniks/.feniksignore
+**/node_modules/**
+**/bower_components/**
+**/dist/**
+**/build/**
+**/vendor/**
+**/.cache/**
+**/tmp/**
+**/.git/**
+**/*.min.js
+**/*.map
+**/*.spec.js
+**/*.test.js
+**/*.d.ts
+
+# feniks/__init__.py
+# This file makes the 'feniks' directory a Python package.
+
+# feniks/config.py
+import os
+from pathlib import Path
+import sys
+
+try:
+    from dotenv import load_dotenv
+    # Load environment variables from a .env file if it exists
+    load_dotenv()
+except ModuleNotFoundError:
+    print("WARNING: python-dotenv not found. Skipping .env file loading.", file=sys.stderr)
+
+class Settings:
+    """
+    Centralized configuration for the Feniks knowledge base builder.
+    Reads settings from environment variables with sensible defaults.
+    """
+    # The root directory of the project.
+    PROJECT_ROOT: Path = Path(__file__).parent.parent
+
+    # Path to the frontend source code to be indexed.
+    # Can be overridden by the FENIKS_FRONTEND_ROOT environment variable.
+    FRONTEND_ROOT: Path = Path(os.getenv(
+        "FENIKS_FRONTEND_ROOT", 
+        PROJECT_ROOT / "frontend-master"
+    ))
+
+    # Directory where all output artifacts will be stored.
+    # Can be overridden by the FENIKS_OUTPUT_DIR environment variable.
+    OUTPUT_DIR: Path = Path(os.getenv(
+        "FENIKS_OUTPUT_DIR", 
+        PROJECT_ROOT / "output"
+    ))
+
+    # Path to the Node.js indexer script.
+    NODE_INDEXER_PATH: Path = PROJECT_ROOT / "scripts" / "js_html_indexer.mjs"
+
+    # --- Qdrant Settings ---
+    QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "feniks_kb_test")
+    QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
+    QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", 6333))
+
+    # --- Embedding Model Settings ---
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+
+# Create a single, importable instance of the settings.
+settings = Settings()
+
+# feniks/embed.py
+import os
+from typing import List, Tuple, Dict, Any
+
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from feniks.types import Chunk
+
+def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
+    """
+    Builds a TF-IDF vectorizer and transforms the chunk texts.
+    """
+    corpus = [c.text for c in chunks]
+    vec = TfidfVectorizer(
+        token_pattern=r"[A-Za-z0-9_#\-$]{2,}",
+        ngram_range=(1, 2),
+        min_df=int(os.getenv("FENIKS_TEST_MIN_DF", 2)),
+        max_features=50000
+    )
+    X = vec.fit_transform(corpus)  # csr_matrix
+    return vec, X
+
+def get_embedding_model(name: str) -> SentenceTransformer:
+    """
+    Loads and returns a SentenceTransformer model.
+    """
+    return SentenceTransformer(name)
+
+def create_dense_embeddings(model: SentenceTransformer, chunks: List[Chunk]) -> np.ndarray:
+    """
+    Creates dense embeddings for a list of chunks.
+    """
+    texts = [c.text[:5000] for c in chunks]  # Protect memory
+    # normalize_embeddings=True makes embeddings cosine-comparable
+    embs = model.encode(texts, normalize_embeddings=True, batch_size=64, show_progress_bar=True)
+    return np.array(embs)
+
+# feniks/logger.py
+import logging
+import sys
+
+def setup_logger():
+    """
+    Configures and returns a logger for the application.
+    - Logs INFO and higher to stdout.
+    - Uses a clear, consistent format.
+    """
+    logger = logging.getLogger("feniks_kb")
+    logger.setLevel(logging.INFO)
+
+    # Avoid adding duplicate handlers if this function is called multiple times
+    if logger.hasHandlers():
+        return logger
+
+    # Configure handler
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter(
+        "[%(asctime)s] [%(levelname)s] - %(message)s", 
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+
+# Create a single, importable instance of the logger
+log = setup_logger()
+
+# feniks/qdrant.py
+import sys
+from typing import List, Dict
+
+import numpy as np
+from pydantic import ValidationError as PydanticValidationError
+from qdrant_client import QdrantClient
+from qdrant_client.models import (
+    Distance, VectorParams, PointStruct, SparseVector, SparseVectorParams,
+    HnswConfigDiff, OptimizersConfigDiff
+)
+
+from feniks.types import Chunk
+
+
+def ensure_collection(client: QdrantClient, name: str, dim: int, reset: bool) -> None:
+    """
+    Ensures a Qdrant collection exists, deleting it first if reset is True.
+    """
+    exists = False
+    try:
+        client.get_collection(name)
+        exists = True
+    except Exception:
+        exists = False
+    if exists and reset:
+        client.delete_collection(name)
+        exists = False
+    if not exists:
+        client.create_collection(
+            collection_name=name,
+            vectors_config={"dense_code": VectorParams(size=dim, distance=Distance.COSINE)},
+            sparse_vectors_config={"sparse_keywords": SparseVectorParams()},
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=100, full_scan_threshold=10000),
+            optimizers_config=OptimizersConfigDiff(indexing_threshold=10000),
+            on_disk_payload=True
+        )
+
+def upsert_points(client: QdrantClient,
+                  collection: str,
+                  chunks: List[Chunk],
+                  dense: np.ndarray,
+                  X_tfidf, vocab: Dict[str,int],
+                  batch: int = 512) -> None:
+    """
+    Upserts points to Qdrant with an automatic fallback to dense-only if sparse vectors are not supported.
+    """
+    ids = list(range(len(chunks)))
+    for i in range(0, len(chunks), batch):
+        j = min(i+batch, len(chunks))
+        batch_ids = ids[i:j]
+        vecs_dense = [dense[k].tolist() for k in batch_ids]
+
+        # Prepare sparse slice (tf-idf)
+        Xb = X_tfidf[batch_ids]
+        sv: List[SparseVector] = []
+        for row in range(Xb.shape[0]):
+            coo = Xb[row].tocoo()
+            sv.append(SparseVector(indices=coo.col.tolist(),
+                                   values=[float(x) for x in coo.data.tolist()]))
+
+        payloads = []
+        for k in batch_ids:
+            c = chunks[k]
+            # Dynamically create payload from chunk, excluding large fields
+            payload = c.__dict__.copy()
+            payload.pop('text', None) # Exclude raw text from payload
+            # Convert dataclass sub-objects to dicts for JSON compatibility
+            if payload.get('git_last_commit'):
+                payload['git_last_commit'] = payload['git_last_commit'].__dict__
+            if payload.get('migration_suggestion'):
+                payload['migration_suggestion'] = payload['migration_suggestion'].__dict__
+            payloads.append(payload)
+
+        pts = [
+            PointStruct(
+                id=k,
+                payload=payloads[idx],
+                vector={
+                    "dense_code": vecs_dense[idx],
+                    "sparse_keywords": sv[idx]
+                }
+            ) for idx, k in enumerate(batch_ids)
+        ]
+        client.upsert(collection_name=collection, points=pts)
+
+# feniks/types.py
+from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional
+from typing import List, Optional
+
+@dataclass
+class GitInfo:
+    hash: str
+    author: str
+    date: str
+    summary: str
+
+@dataclass
+class MigrationSuggestion:
+    target: str
+    notes: str
+
+@dataclass
+class Evidence:
+    source: str
+    rule: str
+    confidence: float
+    file: str
+    start_line: int
+    end_line: int
+
+@dataclass
+class ApiEndpoint:
+    url: str
+    method: str
+    dataKeys: List[str] = field(default_factory=list)
+    paramKeys: List[str] = field(default_factory=list)
+
+@dataclass
+class Chunk:
+    id: str
+    file_path: str
+    start_line: int
+    end_line: int
+    text: str
+    chunk_name: str
+    
+    # --- Wzbogacone Metadane ---
+    module: Optional[str] = None
+    kind: Optional[str] = None # service, controller, directive, filter, route, template
+    ast_node_type: Optional[str] = None
+    
+    # Relacje
+    dependencies_di: List[str] = field(default_factory=list)
+    calls_functions: List[str] = field(default_factory=list)
+    api_endpoints: List[ApiEndpoint] = field(default_factory=list)
+    ui_routes: List[str] = field(default_factory=list)
+
+    # Jakość i Kontekst
+    cyclomatic_complexity: int = 0
+    business_tags: List[str] = field(default_factory=list)
+    git_last_commit: Optional[GitInfo] = None
+
+    # --- Nowe Pola IR ---
+    evidence: List[Evidence] = field(default_factory=list)
+    confidence: float = 1.0
+    criticality_score: float = 0.0
+    migration_target: Optional[str] = None
+    migration_suggestion: Optional[MigrationSuggestion] = None
+    invariants: List[str] = field(default_factory=list)
+    io_contract: Dict[str, Any] = field(default_factory=dict)
+    api_contract_ref: Optional[str] = None
+
+# feniks/utils.py
+import hashlib
+import re
+from pathlib import Path
+
+
+def ensure_dir(p: Path) -> None:
+    """Ensures that a directory exists, creating it if necessary."""
+    p.mkdir(parents=True, exist_ok=True)
+
+
+def sha1(s: str) -> str:
+    """Computes the SHA1 hash of a string."""
+    return hashlib.sha1(s.encode("utf-8", "ignore")).hexdigest()
+
+
+def extract_module_from_path(path: Path) -> str | None:
+    """Extracts the AngularJS module name from a file path."""
+    p = path.as_posix()
+    # This regex looks for a pattern like /app/src/MODULE_NAME/
+    m = re.search(r"(?:^|/)app/src/([^/]+)/", p)
+    return m.group(1) if m else None
+
+# kb/modules/-.json
+{
+  "services": [
+    "AddressService",
+    "AddressWidgetService",
+    "AttributeFiltersService",
+    "AuthDataService",
+    "AuthService",
+    "CacheService",
+    "CalcFileService",
+    "CalcSimplifyWidgetService",
+    "CalculateDataService",
+    "CalculationService",
+    "CanvasService",
+    "CartService",
+    "CartWidgetService",
+    "CategoryDescriptionService",
+    "ClientZoneWidgetService",
+    "CommonService",
+    "CountService",
+    "CountriesService",
+    "CouponService",
+    "CurrencyRootService",
+    "CurrencyService",
+    "CustomProductService",
+    "DeliveryService",
+    "DeliveryWidgetService",
+    "DomWidgetService",
+    "DomainService",
+    "DpAddressService",
+    "DpCartsDataService",
+    "DpCategoryService",
+    "DpOrderService",
+    "DpOrderStatusService",
+    "DpProductService",
+    "DynamicCssService",
+    "EditorProjectService",
+    "HomepageBannerService",
+    "InvoiceService",
+    "LangRootService",
+    "LangService",
+    "LangSettingsRootService",
+    "LangSettingsService",
+    "LoadingService",
+    "LoginWidgetService",
+    "LogoutService",
+    "MainWidgetService",
+    "MenuTypesService",
+    "NewsService",
+    "OrderMessageService",
+    "PaymentService",
+    "PhotoFolderService",
+    "ProductFileService",
+    "PsAttributeService",
+    "PsCalculateService",
+    "PsComplexService",
+    "PsFormatService",
+    "PsGroupDescriptionService",
+    "PsGroupService",
+    "PsPageService",
+    "PsTooltipService",
+    "PsTypeDescriptionService",
+    "PsTypeService",
+    "RealizationTimeService",
+    "ReclamationService",
+    "SettingService",
+    "SocialWidgetService",
+    "StaticContentService",
+    "SubCategoryDescriptionService",
+    "TaxService",
+    "TemplateRootService",
+    "TextWidgetService",
+    "TokenService",
+    "TypePatternService",
+    "UserAddressService",
+    "UserService",
+    "socketService"
+  ],
+  "controllers": [
+    "CartSummaryCtrl",
+    "ContactFormCtrl",
+    "CurrencyCtrl",
+    "LangCtrl",
+    "SearchFormCtrl",
+    "SliderCtrl",
+    "UploadCtrl",
+    "cart.CartCtrl",
+    "cart.CartVerifyCtrl",
+    "category.CalcCtrl",
+    "category.CategoriesCtrl",
+    "category.ConfigureProjectCtrl",
+    "category.CustomProductCtrl",
+    "category.GroupsCtrl",
+    "category.SelectProjectCtrl",
+    "client-zone.ChangePasswordCtrl",
+    "client-zone.ClientZoneCtrl",
+    "client-zone.ClientZoneDataCtrl",
+    "client-zone.CreateReclamationCtrl",
+    "client-zone.DeliveryDataCtrl",
+    "client-zone.InvoiceDataCtrl",
+    "client-zone.MyFoldersCtrl",
+    "client-zone.MyPhotosCtrl",
+    "client-zone.MyProjectsCtrl",
+    "client-zone.OffersCtrl",
+    "client-zone.OrdersCtrl",
+    "client-zone.OrdersFinishedCtrl",
+    "client-zone.OrdersNotPaidCtrl",
+    "client-zone.QuestionsCtrl",
+    "client-zone.ReclamationsCtrl",
+    "client-zone.SearchCtrl",
+    "index.FooterCtrl",
+    "index.HomeCtrl",
+    "index.LoginCtrl",
+    "index.LogoutCtrl",
+    "index.MainCtrl",
+    "index.NewsCtrl",
+    "index.PassForgetCtrl",
+    "index.RegisterCtrl",
+    "index.SearchCtrl",
+    "index.SitemapCtrl",
+    "photo-folders.SharedFolderCtrl",
+    "photo-folders.SharedPhotoCtrl",
+    "photo-folders.SharedProjectCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [
+    "10.html",
+    "404.html",
+    "_login.html",
+    "_printoffer.html",
+    "_register.html",
+    "add-folder.html",
+    "add-invoice-address.html",
+    "add-reciever-address.html",
+    "address-modal.html",
+    "addresses.html",
+    "attribute_details.html",
+    "attribute_filters.html",
+    "breadcrumbs.html",
+    "calc.html",
+    "card-guide.html",
+    "card-product-print.html",
+    "cart-verify.html",
+    "cart.html",
+    "category.html",
+    "client-zone-change-pass.html",
+    "client-zone-data.html",
+    "client-zone-delivery-data.html",
+    "client-zone-invoice-data.html",
+    "client-zone-my-folders.html",
+    "client-zone-my-photos.html",
+    "client-zone-my-projects.html",
+    "client-zone-offers.html",
+    "client-zone-orders.html",
+    "client-zone-questions.html",
+    "client-zone-reclamations.html",
+    "client-zone-search.html",
+    "client-zone.html",
+    "configuration.html",
+    "configure-project.html",
+    "confirm-newsletter.html",
+    "confirm.html",
+    "contact-form.html",
+    "contact.html",
+    "content.html",
+    "copy-product-modal.html",
+    "create-reclamation.html",
+    "default.html",
+    "deliveries.html",
+    "delivery.html",
+    "description-accordion.html",
+    "description-tabs.html",
+    "description.html",
+    "edit-delivery-address.html",
+    "edit-photo.html",
+    "folder-facebook.html",
+    "folder-share.html",
+    "footer-in-calc.html",
+    "footer-in-cart.html",
+    "footer-links.html",
+    "footer-news.html",
+    "footer.html",
+    "galleries-simple.html",
+    "galleries.html",
+    "group.html",
+    "header-in-cart.html",
+    "header.html",
+    "help.html",
+    "index.html",
+    "invoice-print.html",
+    "join-deliveries-modal.html",
+    "join-deliveries.html",
+    "linki.html",
+    "login.html",
+    "login_socials.html",
+    "logout-in-progress.html",
+    "main.html",
+    "menu.html",
+    "move-photo.html",
+    "news.html",
+    "order-addresses-list.html",
+    "order-messages.html",
+    "parameters.html",
+    "password-remind.html",
+    "patterns-thubnails.html",
+    "patterns.html",
+    "payment-modal.html",
+    "photo-add-tags.html",
+    "photo-facebook.html",
+    "photo-map-folder.html",
+    "photo-map-global.html",
+    "photo-map.html",
+    "photo-masks.html",
+    "photo-share.html",
+    "pre-editor-summary.html",
+    "print-attribute-details.html",
+    "print-offer.html",
+    "printoffer-modal.html",
+    "product-files-common.html",
+    "product-files-list.html",
+    "products-list-mail.html",
+    "project-facebook.html",
+    "project-share.html",
+    "realization.html",
+    "reclamation-messages.html",
+    "register.html",
+    "search.html",
+    "select-alternative-option.html",
+    "select-product.html",
+    "select-project.html",
+    "shared-folder.html",
+    "shared-photo.html",
+    "shared-project.html",
+    "showThumbnail.html",
+    "sitemap.html",
+    "slider.html",
+    "statute.html",
+    "summary.html",
+    "thumbnails.html",
+    "unidruk.html",
+    "upload-files.html",
+    "wcga.html",
+    "without_registration.html"
+  ],
+  "files": [
+    "app.js",
+    "demo/app.js",
+    "demo/index.html",
+    "demo/linki.html",
+    "demo/routes.js",
+    "filters/MenuTypesFilter.js",
+    "index.html",
+    "routes/main.js",
+    "services/AddressService.js",
+    "services/AddressWidgetService.js",
+    "services/AttributeFiltersService.js",
+    "services/AuthService.js",
+    "services/CacheService.js",
+    "services/CalcFileService.js",
+    "services/CalcSimplifyWidgetService.js",
+    "services/CalculateDataService.js",
+    "services/CalculationService.js",
+    "services/CanvasService.js",
+    "services/CartService.js",
+    "services/CartWidgetService.js",
+    "services/CategoryDescriptionService.js",
+    "services/ClientZoneWidgetService.js",
+    "services/CommonService.js",
+    "services/CountService.js",
+    "services/CountriesService.js",
+    "services/CouponService.js",
+    "services/CurrencyRootService.js",
+    "services/CurrencyService.js",
+    "services/CustomProductService.js",
+    "services/DeliveryService.js",
+    "services/DeliveryWidgetService.js",
+    "services/DomWidgetService.js",
+    "services/DomainService.js",
+    "services/DpAddressService.js",
+    "services/DpCartsDataService.js",
+    "services/DpCategoryService.js",
+    "services/DpOrderService.js",
+    "services/DpOrderStatusService.js",
+    "services/DpProductService.js",
+    "services/DynamicCssService.js",
+    "services/EditorProjectService.js",
+    "services/HomepageBannerService.js",
+    "services/InvoiceService.js",
+    "services/LangRootService.js",
+    "services/LangService.js",
+    "services/LangSettingsRootService.js",
+    "services/LangSettingsService.js",
+    "services/LoadingService.js",
+    "services/LoginWidgetService.js",
+    "services/LogoutService.js",
+    "services/MainWidgetService.js",
+    "services/MenuTypesService.js",
+    "services/NewsService.js",
+    "services/OrderMessagesService.js",
+    "services/PaymentService.js",
+    "services/PhotoFolderService.js",
+    "services/ProductFileService.js",
+    "services/PsAttributeService.js",
+    "services/PsCalculateServie.js",
+    "services/PsComplexService.js",
+    "services/PsFormatService.js",
+    "services/PsGroupDescriptionService.js",
+    "services/PsGroupService.js",
+    "services/PsPageService.js",
+    "services/PsTooltipService.js",
+    "services/PsTypeDescriptionService.js",
+    "services/PsTypeService.js",
+    "services/RealizationTimeService.js",
+    "services/ReclamationService.js",
+    "services/RegisterWidget.js",
+    "services/SettingService.js",
+    "services/SocialWidgetService.js",
+    "services/StaticContentService.js",
+    "services/SubCategoryDescriptionService.js",
+    "services/TaxService.js",
+    "services/TemplateRootService.js",
+    "services/TextWidgetService.js",
+    "services/TokenService.js",
+    "services/TypePatternService.js",
+    "services/UserAddressService.js",
+    "services/UserService.js",
+    "services/socket.js",
+    "src/SliderCtrl.js",
+    "src/cart/CartCtrl.js",
+    "src/cart/CartSummaryCtrl.js",
+    "src/cart/CartVerifyCtrl.js",
+    "src/cart/UploadCtrl.js",
+    "src/cart/templates/cart-verify.html",
+    "src/cart/templates/cart.html",
+    "src/cart/templates/modalboxes/add-invoice-address.html",
+    "src/cart/templates/modalboxes/add-reciever-address.html",
+    "src/cart/templates/modalboxes/addresses.html",
+    "src/cart/templates/modalboxes/copy-product-modal.html",
+    "src/cart/templates/modalboxes/join-deliveries-modal.html",
+    "src/cart/templates/modalboxes/join-deliveries.html",
+    "src/cart/templates/modalboxes/printoffer-modal.html",
+    "src/cart/templates/modalboxes/select-alternative-option.html",
+    "src/cart/templates/modalboxes/upload-files.html",
+    "src/cart/templates/product-files-common.html",
+    "src/category/CalcCtrl.js",
+    "src/category/CategoriesCtrl.js",
+    "src/category/ConfigureProjectCtrl.js",
+    "src/category/CustomProductCtrl.js",
+    "src/category/GroupsCtrl.js",
+    "src/category/SelectProjectCtrl.js",
+    "src/category/templates/calc.html",
+    "src/category/templates/calc/10.html",
+    "src/category/templates/calc/default.html",
+    "src/category/templates/calc/patterns-thubnails.html",
+    "src/category/templates/calc/unidruk.html",
+    "src/category/templates/category.html",
+    "src/category/templates/configure-project.html",
+    "src/category/templates/group.html",
+    "src/category/templates/modalboxes/_printoffer.html",
+    "src/category/templates/modalboxes/address-modal.html",
+    "src/category/templates/panels/card-guide.html",
+    "src/category/templates/panels/configuration.html",
+    "src/category/templates/panels/delivery.html",
+    "src/category/templates/panels/description-accordion.html",
+    "src/category/templates/panels/description-tabs.html",
+    "src/category/templates/panels/description.html",
+    "src/category/templates/panels/galleries-simple.html",
+    "src/category/templates/panels/galleries.html",
+    "src/category/templates/panels/menu.html",
+    "src/category/templates/panels/parameters.html",
+    "src/category/templates/panels/patterns.html",
+    "src/category/templates/panels/pre-editor-summary.html",
+    "src/category/templates/panels/realization.html",
+    "src/category/templates/panels/select-product.html",
+    "src/category/templates/panels/summary.html",
+    "src/category/templates/panels/thumbnails.html",
+    "src/category/templates/select-project.html",
+    "src/client-zone/ChangePasswordCtrl.js",
+    "src/client-zone/ClientZoneCtrl.js",
+    "src/client-zone/ClientZoneDataCtrl.js",
+    "src/client-zone/CreateReclamation.js",
+    "src/client-zone/DeliveryDataCtrl.js",
+    "src/client-zone/InvoiceDataCtrl.js",
+    "src/client-zone/MyFoldersCtrl.js",
+    "src/client-zone/MyPhotosCtrl.js",
+    "src/client-zone/MyProjectsCtrl.js",
+    "src/client-zone/OffersCtrl.js",
+    "src/client-zone/OrdersCtrl.js",
+    "src/client-zone/OrdersFinishedCtrl.js",
+    "src/client-zone/OrdersNotPaidCtrl.js",
+    "src/client-zone/QuestionsCtrl.js",
+    "src/client-zone/ReclamationsCtrl.js",
+    "src/client-zone/SearchCtrl.js",
+    "src/client-zone/templates/client-zone-change-pass.html",
+    "src/client-zone/templates/client-zone-data.html",
+    "src/client-zone/templates/client-zone-delivery-data.html",
+    "src/client-zone/templates/client-zone-invoice-data.html",
+    "src/client-zone/templates/client-zone-my-folders.html",
+    "src/client-zone/templates/client-zone-my-photos.html",
+    "src/client-zone/templates/client-zone-my-projects.html",
+    "src/client-zone/templates/client-zone-offers.html",
+    "src/client-zone/templates/client-zone-orders.html",
+    "src/client-zone/templates/client-zone-questions.html",
+    "src/client-zone/templates/client-zone-reclamations.html",
+    "src/client-zone/templates/client-zone-search.html",
+    "src/client-zone/templates/client-zone.html",
+    "src/client-zone/templates/create-reclamation.html",
+    "src/client-zone/templates/modalboxes/add-folder.html",
+    "src/client-zone/templates/modalboxes/addresses.html",
+    "src/client-zone/templates/modalboxes/edit-delivery-address.html",
+    "src/client-zone/templates/modalboxes/edit-photo.html",
+    "src/client-zone/templates/modalboxes/folder-facebook.html",
+    "src/client-zone/templates/modalboxes/folder-share.html",
+    "src/client-zone/templates/modalboxes/move-photo.html",
+    "src/client-zone/templates/modalboxes/order-addresses-list.html",
+    "src/client-zone/templates/modalboxes/order-messages.html",
+    "src/client-zone/templates/modalboxes/payment-modal.html",
+    "src/client-zone/templates/modalboxes/photo-add-tags.html",
+    "src/client-zone/templates/modalboxes/photo-facebook.html",
+    "src/client-zone/templates/modalboxes/photo-map-folder.html",
+    "src/client-zone/templates/modalboxes/photo-map-global.html",
+    "src/client-zone/templates/modalboxes/photo-map.html",
+    "src/client-zone/templates/modalboxes/photo-masks.html",
+    "src/client-zone/templates/modalboxes/photo-share.html",
+    "src/client-zone/templates/modalboxes/project-facebook.html",
+    "src/client-zone/templates/modalboxes/project-share.html",
+    "src/client-zone/templates/modalboxes/reclamation-messages.html",
+    "src/index/AttributeDetailsCtrl.js",
+    "src/index/AttributeFiltersCtrl.js",
+    "src/index/ConfrimNewsletterCtrl.js",
+    "src/index/FooterCtrl.js",
+    "src/index/HomeCtrl.js",
+    "src/index/LoginCtrl.js",
+    "src/index/LogoutCtrl.js",
+    "src/index/MainCtrl.js",
+    "src/index/NewsCtrl.js",
+    "src/index/PassForgetCtrl.js",
+    "src/index/RegisterCtrl.js",
+    "src/index/SearchCtrl.js",
+    "src/index/SitemapCtrl.js",
+    "src/index/WCGA.js",
+    "src/index/templates/_login.html",
+    "src/index/templates/_register.html",
+    "src/index/templates/attribute_details.html",
+    "src/index/templates/attribute_filters.html",
+    "src/index/templates/confirm-newsletter.html",
+    "src/index/templates/contact.html",
+    "src/index/templates/content.html",
+    "src/index/templates/login.html",
+    "src/index/templates/logout-in-progress.html",
+    "src/index/templates/news.html",
+    "src/index/templates/password-remind.html",
+    "src/index/templates/register.html",
+    "src/index/templates/search.html",
+    "src/index/templates/sitemap.html",
+    "src/index/templates/wcga.html",
+    "src/layout/ContactFormCtrl.js",
+    "src/layout/CurrencyCtrl.js",
+    "src/layout/LangCtrl.js",
+    "src/layout/SearchFormCtrl.js",
+    "src/photo-folders/SharedFolderCtrl.js",
+    "src/photo-folders/SharedPhotoCtrl.js",
+    "src/photo-folders/SharedProjectCtrl.js",
+    "src/photo-folders/templates/shared-folder.html",
+    "src/photo-folders/templates/shared-photo.html",
+    "src/photo-folders/templates/shared-project.html",
+    "views/_forms/contact-form.html",
+    "views/_forms/login.html",
+    "views/_forms/login_socials.html",
+    "views/_forms/register.html",
+    "views/_forms/without_registration.html",
+    "views/backend/card-product-print.html",
+    "views/backend/invoice-print.html",
+    "views/backend/print-attribute-details.html",
+    "views/backend/print-offer.html",
+    "views/backend/product-files-list.html",
+    "views/backend/products-list-mail.html",
+    "views/breadcrumbs.html",
+    "views/deliveries.html",
+    "views/errors/404.html",
+    "views/footer-in-calc.html",
+    "views/footer-in-cart.html",
+    "views/footer-links.html",
+    "views/footer-news.html",
+    "views/footer.html",
+    "views/header-in-cart.html",
+    "views/header.html",
+    "views/help.html",
+    "views/main.html",
+    "views/modalboxes/confirm.html",
+    "views/partial/showThumbnail.html",
+    "views/slider.html",
+    "views/statute.html"
+  ],
+  "module": "-"
+}
+
+# kb/modules/cart.json
+{
+  "module": "cart",
+  "services": [],
+  "controllers": [
+    "CartSummaryCtrl",
+    "UploadCtrl",
+    "cart.CartCtrl",
+    "cart.CartVerifyCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [
+    "add-invoice-address.html",
+    "add-reciever-address.html",
+    "addresses.html",
+    "cart-verify.html",
+    "cart.html",
+    "copy-product-modal.html",
+    "join-deliveries-modal.html",
+    "join-deliveries.html",
+    "printoffer-modal.html",
+    "product-files-common.html",
+    "select-alternative-option.html",
+    "upload-files.html"
+  ],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/CartCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/CartSummaryCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/CartVerifyCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/UploadCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/cart-verify.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/cart.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/add-invoice-address.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/add-reciever-address.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/addresses.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/copy-product-modal.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/join-deliveries-modal.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/join-deliveries.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/printoffer-modal.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/select-alternative-option.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/modalboxes/upload-files.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/cart/templates/product-files-common.html"
+  ]
+}
+
+# kb/modules/category.json
+{
+  "module": "category",
+  "services": [],
+  "controllers": [
+    "category.CalcCtrl",
+    "category.CategoriesCtrl",
+    "category.ConfigureProjectCtrl",
+    "category.CustomProductCtrl",
+    "category.GroupsCtrl",
+    "category.SelectProjectCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [
+    "10.html",
+    "_printoffer.html",
+    "address-modal.html",
+    "calc.html",
+    "card-guide.html",
+    "category.html",
+    "configuration.html",
+    "configure-project.html",
+    "default.html",
+    "delivery.html",
+    "description-accordion.html",
+    "description-tabs.html",
+    "description.html",
+    "galleries-simple.html",
+    "galleries.html",
+    "group.html",
+    "menu.html",
+    "parameters.html",
+    "patterns-thubnails.html",
+    "patterns.html",
+    "pre-editor-summary.html",
+    "realization.html",
+    "select-product.html",
+    "select-project.html",
+    "summary.html",
+    "thumbnails.html",
+    "unidruk.html"
+  ],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/CalcCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/CategoriesCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/ConfigureProjectCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/CustomProductCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/GroupsCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/SelectProjectCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/calc.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/calc/10.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/calc/default.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/calc/patterns-thubnails.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/calc/unidruk.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/category.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/configure-project.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/group.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/modalboxes/_printoffer.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/modalboxes/address-modal.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/card-guide.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/configuration.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/delivery.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/description-accordion.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/description-tabs.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/description.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/galleries-simple.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/galleries.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/menu.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/parameters.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/patterns.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/pre-editor-summary.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/realization.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/select-product.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/summary.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/panels/thumbnails.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/category/templates/select-project.html"
+  ]
+}
+
+# kb/modules/client-zone.json
+{
+  "module": "client-zone",
+  "services": [],
+  "controllers": [
+    "client-zone.ChangePasswordCtrl",
+    "client-zone.ClientZoneCtrl",
+    "client-zone.ClientZoneDataCtrl",
+    "client-zone.CreateReclamationCtrl",
+    "client-zone.DeliveryDataCtrl",
+    "client-zone.InvoiceDataCtrl",
+    "client-zone.MyFoldersCtrl",
+    "client-zone.MyPhotosCtrl",
+    "client-zone.MyProjectsCtrl",
+    "client-zone.OffersCtrl",
+    "client-zone.OrdersCtrl",
+    "client-zone.OrdersFinishedCtrl",
+    "client-zone.OrdersNotPaidCtrl",
+    "client-zone.QuestionsCtrl",
+    "client-zone.ReclamationsCtrl",
+    "client-zone.SearchCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [
+    "add-folder.html",
+    "addresses.html",
+    "client-zone-change-pass.html",
+    "client-zone-data.html",
+    "client-zone-delivery-data.html",
+    "client-zone-invoice-data.html",
+    "client-zone-my-folders.html",
+    "client-zone-my-photos.html",
+    "client-zone-my-projects.html",
+    "client-zone-offers.html",
+    "client-zone-orders.html",
+    "client-zone-questions.html",
+    "client-zone-reclamations.html",
+    "client-zone-search.html",
+    "client-zone.html",
+    "create-reclamation.html",
+    "edit-delivery-address.html",
+    "edit-photo.html",
+    "folder-facebook.html",
+    "folder-share.html",
+    "move-photo.html",
+    "order-addresses-list.html",
+    "order-messages.html",
+    "payment-modal.html",
+    "photo-add-tags.html",
+    "photo-facebook.html",
+    "photo-map-folder.html",
+    "photo-map-global.html",
+    "photo-map.html",
+    "photo-masks.html",
+    "photo-share.html",
+    "project-facebook.html",
+    "project-share.html",
+    "reclamation-messages.html"
+  ],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/ChangePasswordCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/ClientZoneCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/ClientZoneDataCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/CreateReclamation.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/DeliveryDataCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/InvoiceDataCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/MyFoldersCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/MyPhotosCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/MyProjectsCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/OffersCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/OrdersCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/OrdersFinishedCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/OrdersNotPaidCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/QuestionsCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/ReclamationsCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/SearchCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-change-pass.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-data.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-delivery-data.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-invoice-data.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-my-folders.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-my-photos.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-my-projects.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-offers.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-orders.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-questions.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-reclamations.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone-search.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/client-zone.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/create-reclamation.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/add-folder.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/addresses.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/edit-delivery-address.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/edit-photo.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/folder-facebook.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/folder-share.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/move-photo.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/order-addresses-list.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/order-messages.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/payment-modal.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-add-tags.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-facebook.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-map-folder.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-map-global.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-map.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-masks.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/photo-share.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/project-facebook.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/project-share.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/client-zone/templates/modalboxes/reclamation-messages.html"
+  ]
+}
+
+# kb/modules/index.json
+{
+  "services": [],
+  "controllers": [
+    "TestCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [
+    "test.template.html"
+  ],
+  "files": [
+    "app/src/index/test.controller.js",
+    "app/src/index/test.template.html"
+  ],
+  "module": "index"
+}
+
+# kb/modules/layout.json
+{
+  "module": "layout",
+  "services": [],
+  "controllers": [
+    "ContactFormCtrl",
+    "CurrencyCtrl",
+    "LangCtrl",
+    "SearchFormCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/ContactFormCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/CurrencyCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/LangCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/layout/SearchFormCtrl.js"
+  ]
+}
+
+# kb/modules/photo-folders.json
+{
+  "module": "photo-folders",
+  "services": [],
+  "controllers": [
+    "photo-folders.SharedFolderCtrl",
+    "photo-folders.SharedPhotoCtrl",
+    "photo-folders.SharedProjectCtrl"
+  ],
+  "factories": [],
+  "directives": [],
+  "routes": [],
+  "templates": [
+    "shared-folder.html",
+    "shared-photo.html",
+    "shared-project.html"
+  ],
+  "files": [
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/photo-folders/SharedFolderCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/photo-folders/SharedPhotoCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/photo-folders/SharedProjectCtrl.js",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/photo-folders/templates/shared-folder.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/photo-folders/templates/shared-photo.html",
+    "/home/grzegorz/cloud/Dockerized/frontend/app/src/photo-folders/templates/shared-project.html"
+  ]
+}
+
+# kb/modules_manifest.json
+{
+  "modules": [
+    "-"
+  ]
+}
+
+# package.json
+{
+  "dependencies": {
+    "glob": "^11.0.3",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.28.4",
+    "@babel/traverse": "^7.28.4",
+    "ast-types": "^0.16.1",
+    "fast-glob": "^3.3.3",
+    "http-server": "^14.1.1",
+    "playwright": "^1.55.1",
+    "recast": "^0.23.11"
+  }
+}
+
+# pytest.ini
+[pytest]
+pythonpath = . scripts
+
+# recipes/angularjs-factory-to-ts-functions.yml
+
+name: angularjs-factory-to-ts-functions
+description: |
+  Refactors a simple AngularJS factory that returns an object with methods 
+  into a set of exported TypeScript functions.
+  This recipe is suitable for services that are stateless and do not rely 
+  on AngularJS's dependency injection for other services.
+type: migration
+tags: [angularjs, typescript, refactoring, factory]
+
+actions:
+  - type: ast_transform
+    description: "Extracts the factory function body and converts its returned methods into exported functions."
+
+# recipes/angularjs-service-to-ts-function.yml
+name: angularjs-service-to-ts-function
+description: |
+  Refactors a simple AngularJS service (or factory) that returns an object 
+  with methods into a set of exported TypeScript functions.
+  This recipe is suitable for services that are stateless and do not rely 
+  on AngularJS's dependency injection for other services.
+type: migration
+tags: [angularjs, typescript, refactoring, service]
+
+# Preconditions for the recipe to be applicable.
+# (Not implemented in the engine yet)
+preconditions:
+  - type: file_contains
+    path: "{{ file_path }}"
+    pattern: "angular.service"
+  - type: ast_match
+    path: "{{ file_path }}"
+    pattern: |
+      angular.service('{{ service_name }}', function() {
+        // ... function body
+      });
+
+# Patterns to find the code to be transformed.
+# The first pattern that matches will be used.
+patterns:
+  - type: ast_match
+    match:
+      type: CallExpression
+      callee:
+        type: MemberExpression
+        object:
+          type: CallExpression
+          callee:
+            type: MemberExpression
+            object:
+              type: Identifier
+              name: angular
+            property:
+              type: Identifier
+              name: module
+        property:
+          type: Identifier
+          name: factory
+  
+# Actions to be performed on the matched code.
+actions:
+  - type: ast_transform
+    description: "Transforms the AngularJS factory into exported TypeScript functions."
+
+# Postconditions to verify that the transformation was successful.
+postconditions:
+  # ... to be implemented
+
+# requirements.txt
+qdrant-client>=1.15.1
+sentence-transformers>=3.0.0
+scikit-learn>=1.5.0
+numpy
+tqdm
+joblib
+python-dotenv
+pytest
+pytest-mock
+langdetect
+deep-translator
+pytest-cov
+jsonschema
+esprima
+escodegen
+pytest-playwright
+beautifulsoup4
+
+# schemas/ir.schema.json
+
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Feniks Intermediate Representation (IR)",
+    "description": "A canonical representation of a code chunk and its metadata.",
+    "type": "object",
+    "properties": {
+        "id": { "type": "string" },
+        "file_path": { "type": "string" },
+        "start_line": { "type": "integer", "minimum": 0 },
+        "end_line": { "type": "integer", "minimum": 0 },
+        "text": { "type": "string" },
+        "chunk_name": { "type": "string" },
+        "module": { "type": ["string", "null"] },
+        "kind": { "type": ["string", "null"] },
+        "ast_node_type": { "type": ["string", "null"] },
+        "dependencies_di": { "type": "array", "items": { "type": "string" } },
+        "calls_functions": { "type": "array", "items": { "type": "string" } },
+        "api_endpoints": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "url": { "type": "string" },
+                    "method": { "type": "string" },
+                    "dataKeys": { "type": "array", "items": { "type": "string" } },
+                    "paramKeys": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["url", "method"]
+            }
+        },
+        "ui_routes": { "type": "array", "items": { "type": "string" } },
+        "cyclomatic_complexity": { "type": "integer" },
+        "business_tags": { "type": "array", "items": { "type": "string" } },
+        "git_last_commit": {
+            "type": ["object", "null"],
+            "properties": {
+                "hash": { "type": "string" },
+                "author": { "type": "string" },
+                "date": { "type": "string" },
+                "summary": { "type": "string" }
+            },
+            "required": ["hash", "author", "date", "summary"]
+        },
+        "evidence": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "source": { "type": "string" },
+                    "rule": { "type": "string" },
+                    "confidence": { "type": "number" },
+                    "file": { "type": "string" },
+                    "start_line": { "type": "integer" },
+                    "end_line": { "type": "integer" }
+                },
+                "required": ["source", "rule", "confidence", "file", "start_line", "end_line"]
+            }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "criticality_score": { "type": "number" },
+        "migration_target": { "type": ["string", "null"] },
+        "invariants": { "type": "array", "items": { "type": "string" } },
+        "io_contract": { "type": "object" },
+        "api_contract_ref": { "type": ["string", "null"] }
+    },
+    "required": [
+        "id", "file_path", "start_line", "end_line", "text", "chunk_name",
+        "dependencies_di", "calls_functions", "api_endpoints", "ui_routes",
+        "cyclomatic_complexity", "business_tags", "evidence", "confidence",
+        "criticality_score", "invariants", "io_contract"
+    ]
+}
+
+# scripts/README_INDEXER_ADDONS.md
+# Feniks Indexer Add-ons
+
+This folder contains drop-in tools to enrich your knowledge base:
+
+- `scripts/js_html_indexer.mjs` — Node ESM indexer for AngularJS 1.x code:
+  - extracts controllers/services/directives/factories/filters/components/config blocks
+  - collects call graph hints (`calls_functions`)
+  - detects API endpoints used via `$http.*(...)` and `$resource(...)`
+  - maps UI routes from `$stateProvider.state(...)` / `$routeProvider.when(...)`
+  - computes a simple cyclomatic complexity measure
+  - emits JSONL records compatible with your `Chunk` mapper
+
+- `scripts/enrich_git_blame.py` — enriches JSONL with `git blame` metadata for the chunk's line range.
+
+## Install Node deps
+```bash
+npm i -D fast-glob @babel/parser @babel/traverse
+```
+
+## Run
+```bash
+# 1) Create chunks JSONL
+node scripts/js_html_indexer.mjs --root ./frontend-master --out runs/latest/chunks.mjs.jsonl
+
+# 2) Enrich with git blame
+python3 scripts/enrich_git_blame.py --repo . --in runs/latest/chunks.mjs.jsonl --out runs/latest/chunks.enriched.jsonl
+```
+
+Now you can feed `runs/latest/chunks.enriched.jsonl` to your Python pipeline to build embeddings & ingest to Qdrant.
+
+# scripts/apply_recipe.py
+import yaml
+import argparse
+import logging
+from pathlib import Path
+import esprima
+import escodegen
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] - %(message)s')
+log = logging.getLogger(__name__)
+
+# --- Action Handlers ---
+
+def handle_replace_string(content: str, action: dict) -> str:
+    """Handles the 'replace_string' action."""
+    old_string = action.get('old')
+    new_string = action.get('new')
+    if old_string is None or new_string is None:
+        log.warning("Skipping 'replace_string' action due to missing 'old' or 'new' value.")
+        return content
+    
+    log.info(f"Replacing string: '{old_string}' -> '{new_string}'")
+    return content.replace(old_string, new_string)
+
+def handle_ast_transform(content: str, action: dict) -> str:
+    """Handles the 'ast_transform' action for AngularJS factories."""
+    log.info("Performing AST transformation (AngularJS factory to TS functions).")
+    try:
+        code_ast = esprima.parseScript(content, options={'loc': True})
+        transformer = AstTransformer(code_ast)
+        
+        modified_ast = transformer.transform_to_exported_functions()
+        if not modified_ast:
+            log.warning("AST transform: Could not find a suitable AngularJS factory to transform.")
+            return content
+        
+        return escodegen.generate(to_dict(modified_ast))
+
+    except esprima.Error as e:
+        log.error(f"Failed to parse JavaScript file for AST transform: {e}")
+        return content
+    except Exception as e:
+        log.error(f"An error occurred during AST transformation: {e}")
+        return content
+
+# --- AST Transformation Logic (specific to AngularJS factory) ---
+
+def to_dict(node):
+    """Recursively converts an esprima node to a dictionary."""
+    if isinstance(node, esprima.nodes.Node):
+        result = {'type': node.type}
+        for key in node.keys():
+            if key == 'loc':
+                continue
+            value = getattr(node, key)
+            result[key] = to_dict(value)
+        return result
+    elif isinstance(node, list):
+        return [to_dict(item) for item in node]
+    elif isinstance(node, dict):
+        result = {}
+        for key, value in node.items():
+            if key == 'loc':
+                continue
+            result[key] = to_dict(value)
+        return result
+    else:
+        return node
+
+class AstTransformer:
+    """Handles AST-based transformations for AngularJS factories."""
+
+    def __init__(self, code_ast):
+        self.ast = code_ast
+        self.factory_node = None
+
+    def _find_factory_node(self):
+        """Finds the factory declaration node in the AST."""
+        for node in self.ast.body:
+            if (
+                node.type == 'ExpressionStatement' and
+                node.expression.type == 'CallExpression' and
+                node.expression.callee.type == 'MemberExpression' and
+                node.expression.callee.property.name == 'factory'
+            ):
+                # Support for multiple factories in one file: transform the first one found.
+                self.factory_node = node
+                return True
+        return False
+
+    def _get_returned_identifier_name(self, factory_body):
+        """Finds the name of the identifier in the return statement."""
+        for node in reversed(factory_body):
+            if node.type == 'ReturnStatement' and node.argument.type == 'Identifier':
+                return node.argument.name
+        return None
+
+    def _get_function_declarations_from_returned_object(self, factory_body):
+        """
+        Handles the pattern where an object literal is returned, e.g.,
+        return { func1: func1, func2: func2 };
+        """
+        returned_function_names = []
+        for node in reversed(factory_body):
+            if node.type == 'ReturnStatement' and node.argument.type == 'ObjectExpression':
+                returned_function_names = [prop.key.name for prop in node.argument.properties]
+                break
+        
+        if not returned_function_names:
+            return []
+
+        new_body = []
+        for node in factory_body:
+            if node.type == 'FunctionDeclaration' and node.id.name in returned_function_names:
+                export_declaration = esprima.nodes.ExportNamedDeclaration(
+                    declaration=node,
+                    specifiers=[],
+                    source=None
+                )
+                new_body.append(export_declaration)
+        return new_body
+
+    def _get_function_declarations_from_identifier(self, factory_body, identifier_name: str):
+        """
+        Handles the pattern where a service object is built and its identifier is returned, e.g.,
+        var MyService = {}; MyService.func1 = function() {}; return MyService;
+        """
+        new_body = []
+        for node in factory_body:
+            if (
+                node.type == 'ExpressionStatement' and
+                node.expression.type == 'AssignmentExpression' and
+                node.expression.left.type == 'MemberExpression' and
+                hasattr(node.expression.left.object, 'name') and
+                node.expression.left.object.name == identifier_name and
+                node.expression.right.type == 'FunctionExpression'
+            ):
+                func_name = node.expression.left.property.name
+                func_body = node.expression.right.body
+                func_params = node.expression.right.params
+
+                # Create a new FunctionDeclaration
+                func_declaration = esprima.nodes.FunctionDeclaration(
+                    id=esprima.nodes.Identifier(name=func_name),
+                    params=func_params,
+                    body=func_body,
+                    generator=False
+                )
+
+                # Wrap it in an ExportNamedDeclaration
+                export_declaration = esprima.nodes.ExportNamedDeclaration(
+                    declaration=func_declaration,
+                    specifiers=[],
+                    source=None
+                )
+                new_body.append(export_declaration)
+        return new_body
+
+    def transform_to_exported_functions(self):
+        """Transforms the factory into a set of exported functions."""
+        if not self._find_factory_node():
+            return None
+
+        factory_func = self.factory_node.expression.arguments[1]
+        if factory_func.type != 'FunctionExpression':
+            return None
+        
+        factory_body = factory_func.body.body
+        
+        # Try the "return identifier" pattern first
+        returned_identifier = self._get_returned_identifier_name(factory_body)
+        if returned_identifier:
+            log.info(f"Found factory pattern: 'return {returned_identifier}'")
+            new_body_nodes = self._get_function_declarations_from_identifier(factory_body, returned_identifier)
+        else:
+            # Fallback to the "return object literal" pattern
+            log.info("Found factory pattern: 'return { ... }'")
+            new_body_nodes = self._get_function_declarations_from_returned_object(factory_body)
+
+        if not new_body_nodes:
+            return None
+
+        # Replace the original factory declaration with the new exported functions
+        original_ast_body = self.ast.body
+        new_ast_body = []
+        for node in original_ast_body:
+            if node == self.factory_node:
+                new_ast_body.extend(new_body_nodes)
+            else:
+                # Preserve other statements in the file (e.g., other factories)
+                new_ast_body.append(node)
+        
+        self.ast.body = new_ast_body
+        return self.ast
+
+# --- Pattern Matching Engine ---
+
+def _is_node_match(node, pattern_dict: dict) -> bool:
+    """Recursively checks if an AST node matches a pattern dictionary."""
+    if not node or not isinstance(pattern_dict, dict):
+        return False
+
+    for key, pattern_value in pattern_dict.items():
+        if not hasattr(node, key):
+            return False
+        
+        node_value = getattr(node, key)
+
+        if isinstance(pattern_value, dict):
+            if not _is_node_match(node_value, pattern_value):
+                return False
+        elif isinstance(pattern_value, list):
+            if not isinstance(node_value, list) or len(node_value) != len(pattern_value):
+                return False
+            for i, item in enumerate(pattern_value):
+                if not _is_node_match(node_value[i], item):
+                    return False
+        else:
+            if node_value != pattern_value:
+                return False
+    return True
+
+class AstMatcher:
+    """Traverses an AST to find if any node matches the given pattern."""
+
+    def __init__(self, pattern: dict):
+        self.pattern = pattern
+        self.match_found = False
+
+    def visit(self, node):
+        if self.match_found or not node:
+            return
+
+        if isinstance(node, list):
+            for item in node:
+                self.visit(item)
+            return
+
+        if not hasattr(node, 'type'):
+            return
+
+        if _is_node_match(node, self.pattern):
+            self.match_found = True
+            return
+
+        # Manually traverse known properties that can contain child nodes
+        for prop in ['body', 'expression', 'callee', 'object', 'property', 'arguments', 'declarations', 'init', 'update', 'test', 'consequent', 'alternate', 'left', 'right', 'elements', 'id', 'params', 'argument']:
+            if hasattr(node, prop):
+                child = getattr(node, prop)
+                self.visit(child)
+
+def handle_ast_match(content: str, pattern: dict) -> bool:
+    """Handles the 'ast_match' pattern by parsing and traversing the AST."""
+    log.info("Checking for AST match...")
+    try:
+        code_ast = esprima.parseScript(content, options={'loc': True, 'tolerant': True})
+        
+        match_pattern = pattern.get('match', {})
+
+        matcher = AstMatcher(match_pattern)
+        matcher.visit(code_ast)
+        
+        if matcher.match_found:
+            log.info("AST pattern matched.")
+        else:
+            log.warning("AST pattern did not match.")
+            
+        return matcher.match_found
+    except esprima.Error as e:
+        log.error(f"Failed to parse JavaScript for AST matching: {e}")
+        return False
+    except Exception as e:
+        log.error(f"An error occurred during AST matching: {e}", exc_info=True)
+        return False
+
+PATTERN_CHECKER = {
+    'ast_match': handle_ast_match,
+}
+
+def check_patterns(content: str, patterns: list) -> bool:
+    """Checks if the content matches any of the given patterns."""
+    if not patterns:
+        log.warning("No patterns defined in recipe. Assuming match to proceed with actions.")
+        return True
+
+    for pattern in patterns:
+        pattern_type = pattern.get('type')
+        handler = PATTERN_CHECKER.get(pattern_type)
+        
+        if handler:
+            if handler(content, pattern):
+                log.info(f"Successfully matched pattern of type '{pattern_type}'.")
+                return True
+        else:
+            log.warning(f"No handler found for pattern type: '{pattern_type}'. Skipping.")
+            
+    log.error("No patterns in the recipe matched the file content. Aborting.")
+    return False
+
+# --- Main Engine ---
+
+ACTION_DISPATCHER = {
+    'replace_string': handle_replace_string,
+    'ast_transform': handle_ast_transform,
+}
+
+def load_recipe(recipe_path: Path) -> dict:
+    """Loads and parses a YAML recipe file."""
+    log.info(f"Loading recipe from: {recipe_path}")
+    if not recipe_path.is_file():
+        raise FileNotFoundError(f"Recipe file not found at: {recipe_path}")
+    with open(recipe_path, 'r') as f:
+        return yaml.safe_load(f)
+
+def apply_recipe(recipe: dict, file_path: Path, dry_run: bool = True):
+    """Applies a loaded recipe to a specific file."""
+    log.info(f"Applying recipe '{(recipe.get('name'))}' to file: {file_path}")
+    original_content = file_path.read_text()
+
+    # First, check if any pattern matches before proceeding
+    if not check_patterns(original_content, recipe.get('patterns', [])):
+        return
+
+    modified_content = original_content
+    for action in recipe.get('actions', []):
+        action_type = action.get('type')
+        handler = ACTION_DISPATCHER.get(action_type)
+        
+        if handler:
+            modified_content = handler(modified_content, action)
+        else:
+            log.warning(f"No handler found for action type: '{action_type}'. Skipping.")
+
+    if modified_content == original_content:
+        log.warning("No changes were made to the file.")
+        return
+
+    if dry_run:
+        log.info("Dry run mode: Changes will not be written to disk.")
+        print("\n--- ORIGINAL ---\n")
+        print(original_content)
+        print("\n--- MODIFIED (dry-run) ---\n")
+        print(modified_content)
+    else:
+        log.info(f"Writing changes to {file_path}")
+        file_path.write_text(modified_content)
+
+    log.info("Recipe application finished.")
+
+def main():
+    parser = argparse.ArgumentParser(description="Apply a refactoring recipe to a source file.")
+    parser.add_argument("--recipe", required=True, help="Path to the recipe YAML file.")
+    parser.add_argument("--file-path", required=True, help="Path to the file to be transformed.")
+    parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
+    args = parser.parse_args()
+
+    try:
+        recipe = load_recipe(Path(args.recipe))
+        apply_recipe(recipe, Path(args.file_path), args.dry_run)
+        log.info("Successfully applied recipe.")
+    except (FileNotFoundError, yaml.YAMLError) as e:
+        log.error(f"Failed to apply recipe: {e}")
+
+if __name__ == "__main__":
+    main()
+
+# scripts/codemods/angular-factory-export.cjs
+// CommonJS codemod: AngularJS .factory(...) -> exported functions
+const fs = require('fs');
+const recast = require('recast');
+const t = recast.types;
+const b = t.builders;
+const babelParser = require('@babel/parser');
+
+const argv = process.argv.slice(2);
+const fileIdx = argv.indexOf('--file');
+if (fileIdx === -1 || !argv[fileIdx + 1]) {
+  console.error('[ERROR] Missing --file <path>');
+  process.exit(2);
+}
+const filePath = argv[fileIdx + 1];
+const isDry = argv.includes('--dry-run');
+
+const src = fs.readFileSync(filePath, 'utf8');
+const ast = recast.parse(src, {
+  parser: {
+    parse: (code) =>
+      babelParser.parse(code, {
+        sourceType: 'script',            // AngularJS pliki często nie są modułami
+        allowReturnOutsideFunction: true,
+        plugins: []                      // (dodaj 'jsx' gdyby było potrzebne)
+      }),
+  },
+});
+
+let factoryFound = false;
+let exported = [];
+
+t.visit(ast, {
+  visitCallExpression(path) {
+    const callee = path.node.callee;
+    // Szukamy: angular.module(...).factory(...)
+    const isFactory =
+      callee &&
+      callee.type === 'MemberExpression' &&
+      callee.property &&
+      callee.property.name === 'factory' &&
+      callee.object &&
+      callee.object.type === 'CallExpression' &&
+      callee.object.callee &&
+      callee.object.callee.type === 'MemberExpression' &&
+      callee.object.callee.property &&
+      callee.object.callee.property.name === 'module';
+
+    if (!isFactory) return this.traverse(path);
+
+    factoryFound = true;
+    const fn = path.node.arguments && path.node.arguments[1];
+    if (!fn || fn.type !== 'FunctionExpression') return false; // STOP – nic nie robimy
+
+    const body = Array.isArray(fn.body && fn.body.body) ? fn.body.body : [];
+
+    // 1) Zbierz deklaracje zmiennych z ciała fabryki (hoist)
+    const varDecls = body.filter(n => n.type === 'VariableDeclaration');
+
+    // 2) Znajdź return { ... } i zbierz funkcje do eksportu
+    const ret = body.find(n => n.type === 'ReturnStatement' && n.argument && n.argument.type === 'ObjectExpression');
+    const props = ret ? (ret.argument.properties || []) : [];
+
+    // Mapuj lokalne FunctionDeclaration wg nazwy
+    const localFns = new Map();
+    body.forEach(n => {
+      if (n.type === 'FunctionDeclaration' && n.id && n.id.name) {
+        localFns.set(n.id.name, n);
+      }
+    });
+
+    const exportNodes = [];
+    // Najpierw przenieś deklaracje zmiennych (bez export)
+    varDecls.forEach(v => exportNodes.push(v));
+
+    // Następnie eksportuj funkcje
+    props.forEach(p => {
+      if (!p || !p.key || !p.key.name) return;
+      const name = p.key.name;
+      let fnDecl = null;
+
+      if (p.value && p.value.type === 'Identifier' && localFns.has(name)) {
+        // Przypadek: { f1: f1 } – istnieje FunctionDeclaration f1
+        fnDecl = localFns.get(name);
+      } else if (p.value && p.value.type === 'FunctionExpression') {
+        // Przypadek inline: { f2: function(...) {...} }
+        fnDecl = b.functionDeclaration(
+          b.identifier(name),
+          p.value.params || [],
+          p.value.body || b.blockStatement([]),
+          p.value.generator === true,
+          p.value.async === true
+        );
+      }
+
+      if (fnDecl) {
+        exportNodes.push(b.exportNamedDeclaration(fnDecl, []));
+        exported.push(name);
+      }
+    });
+
+    // Zamień całą instrukcję fabryki na zestaw node’ów (zmienne + eksporty)
+    const stmtPath = path.parent; // ExpressionStatement
+    stmtPath.replace(...exportNodes);
+
+    return false; // NIE wchodź głębiej – zapobiega rekursji
+  },
+});
+
+// Raport + wynik
+console.log(`[DETECTION] factoryFound=${factoryFound} exported=[${exported.join(', ')}]`);
+const out = recast.print(ast, { quote: 'single', tabWidth: 2 }).code;
+
+if (isDry) {
+  console.log('\n--- MODIFIED (dry-run) ---\n');
+  console.log(out);
+} else {
+  fs.writeFileSync(filePath, out, 'utf8');
+  console.log(`[WRITE] ${filePath} updated`);
+}
+
+# scripts/codemods/angularjs-factory-to-ts-functions.js
+const fs = require('fs');
+const { parse, print, visit } = require('recast');
+const babelParser = require('@babel/parser');
+
+const argv = process.argv.slice(2);
+const filePath = argv[argv.indexOf('--file') + 1];
+const dryRun = argv.includes('--dry-run');
+
+if (!filePath) {
+  console.error('[ERROR] Nie podano ścieżki do pliku. Użyj --file <path>');
+  process.exit(1);
+}
+
+const code = fs.readFileSync(filePath, 'utf-8');
+const ast = parse(code, {
+  parser: {
+    parse: (source) => babelParser.parse(source, {
+        sourceType: 'module',
+    })
+  }
+});
+
+let factoryFound = false;
+let detectedFunctionNames = [];
+
+visit(ast, {
+  visitCallExpression(path) {
+    const callee = path.node.callee;
+    if (
+      callee.type === 'MemberExpression' &&
+      callee.property.name === 'factory' &&
+      callee.object.type === 'CallExpression' &&
+      callee.object.callee.type === 'MemberExpression' &&
+      callee.object.callee.property.name === 'module'
+    ) {
+      factoryFound = true;
+      const factoryFunc = path.node.arguments[1];
+
+      if (factoryFunc && factoryFunc.type === 'FunctionExpression') {
+        visit(factoryFunc, {
+          visitReturnStatement(returnPath) {
+            if (returnPath.node.argument.type === 'ObjectExpression') {
+              detectedFunctionNames = returnPath.node.argument.properties.map(p => p.key.name);
+              returnPath.prune();
+            }
+            this.traverse(returnPath);
+          }
+        });
+
+        const factoryBody = factoryFunc.body.body;
+        path.parentPath.replace(...factoryBody);
+      }
+      return false;
+    }
+    this.traverse(path);
+  }
+});
+
+if (factoryFound) {
+    visit(ast, {
+        visitFunctionDeclaration(path) {
+            if (detectedFunctionNames.includes(path.node.id.name)) {
+                path.replace({
+                    type: 'ExportNamedDeclaration',
+                    declaration: path.node,
+                    specifiers: [],
+                    source: null
+                });
+                return false;
+        }
+    });
+}
+
+console.log(`[DETEKCJA] Czy znaleziono fabrykę: ${factoryFound}`);
+if(detectedFunctionNames.length > 0) {
+    console.log(`[DETEKCJA] Wykryte nazwy funkcji: ${detectedFunctionNames.join(', ')}`);
+}
+
+const output = print(ast, { tabWidth: 4, quote: 'single' });
+
+if (dryRun) {
+    console.log('\n--- PATCH (DRY-RUN) ---\n');
+    console.log(output.code);
+} else {
+    fs.writeFileSync(filePath, output.code, 'utf-8');
+    console.log(`[SUCCESS] Plik ${filePath} został zmodyfikowany.`);
+}
+
+# scripts/convert_to_ir.py
+import argparse
+import json
+import sys
+from pathlib import Path
+
+# Add project root to allow sibling imports
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
+from feniks.logger import log
+
+def calculate_criticality(chunk: dict) -> float:
+    """Calculates an advanced migration difficulty score based on multiple factors."""
+    
+    meta = chunk.get("metadata", {})
+    
+    # Weights for different factors
+    w_complexity = 0.5
+    w_churn = 1.0
+    w_watchers = 2.0
+    w_events = 1.5
+    w_coupling = 0.2
+    w_route_exposure = 5.0
+
+    # Extract values with defaults
+    complexity = meta.get("cyclomatic_complexity", 0)
+    churn = meta.get("churn", 0)
+    
+    events_meta = meta.get("eventfulness", {})
+    watchers = events_meta.get("watchers", 0)
+    emits = events_meta.get("emits", 0)
+    broadcasts = events_meta.get("broadcasts", 0)
+    
+    coupling = len(chunk.get("dependencies_di", []))
+    
+    # A chunk is considered exposed if it's linked to a UI route
+    is_exposed = 1 if meta.get("ui_routes") else 0
+
+    # Calculate the weighted score
+    score = (
+        (complexity * w_complexity) +
+        (churn * w_churn) +
+        (watchers * w_watchers) +
+        ((emits + broadcasts) * w_events) +
+        (coupling * w_coupling) +
+        (is_exposed * w_route_exposure)
+    )
+    
+    return round(score, 2)
+
+def determine_migration_target(chunk: dict) -> str:
+    """Heuristically determine the migration target."""
+    kind = chunk.get("kind")
+    if kind == "service":
+        return "React Hook (useSWR or React Query)"
+    if kind == "controller":
+        return "React Component (Client)"
+    if kind == "directive":
+        return "React Component (Server or Client)"
+    if kind == "filter":
+        return "Utility Function"
+    return "Undetermined"
+
+def main():
+    parser = argparse.ArgumentParser(description="Convert enriched chunks to the Feniks IR format.")
+    parser.add_argument("--in", dest="input_path", type=Path, required=True, help="Path to the enriched JSONL file.")
+    parser.add_argument("--out", dest="output_path", type=Path, required=True, help="Path to write the IR JSONL file.")
+    args = parser.parse_args()
+
+    log.info(f"Converting {args.input_path} to IR format at {args.output_path}")
+
+    records_written = 0
+    with args.input_path.open("r", encoding="utf-8") as infile, \
+         args.output_path.open("w", encoding="utf-8") as outfile:
+        
+        for line in infile:
+            try:
+                chunk = json.loads(line)
+
+                # --- Transformation to IR ---
+                ir_record = {
+                    # Passthrough fields
+                    "id": chunk.get("id"),
+                    "file_path": chunk.get("filePath"),
+                    "start_line": chunk.get("start"),
+                    "end_line": chunk.get("end"),
+                    "text": chunk.get("text"),
+                    "chunk_name": chunk.get("name"),
+                    "module": chunk.get("module"),
+                    "kind": chunk.get("kind"),
+                    "ast_node_type": chunk.get("ast_node_type"),
+                    "dependencies_di": chunk.get("dependencies_di", []),
+                    "calls_functions": chunk.get("calls_functions", []),
+                    "api_endpoints": chunk.get("metadata", {}).get("api_endpoints", []),
+                    "ui_routes": chunk.get("metadata", {}).get("ui_routes", []),
+                    "cyclomatic_complexity": chunk.get("metadata", {}).get("cyclomatic_complexity", 0),
+                    "business_tags": chunk.get("metadata", {}).get("business_tags", []),
+                    "git_last_commit": chunk.get("git_last_commit"),
+
+                    # New IR fields (with heuristics)
+                    "confidence": 0.85, # Placeholder confidence
+                    "criticality_score": calculate_criticality(chunk),
+                    "migration_target": determine_migration_target(chunk),
+                    "evidence": [], # To be filled by more advanced steps
+                    "invariants": [],
+                    "io_contract": {},
+                    "api_contract_ref": None
+                }
+
+                outfile.write(json.dumps(ir_record) + "\n")
+                records_written += 1
+
+            except (json.JSONDecodeError, KeyError) as e:
+                log.warning(f"Skipping corrupted or incomplete line: {e} -> {line.strip()}")
+
+    log.info(f"Successfully converted {records_written} records to IR format.")
+
+if __name__ == "__main__":
+    main()
+
+# scripts/enrich_git_blame.py
+# scripts/enrich_git_blame.py
+#!/usr/bin/env python3
+from __future__ import annotations
+import json, subprocess, sys
+from pathlib import Path
+from datetime import datetime, timezone
+
+def blame_slice(repo_root: Path, file_path: str, start: int, end: int):
+  fp = repo_root / file_path
+  if not fp.exists():
+    return None
+  try:
+    cmd = ["git", "-C", str(repo_root), "blame", "--line-porcelain", f"-L{start},{end}", "--", file_path]
+    out = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode("utf-8", "ignore")
+  except subprocess.CalledProcessError:
+    return None
+  last_commit = None
+  current = {}
+  for line in out.splitlines():
+    if not line.strip():
+      continue
+    if line[0] != '\t' and line.split()[0].isalnum() and len(line.split()[0]) >= 7 and ' ' in line:
+      current = {"hash": line.split()[0]}
+    elif line.startswith("author "):
+      current["author"] = line[len("author "):]
+    elif line.startswith("author-mail "):
+      current["author_mail"] = line[len("author-mail "):]
+    elif line.startswith("author-time "):
+      try:
+        ts = int(line[len("author-time "):])
+        current["date"] = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+      except:
+        pass
+    elif line.startswith("summary "):
+      current["message"] = line[len("summary "):]
+    elif line[0] == '\t':
+      if current:
+        if not last_commit:
+          last_commit = current.copy()
+        else:
+          try:
+            d1 = datetime.fromisoformat(last_commit["date"].replace("Z",""))
+            d2 = datetime.fromisoformat(current.get("date","1970-01-01T00:00:00").replace("Z",""))
+            if d2 > d1:
+              last_commit = current.copy()
+          except Exception:
+            pass
+  if last_commit and all(k in last_commit for k in ["hash", "author", "date", "message"]):
+      return last_commit
+  return None
+
+def get_file_churn(repo_root: Path, file_path: str) -> int:
+  """Calculates the churn for a file (number of commits in the last 90 days)."""
+  if not file_path:
+    return 0
+  try:
+    cmd = f'git -C {repo_root} log --since="90 days ago" --follow --format=oneline -- "{file_path}" | wc -l'
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+    return int(result.stdout.strip())
+  except (subprocess.CalledProcessError, ValueError):
+    return 0
+
+def main():
+  import argparse
+  ap = argparse.ArgumentParser(description="Enrich chunks JSONL with git blame metadata")
+  ap.add_argument("--repo", required=True, help="Path to repo root")
+  ap.add_argument("--in", dest="inp", required=True, help="Input JSONL (from js_html_indexer.mjs)")
+  ap.add_argument("--out", required=True, help="Output JSONL")
+  args = ap.parse_args()
+
+  repo = Path(args.repo).resolve()
+  inp = Path(args.inp).resolve()
+  outp = Path(args.out).resolve()
+  outp.parent.mkdir(parents=True, exist_ok=True)
+
+  churn_cache = {}
+
+  with inp.open("r", encoding="utf-8") as f, outp.open("w", encoding="utf-8") as w:
+    for line in f:
+      line = line.strip()
+      if not line:
+        continue
+      try:
+        row = json.loads(line)
+      except Exception:
+        continue
+      fp = row.get("filePath")
+      start = int(row.get("start", 1))
+      end = int(row.get("end", start))
+      meta = row.setdefault("metadata", {})
+
+      if fp not in churn_cache:
+          churn_cache[fp] = get_file_churn(repo, fp)
+      meta['churn'] = churn_cache[fp]
+
+      info = blame_slice(repo, fp, start, end)
+      if info:
+        meta["git_last_commit"] = info
+      w.write(json.dumps(row, ensure_ascii=False) + "\n")
+  print(f"[OK] wrote {outp}")
+
+if __name__ == "__main__":
+  sys.exit(main())
+
+# scripts/feniks_cli.py
+#!/usr/bin/env python
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import List
+
+# Add the 'scripts' directory to the Python path to allow sibling imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from feniks.logger import log
+from feniks.config import settings
+from feniks.types import Chunk, GitInfo, MigrationSuggestion, ApiEndpoint
+from feniks.embed import get_embedding_model, create_dense_embeddings, build_tfidf
+from feniks.qdrant import ensure_collection, upsert_points
+from qdrant_client import QdrantClient
+
+def run_external_script(cmd: List[str], cwd: Path):
+    """Helper to run an external script and handle errors."""
+    log.info(f"Running command: {' '.join(cmd)}")
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=cwd)
+        if result.stdout:
+            log.info(result.stdout)
+        if result.stderr:
+            log.warning(result.stderr)
+    except subprocess.CalledProcessError as e:
+        log.error(f"Script failed with exit code {e.returncode}")
+        log.error(f"Stderr: {e.stderr}")
+        raise RuntimeError(f"External script failed: {' '.join(cmd)}") from e
+
+def load_ir_chunks(path: Path) -> List[Chunk]:
+    """Loads chunks from the Feniks IR JSONL file."""
+    chunks = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                data = json.loads(line)
+                
+                # Map nested objects
+                git_info_data = data.get("git_last_commit")
+                git_info = GitInfo(**git_info_data) if git_info_data else None
+                
+                api_endpoints_data = data.get("api_endpoints", [])
+                api_endpoints = [ApiEndpoint(**ep) for ep in api_endpoints_data]
+
+                chunks.append(Chunk(
+                    id=data["id"],
+                    file_path=data["file_path"],
+                    start_line=data["start_line"],
+                    end_line=data["end_line"],
+                    text=data["text"],
+                    chunk_name=data["chunk_name"],
+                    module=data.get("module"),
+                    kind=data.get("kind"),
+                    ast_node_type=data.get("ast_node_type"),
+                    dependencies_di=data.get("dependencies_di", []),
+                    calls_functions=data.get("calls_functions", []),
+                    api_endpoints=api_endpoints,
+                    ui_routes=data.get("ui_routes", []),
+                    cyclomatic_complexity=data.get("cyclomatic_complexity", 0),
+                    business_tags=data.get("business_tags", []),
+                    git_last_commit=git_info,
+                    evidence=data.get("evidence", []),
+                    confidence=data.get("confidence", 1.0),
+                    criticality_score=data.get("criticality_score", 0.0),
+                    migration_target=data.get("migration_target"),
+                    invariants=data.get("invariants", []),
+                    io_contract=data.get("io_contract", {}),
+                    api_contract_ref=data.get("api_contract_ref")
+                ))
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                log.error(f"Could not parse IR chunk line: {e} -> {line}")
+    return chunks
+
+def run_build_process(reset_collection: bool = False, collection_name: str = settings.QDRANT_COLLECTION):
+    log.info("--- Starting Feniks Knowledge Base Build (Advanced) ---")
+    try:
+        # --- 0. Setup output directories ---
+        log.info("Step 0: Setting up output directories...")
+        run_dir = settings.PROJECT_ROOT / "runs" / "latest"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        raw_chunks_path = run_dir / "chunks.mjs.jsonl"
+        enriched_chunks_path = run_dir / "chunks.enriched.jsonl"
+        ir_chunks_path = run_dir / "chunks.ir.jsonl"
+        log.info("Step 0: Finished setting up output directories.")
+
+        # --- 1. Run Node.js Indexer ---
+        log.info("Step 1: Running advanced Node.js indexer...")
+        frontend_path = settings.PROJECT_ROOT / "frontend-master"
+        indexer_cmd = ["node", str(settings.NODE_INDEXER_PATH), "--root", str(frontend_path), "--out", str(raw_chunks_path)]
+        run_external_script(indexer_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 1: Finished running advanced Node.js indexer.")
+
+        # --- 2. Run Python Git Blame Enricher ---
+        log.info("Step 2: Enriching chunks with git blame information...")
+        enricher_path = settings.PROJECT_ROOT / "scripts" / "enrich_git_blame.py"
+        enricher_cmd = [sys.executable, str(enricher_path), "--repo", str(frontend_path), "--in", str(raw_chunks_path), "--out", str(enriched_chunks_path)]
+        run_external_script(enricher_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 2: Finished enriching chunks with git blame information.")
+
+        # --- 2.5. Convert to IR ---
+        log.info("Step 2.5: Converting to Feniks Intermediate Representation (IR)...")
+        converter_path = settings.PROJECT_ROOT / "scripts" / "convert_to_ir.py"
+        converter_cmd = [sys.executable, str(converter_path), "--in", str(enriched_chunks_path), "--out", str(ir_chunks_path)]
+        run_external_script(converter_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 2.5: Finished converting to Feniks IR.")
+
+        # --- 2.6. Validate IR ---
+        log.info("Step 2.6: Validating Feniks IR against schema...")
+        validator_path = settings.PROJECT_ROOT / "scripts" / "validate_ir.py"
+        schema_path = settings.PROJECT_ROOT / "schemas" / "ir.schema.json"
+        validator_cmd = [sys.executable, str(validator_path), "--schema", str(schema_path), "--in", str(ir_chunks_path)]
+        run_external_script(validator_cmd, cwd=settings.PROJECT_ROOT)
+        log.info("Step 2.6: Finished validating Feniks IR.")
+
+        # --- 3. Load IR Chunks ---
+        log.info("Step 3: Loading IR chunks into Python...")
+        chunks = load_ir_chunks(ir_chunks_path)
+        if not chunks:
+            raise RuntimeError("No chunks were loaded from IR file. Aborting.")
+        log.info(f"Loaded {len(chunks)} IR chunks.")
+        log.info("Step 3: Finished loading IR chunks.")
+
+        # --- 4. Embeddings ---
+        log.info("Step 4: Creating dense and sparse embeddings...")
+        model = get_embedding_model(settings.EMBEDDING_MODEL)
+        dense_embs = create_dense_embeddings(model, chunks)
+        tfidf_vec, tfidf_matrix = build_tfidf(chunks)
+        log.info(f"Created {dense_embs.shape[0]} dense embeddings.")
+        log.info("Step 4: Finished creating embeddings.")
+
+        # --- 5. Qdrant Ingestion ---
+        log.info("Step 5: Connecting to Qdrant and upserting points...")
+        qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        ensure_collection(client=qdrant_client, name=collection_name, dim=dense_embs.shape[1], reset=reset_collection)
+        upsert_points(client=qdrant_client, collection=collection_name, chunks=chunks, dense=dense_embs, X_tfidf=tfidf_matrix, vocab=tfidf_vec.vocabulary_)
+        log.info(f"Upserted {len(chunks)} points to Qdrant collection '{collection_name}'.")
+        log.info("Step 5: Finished Qdrant ingestion.")
+
+        log.info("--- Feniks Knowledge Base Build Finished Successfully ---")
+
+    except (RuntimeError, Exception) as e:
+        log.error(f"A critical error occurred during the build process: {e}", exc_info=True)
+        sys.exit(1)
+
+def run_refactor_agent(query: str, recipe: Path, dry_run: bool, filter_: str | None, score_threshold: float, limit: int | None):
+    """Wrapper to call the refactor_agent.py script."""
+    script_path = settings.PROJECT_ROOT / "scripts" / "refactor_agent.py"
+    cmd = [
+        sys.executable, str(script_path),
+        "--query", query,
+        "--recipe", str(recipe),
+        f"--score-threshold", str(score_threshold),
+    ]
+    if dry_run:
+        cmd.append("--dry-run")
+    if filter_:
+        cmd.extend(["--filter", filter_])
+    if limit:
+        cmd.extend(["--limit", str(limit)])
+    
+    # Use run_external_script but be mindful of streaming output if needed later
+    run_external_script(cmd, cwd=settings.PROJECT_ROOT)
+
+def run_generate_openapi(input_path: Path, output_path: Path):
+    """Wrapper to call the generate_openapi.py script."""
+    script_path = settings.PROJECT_ROOT / "scripts" / "generate_openapi.py"
+    cmd = [
+        sys.executable, str(script_path),
+        "--in", str(input_path),
+        "--out", str(output_path),
+    ]
+    run_external_script(cmd, cwd=settings.PROJECT_ROOT)
+
+def main():
+    parser = argparse.ArgumentParser(description="Feniks Knowledge Base Builder and Refactoring CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    
+    # Build command
+    build_parser = subparsers.add_parser("build", help="Run the full knowledge base build process.")
+    build_parser.add_argument("--reset", action="store_true", help="Reset the Qdrant collection.")
+    build_parser.set_defaults(func=lambda args: run_build_process(reset_collection=args.reset))
+
+    # Refactor Agent command
+    refactor_parser = subparsers.add_parser("refactor", help="Run the refactoring agent.")
+    refactor_parser.add_argument("--query", type=str, required=True, help="Natural language query to find refactoring targets.")
+    refactor_parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file to apply.")
+    refactor_parser.add_argument("--filter", type=str, default=None, help="Optional metadata filter, e.g., 'kind:js_function'")
+    refactor_parser.add_argument("--score-threshold", type=float, default=0.5, help="Minimum score for a search result to be considered a match.")
+    refactor_parser.add_argument("--limit", type=int, default=None, help="Limit the number of files to process.")
+    refactor_parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
+    refactor_parser.set_defaults(func=lambda args: run_refactor_agent(
+        args.query, args.recipe, args.dry_run, args.filter, args.score_threshold, args.limit
+    ))
+
+    # OpenAPI Generator command
+    openapi_parser = subparsers.add_parser("generate-openapi", help="Generate an OpenAPI spec from the IR.")
+    openapi_parser.add_argument("--in", dest="input_path", type=Path, required=True, help="Path to the Feniks IR JSONL file (e.g., runs/latest/chunks.ir.jsonl).")
+    openapi_parser.add_argument("--out", dest="output_path", type=Path, required=True, help="Path to write the OpenAPI JSON file.")
+    openapi_parser.set_defaults(func=lambda args: run_generate_openapi(args.input_path, args.output_path))
+
+    args = parser.parse_args()
+    args.func(args)
+
+if __name__ == "__main__":
+    main()
+
+# scripts/generate_openapi.py
+#!/usr/bin/env python
+import argparse
+import json
+import re
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+# Add project root to allow sibling imports
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / 'scripts'))
+
+from feniks.logger import log
+from feniks.types import Chunk, ApiEndpoint
+from feniks_cli import load_ir_chunks
+
+def normalize_path(url: str) -> str:
+    """Converts a URL with dynamic parts into an OpenAPI path format."""
+    # Replace AngularJS-style :param with {param}
+    url = re.sub(r':([a-zA-Z0-9_]+)', r'{\1}', url)
+    # Replace common dynamic parts captured as ${{...}} with {param}
+    url = re.sub(r'\$\({{.*?}}\}', '{param}', url)
+    return url
+
+def get_path_params(path: str) -> list[str]:
+    """Extracts parameter names from a normalized path."""
+    return re.findall(r'\{([a-zA-Z0-9_]+)\}', path)
+
+def build_openapi_spec(chunks: list[Chunk]) -> dict:
+    """Builds an OpenAPI specification from a list of IR chunks."""
+    
+    paths = defaultdict(dict)
+
+    for chunk in chunks:
+        for endpoint in chunk.api_endpoints:
+            if not endpoint.url:
+                continue
+
+            path_url = normalize_path(endpoint.url)
+            method = endpoint.method.lower()
+
+            # Operation Object
+            operation = {
+                "summary": f"Discovered in: {chunk.chunk_name}",
+                "description": f"Found in `{chunk.file_path}` at lines {chunk.start_line}-{chunk.end_line}.\n\n```\n{chunk.text}\n```",
+                "tags": [chunk.module or "uncategorized"],
+                "parameters": [],
+                "responses": {
+                    "200": {"description": "Successful response"},
+                    "default": {"description": "Error response"}
+                }
+            }
+
+            # Path parameters
+            path_params = get_path_params(path_url)
+            for param_name in path_params:
+                operation["parameters"].append({
+                    "name": param_name,
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"}
+                })
+
+            # Query parameters
+            for param_name in endpoint.paramKeys:
+                if param_name not in path_params:
+                    operation["parameters"].append({
+                        "name": param_name,
+                        "in": "query",
+                        "schema": {"type": "string"}
+                    })
+
+            # Request Body
+            if endpoint.dataKeys:
+                operation["requestBody"] = {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {key: {"type": "string"} for key in endpoint.dataKeys}
+                            }
+                        }
+                    }
+                }
+            
+            paths[path_url][method] = operation
+
+    spec = {
+        "openapi": "3.0.3",
+        "info": {
+            "title": "Feniks Auto-Generated API",
+            "version": "1.0.0",
+            "description": "This API specification was automatically generated by the Feniks tool by analyzing the AngularJS source code."
+        },
+        "paths": paths
+    }
+    return spec
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate an OpenAPI specification from Feniks IR.")
+    parser.add_argument("--in", dest="input_path", type=Path, required=True, help="Path to the Feniks IR JSONL file (e.g., runs/latest/chunks.ir.jsonl).")
+    parser.add_argument("--out", dest="output_path", type=Path, required=True, help="Path to write the OpenAPI JSON file.")
+    args = parser.parse_args()
+
+    log.info(f"Loading IR chunks from: {args.input_path}")
+    if not args.input_path.exists():
+        log.error(f"Input file not found: {args.input_path}")
+        sys.exit(1)
+        
+    chunks = load_ir_chunks(args.input_path)
+    
+    log.info(f"Generating OpenAPI specification from {len(chunks)} chunks...")
+    openapi_spec = build_openapi_spec(chunks)
+    
+    log.info(f"Writing OpenAPI specification to: {args.output_path}")
+    args.output_path.parent.mkdir(parents=True, exist_ok=True)
+    with args.output_path.open("w", encoding="utf-8") as f:
+        json.dump(openapi_spec, f, indent=2, ensure_ascii=False)
+        
+    log.info("OpenAPI specification generated successfully.")
+
+if __name__ == "__main__":
+    main()
+
+# scripts/js_html_indexer.mjs
+// scripts/js_html_indexer.mjs
+// ESM Node 18+
+// Usage: node scripts/js_html_indexer.mjs --root <frontend-root> --out <out-jsonl>
+import fs from 'fs';
+import fsp from 'fs/promises';
+import path from 'path';
+import fg from 'fast-glob';
+import * as babelParser from '@babel/parser';
+import traverse from '@babel/traverse';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const out = { root: null, out: null };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--root') out.root = args[++i];
+    else if (args[i] === '--out') out.out = args[++i];
+  }
+  if (!out.root) throw new Error('Missing --root');
+  if (!out.out) throw new Error('Missing --out');
+  return out;
+}
+
+function readFileSafe(p) {
+  try { return fs.readFileSync(p, 'utf8'); }
+  catch { return null; }
+}
+
+function toUnix(p) { return p.split(path.sep).join('/'); }
+
+function decisionCount(node) {
+  // Simple cyclomatic complexity approximation
+  let count = 1;
+  if (!node) return count;
+  traverse.default(node, {
+    enter(path) {
+      switch (path.node.type) {
+        case 'IfStatement':
+        case 'ForStatement':
+        case 'ForInStatement':
+        case 'ForOfStatement':
+        case 'WhileStatement':
+        case 'DoWhileStatement':
+        case 'CatchClause':
+        case 'ConditionalExpression':
+          count++; break;
+        case 'LogicalExpression':
+          if (path.node.operator === '||' || path.node.operator === '&&') count++;
+          break;
+        case 'SwitchCase':
+          if (path.node.test) count++;
+          break;
+      }
+    }
+  });
+  return count;
+}
+
+function businessTagsFromName(name, file) {
+  const s = (name || '' + ' ' + (file || '')).toLowerCase();
+  const tags = new Set();
+  const addIf = (re, t) => { if (re.test(s)) tags.add(t); };
+  addIf(/\bauth|login|logout|token|session\b/, 'authentication');
+  addIf(/\bpay|payment|checkout|transaction|billing\b/, 'payment');
+  addIf(/\bprice|pric(ing)|discount|promo|vat|tax\b/, 'pricing');
+  addIf(/\bcart|basket\b/, 'cart');
+  addIf(/\border|shipment|delivery\b/, 'order');
+  addIf(/\binventory|stock|warehouse\b/, 'inventory');
+  addIf(/\buser|account|profile\b/, 'user');
+  addIf(/\breport|analytics|metric|kpi\b/, 'analytics');
+  return Array.from(tags);
+}
+
+function getObjectKeys(node) {
+  if (!node || node.type !== 'ObjectExpression') return [];
+  return node.properties.map(p => {
+    if (p.type === 'SpreadElement') return null; // Ignore spread elements for now
+    const key = p.key;
+    if (key) {
+      if (key.type === 'Identifier') return key.name;
+      if (key.type === 'StringLiteral') return key.value;
+    }
+    return null;
+  }).filter(Boolean);
+}
+
+function evaluateUrlNode(node) {
+    if (!node) return '';
+    switch (node.type) {
+        case 'StringLiteral':
+            return node.value;
+        case 'Identifier':
+            return `\${{node.name}}`;
+        case 'MemberExpression':
+            const obj = node.object.name || '...';
+            const prop = node.property.name || '...';
+            return `\${{obj}.${prop}}`;
+        case 'BinaryExpression':
+            if (node.operator === '+') {
+                return evaluateUrlNode(node.left) + evaluateUrlNode(node.right);
+            }
+            break;
+        case 'TemplateLiteral':
+            return node.quasis.map(q => q.value.cooked).join('\${...}');
+        case 'CallExpression':
+            if (node.callee.type === 'MemberExpression' && node.callee.property.name === 'join') {
+                if (node.callee.object.type === 'ArrayExpression') {
+                    return node.callee.object.elements.map(evaluateUrlNode).join(node.arguments[0].value);
+                }
+            }
+            return '{...}';
+    }
+    return '{...}';
+}
+
+
+function apiEndpointsFromCall(calleeName, args) {
+  const endpoints = [];
+  if (!args || args.length === 0) return [];
+
+  let url, method, dataKeys = [], paramKeys = [];
+
+  // Case 1: $http.get(url, config), $http.post(url, data, config)
+  const match = calleeName.match(/\$http\.(get|delete|head|jsonp|post|put|patch)/);
+  if (match) {
+    method = match[1].toUpperCase();
+    const urlArg = args[0];
+    url = evaluateUrlNode(urlArg);
+    console.log('apiEndpointsFromCall: url=', url, 'method=', method);
+
+    const isPostLike = ['POST', 'PUT', 'PATCH'].includes(method);
+    const dataArg = isPostLike ? args[1] : null;
+    const configArg = isPostLike ? args[2] : args[1];
+
+    if (dataArg && dataArg.type === 'ObjectExpression') {
+      dataKeys = getObjectKeys(dataArg);
+    }
+
+    if (configArg && configArg.type === 'ObjectExpression') {
+      const paramsProp = configArg.properties.find(p => p.key && (p.key.name === 'params' || p.key.value === 'params'));
+      if (paramsProp && paramsProp.value.type === 'ObjectExpression') {
+        paramKeys = getObjectKeys(paramsProp.value);
+      }
+    }
+
+  } else if (calleeName === '$http') {
+    // Case 2: $http({ method, url, ... })
+    const config = args[0];
+    if (config && config.type === 'ObjectExpression') {
+      for (const prop of config.properties) {
+        if (prop.type === 'SpreadElement') continue;
+        const key = prop.key?.name || prop.key?.value;
+        if (key === 'method' && prop.value.type === 'StringLiteral') {
+          method = prop.value.value.toUpperCase();
+        }
+        if (key === 'url') {
+          url = evaluateUrlNode(prop.value);
+        }
+        if (key === 'data' && prop.value.type === 'ObjectExpression') {
+          dataKeys = getObjectKeys(prop.value);
+        }
+        if (key === 'params') {
+            if (prop.value.type === 'ObjectExpression') {
+                paramKeys = getObjectKeys(prop.value);
+            } else if (prop.value.type === 'Identifier') {
+                // Cannot resolve variable, but we know params exist
+                paramKeys = ['...'];
+            }
+        }
+      }
+      console.log('apiEndpointsFromCall: url=', url, 'method=', method);
+    }
+  }
+
+  if (url && method && (url.includes('/api/') || url.startsWith('http') || url.startsWith('${'))) {
+    endpoints.push({ url, method, dataKeys, paramKeys });
+  }
+  return endpoints;
+}
+
+function calleeNameFromNode(node) {
+  if (!node) return null;
+  if (node.type === 'Identifier') return node.name;
+  if (node.type === 'MemberExpression') {
+    const obj = calleeNameFromNode(node.object);
+    const prop = node.property && (node.property.name || (node.property.value ?? ''));
+    if (obj && prop) return `${obj}.${prop}`;
+  }
+  if (node.type === 'OptionalMemberExpression') {
+    const obj = calleeNameFromNode(node.object);
+    const prop = node.property && (node.property.name || (node.property.value ?? ''));
+    if (obj && prop) return `${obj}.${prop}`;
+  }
+  return null;
+}
+
+function parseJS(filePath, code, modulesCtx) {
+  const ast = babelParser.parse(code, {
+    sourceType: 'module',
+    plugins: ['jsx', 'classProperties', 'objectRestSpread', 'optionalChaining']
+  });
+  const chunks = [];
+  const routes = [];
+
+  function pushChunk({id, kind, name, module, start, end, text, depsDI}) {
+    const file = toUnix(filePath);
+    const calls = new Set();
+    const api = new Set();
+    let complexity = 1;
+    let watchers = 0, emits = 0, broadcasts = 0;
+
+    traverse.default(ast, {
+      enter(p) {
+        // Restrict to function range if provided
+        if (start != null && end != null) {
+          const n = p.node;
+          if (!n.loc) return;
+          const s = n.loc.start.line, e = n.loc.end.line;
+          if (e < start || s > end) p.skip();
+        }
+        if (p.isCallExpression()) {
+          const c = p.node.callee;
+          const name = calleeNameFromNode(c);
+          if (name) {
+            if (name.endsWith('$watch')) watchers++;
+            if (name.endsWith('$emit')) emits++;
+            if (name.endsWith('$broadcast')) broadcasts++;
+            calls.add(name);
+          }
+          // API endpoints
+          if (name && (/^\$?http$/.test(name) || /^\$?http\./.test(name))) {
+            apiEndpointsFromCall(name, p.node.arguments).forEach(a => api.add(JSON.stringify(a)));
+          }
+        }
+      }
+    });
+
+    // Rough complexity on sliced AST region
+    if (start != null && end != null) {
+      complexity = decisionCount(ast);
+    } else {
+      complexity = decisionCount(ast);
+    }
+
+    const business_tags = businessTagsFromName(name, file);
+    const record = {
+      id,
+      filePath: file,
+      module,
+      name,
+      kind,
+      nodeType: 'Function',
+      dependenciesDI: depsDI || [],
+      antiPatterns: [],
+      text,
+      start: start ?? 1,
+      end: end ?? (code.split('\n').length),
+      route: null,
+      symbol: name,
+      metadata: {
+        calls_functions: Array.from(calls),
+        api_endpoints: Array.from(api).map(a => JSON.parse(a)),
+        ui_routes: [],
+        cyclomatic_complexity: complexity,
+        eventfulness: {
+            watchers,
+            emits,
+            broadcasts
+        },
+        summary_en: null,
+        business_tags
+      }
+    };
+    chunks.push(record);
+  }
+
+  function angularDIParams(fnNode) {
+    if (!fnNode) return [];
+    if (fnNode.type === 'FunctionExpression' || fnNode.type === 'ArrowFunctionExpression') {
+      return (fnNode.params || []).map(p => p.name).filter(Boolean);
+    }
+    return [];
+  }
+
+  traverse.default(ast, {
+    CallExpression(p) {
+      const callee = p.node.callee;
+      if (callee.type === 'MemberExpression') {
+        const prop = callee.property?.name || callee.property?.value;
+        if (!prop) return;
+        if (prop === 'module' && callee.object?.name === 'angular') {
+          const modArg = p.node.arguments?.[0];
+          if (modArg?.type === 'StringLiteral') {
+            modulesCtx.currentModule = modArg.value;
+          }
+        }
+        const propName = String(prop);
+        const isNgDef = ['controller','service','factory','directive','filter','component','config'].includes(propName);
+        if (isNgDef) {
+          const args = p.node.arguments || [];
+          const nameArg = args[0];
+          const defArg = args.slice(-1)[0];
+          const name = nameArg && nameArg.type === 'StringLiteral' ? nameArg.value : null;
+          const moduleName = modulesCtx.currentModule || null;
+          let fnNode = defArg;
+          let deps = [];
+          if (defArg && defArg.type === 'ArrayExpression') {
+            const elems = defArg.elements || [];
+            const last = elems[elems.length - 1];
+            fnNode = last;
+            deps = elems.slice(0, -1).map(e => e.value).filter(Boolean);
+          } else {
+            deps = angularDIParams(defArg);
+          }
+          const { start, end } = fnNode?.loc || p.node.loc || {start:{line:1}, end:{line: code.split('\n').length}};
+          const lines = code.split('\n').slice(start.line - 1, end.line).join('\n');
+          const id = `${toUnix(filePath)}:${start.line}-${end.line}:${propName}:${name ?? 'anonymous'}`;
+          const kindMap = {controller:'component', component:'component', service:'service', factory:'service', directive:'directive', filter:'filter', config:'route'};
+          pushChunk({id, kind: kindMap[propName] || 'util', name: name ?? 'anonymous', module: moduleName, start: start.line, end: end.line, text: lines, depsDI: deps});
+        }
+      }
+    }
+  });
+
+  traverse.default(ast, {
+    CallExpression(p) {
+      const callee = p.node.callee;
+      if (callee.type === 'MemberExpression') {
+        const objName = callee.object?.name || callee.object?.property?.name;
+        const propName = callee.property?.name;
+        if (objName === '$stateProvider' && propName === 'state') {
+          const [stateName, cfg] = p.node.arguments || [];
+          let url = null, controller = null, templateUrl = null;
+          if (cfg && cfg.type === 'ObjectExpression') {
+            for (const prop of cfg.properties || []) {
+              const key = prop.key?.name || prop.key?.value;
+              if (key === 'url' && prop.value.type === 'StringLiteral') url = prop.value.value;
+              if (key === 'controller' && prop.value.type === 'StringLiteral') controller = prop.value.value;
+              if (key === 'templateUrl' && prop.value.type === 'StringLiteral') templateUrl = prop.value.value;
+            }
+          }
+          const sName = stateName && stateName.type === 'StringLiteral' ? stateName.value : null;
+          routes.push({ type: 'ui-router', state: sName, url, controller, templateUrl });
+        }
+        if (objName === '$routeProvider' && propName === 'when') {
+          const [urlArg, cfg] = p.node.arguments || [];
+          let url = null, controller = null, templateUrl = null;
+          if (urlArg?.type === 'StringLiteral') url = urlArg.value;
+          if (cfg && cfg.type === 'ObjectExpression') {
+            for (const prop of cfg.properties || []) {
+              const key = prop.key?.name || prop.key?.value;
+              if (key === 'controller' && prop.value.type === 'StringLiteral') controller = prop.value.value;
+              if (key === 'templateUrl' && prop.value.type === 'StringLiteral') templateUrl = prop.value.value;
+            }
+          }
+          routes.push({ type: 'ng-route', state: null, url, controller, templateUrl });
+        }
+      }
+    }
+  });
+
+  if (routes.length && chunks.length) {
+    const byCtrl = new Map();
+    for (const r of routes) {
+      if (r.controller) {
+        const arr = byCtrl.get(r.controller) || [];
+        arr.push(r.url);
+        byCtrl.set(r.controller, arr);
+      }
+    }
+    for (const ch of chunks) {
+      const urls = byCtrl.get(ch.name) || [];
+      if (urls.length) {
+        ch.metadata.ui_routes = Array.from(new Set([...(ch.metadata.ui_routes || []), ...urls]));
+      }
+    }
+    for (const r of routes) {
+      const id = `${toUnix(filePath)}:route:${r.url || r.state}`;
+      const text = `// route: ${r.type} ${r.state ?? ''} ${r.url ?? ''} controller=${r.controller ?? ''}`;
+      chunks.push({
+        id,
+        filePath: toUnix(filePath),
+        module: null,
+        name: r.controller || r.state || (r.url ?? 'route'),
+        kind: 'route',
+        nodeType: 'Object',
+        dependenciesDI: [],
+        antiPatterns: [],
+        text,
+        start: 1, end: 1,
+        route: r.url || r.state,
+        symbol: r.controller || r.state,
+        metadata: {
+          calls_functions: [],
+          api_endpoints: [],
+          ui_routes: r.url ? [r.url] : [],
+          cyclomatic_complexity: 1,
+          summary_en: null,
+          business_tags: businessTagsFromName(r.controller || r.state, filePath)
+        }
+      });
+    }
+  }
+
+  return chunks;
+}
+
+async function main() {
+  const args = parseArgs();
+  const root = path.resolve(args.root);
+  const outPath = path.resolve(args.out);
+  await fsp.mkdir(path.dirname(outPath), { recursive: true });
+
+  const patterns = [
+    toUnix(path.join(root, '**/*.js')),
+  ];
+  const entries = await fg(patterns, { dot: false, onlyFiles: true });
+  let total = 0;
+  const out = fs.createWriteStream(outPath, { flags: 'w', encoding: 'utf8' });
+
+  for (const file of entries) {
+    const code = readFileSafe(file);
+    if (!code) continue;
+    const modulesCtx = { currentModule: null };
+    try {
+      const recs = parseJS(file, code, modulesCtx);
+      for (const r of recs) {
+        out.write(JSON.stringify(r) + '\n');
+        total++;
+      }
+    } catch (e) {
+      out.write(JSON.stringify({ error: String(e), filePath: toUnix(file) }) + '\n');
+    }
+  }
+  out.end();
+  console.log(`[OK] Indexed ${entries.length} files → ${total} records at ${outPath}`);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}
+
+# scripts/qdrant_ingest.py
+#!/usr/bin/env python3
+import argparse, os, json, uuid
+from tqdm import tqdm
+from typing import List, Dict
+from qdrant_client import QdrantClient, models
+from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from joblib import dump, load
+
+def load_chunks(path):
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+def build_dense_model(name: str):
+    # Dobry, wielojęzyczny model do zapytań PL i treści kodu:
+    # intfloat/multilingual-e5-base (sprawdza się w RAG)
+    return SentenceTransformer(name)
+
+def to_sparse_struct(vec):
+    # SciKit CSR -> Qdrant SparseVector
+    coo = vec.tocoo()
+    return models.SparseVector(
+        indices=coo.col.tolist(),
+        values=coo.data.tolist()
+    )
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--chunks", required=True)
+    ap.add_argument("--collection", default="frontend_feniks")
+    ap.add_argument("--qdrant-url", default="http://localhost:6333")
+    ap.add_argument("--reset", action="store_true")
+    ap.add_argument("--dense-model", default="intfloat/multilingual-e5-base")
+    ap.add_argument("--batch", type=int, default=128)
+    args = ap.parse_args()
+
+    client = QdrantClient(url=args.qdrant_url)
+
+    chunks = list(load_chunks(args.chunks))
+    texts = [c["code_snippet"] or "" for c in chunks]
+
+    # === Dense embeddings ===
+    dense_model = build_dense_model(args.dense_model)
+    dense_dim = dense_model.get_sentence_embedding_dimension()
+
+    # === Sparse TF-IDF (uni+bi-gram) ===
+    # Fit na całym korpusie -> zapisujemy vektoryzer dla zapytań
+    tfidf = TfidfVectorizer(ngram_range=(1,2), min_df=2, token_pattern=r"(?u)\b\w+\b")
+    X = tfidf.fit_transform(texts)
+    os.makedirs("feniks/data", exist_ok=True)
+    dump(tfidf, "feniks/data/tfidf.joblib")
+
+    # === Kolekcja Qdrant: dense + sparse ===
+    if args.reset and client.collection_exists(args.collection):
+        client.delete_collection(args.collection)
+
+    if not client.collection_exists(args.collection):
+        client.create_collection(
+            collection_name=args.collection,
+            vectors_config={
+                "dense_code": models.VectorParams(
+                    size=dense_dim, distance=models.Distance.COSINE
+                )
+            },
+            sparse_vectors_config={
+                "sparse_keywords": models.SparseVectorParams()
+            },
+        )
+
+        # Indeksy payloadu do szybkiego filtrowania
+        for field in ["file_path","ast_node_type","chunk_name","template_url"]:
+            client.create_payload_index(args.collection, field_name=field, field_schema=models.PayloadSchemaType.KEYWORD)
+        for field in ["dependencies_di","tags"]:
+            client.create_payload_index(args.collection, field_name=field, field_schema=models.PayloadSchemaType.KEYWORD)
+
+    # === Upsert w partiach ===
+    points = []
+    for i in tqdm(range(0, len(chunks), args.batch), desc="Upsert"):
+        batch = chunks[i:i+args.batch]
+        dense = dense_model.encode([b["code_snippet"] or "" for b in batch], show_progress_bar=False, normalize_embeddings=True)
+        sparse = X[i:i+args.batch]
+        pts = []
+        for j, c in enumerate(batch):
+            s = to_sparse_struct(sparse[j])
+            pts.append(models.PointStruct(
+                id=c["chunk_id"],
+                vector={
+                    "dense_code": dense[j].tolist(),
+                    "sparse_keywords": s
+                },
+                payload=c
+            ))
+        client.upsert(collection_name=args.collection, points=pts)
+
+    info = client.get_collection(args.collection)
+    print("Collection created:", info)
+
+if __name__ == "__main__":
+    main()
+
+# scripts/refactor_agent.py
+#!/usr/bin/env python3
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+# Add project root to allow sibling imports
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
+from feniks.logger import log
+from feniks.config import settings
+from qdrant_client import QdrantClient
+from qdrant_client.http import models
+from sentence_transformers import SentenceTransformer
+from deep_translator import GoogleTranslator
+from langdetect import detect as ld_detect
+import re
+
+# --- Utility functions from search_demo.py ---
+
+def detect_lang(s: str) -> str:
+    try:
+        return ld_detect(s)
+    except Exception:
+        if re.search(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", s):
+            return "pl"
+        return "en"
+
+def translate_pl_to_en(q: str) -> str:
+    lang = detect_lang(q)
+    if lang.startswith("en"):
+        return q
+    try:
+        return GoogleTranslator(source="auto", target="en").translate(q)
+    except Exception:
+        log.warning("Translation failed, using simple replacement.")
+        repl = {
+            "refaktoryzuj":"refactor","serwis":"service","autentykacji":"authentication",
+            "autentykacja":"authentication","logowanie":"login","wylogowanie":"logout",
+            "użytkownika":"user","hasło":"password","token":"token","sesja":"session",
+            "uprawnienia":"permissions","rola":"role","rejestracja":"registration"
+        }
+        t = q.lower()
+        for k,v in repl.items():
+            t = re.sub(rf"\b{re.escape(k)}\b", v, t)
+        return t + " auth authentication login user service refactor token session password"
+
+def parse_filter(filter_str: str | None) -> models.Filter | None:
+    """Parses a simple 'key:value' string into a Qdrant filter."""
+    if not filter_str or ':' not in filter_str:
+        return None
+    
+    key, value = filter_str.split(':', 1)
+    
+    log.info(f"Applying metadata filter: {key}={value}")
+    return models.Filter(
+        must=[
+            models.FieldCondition(
+                key=key.strip(),
+                match=models.MatchValue(value=value.strip()),
+            )
+        ]
+    )
+
+def run_sub_process(cmd: list[str]):
+    """Helper to run an external script and stream its output."""
+    log.info(f"Executing: {' '.join(cmd)}")
+    try:
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding='utf-8') as proc:
+            if proc.stdout:
+                for line in proc.stdout:
+                    log.info(line.strip())
+        if proc.returncode != 0:
+            log.error(f"Sub-process failed with exit code {proc.returncode}")
+    except Exception as e:
+        log.error(f"Sub-process execution failed: {e}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Feniks Refactoring Agent")
+    parser.add_argument("--recipe", type=Path, required=True, help="Path to the recipe YAML file.")
+    parser.add_argument("--query", type=str, required=True, help="Natural language query to find refactoring targets.")
+    parser.add_argument("--filter", type=str, default=None, help="Optional metadata filter, e.g., 'kind:js_function'")
+    parser.add_argument("--score-threshold", type=float, default=0.5, help="Minimum score for a search result to be considered a match.")
+    parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
+    parser.add_argument("--limit", type=int, default=50, help="Limit the number of files to process.")
+    args = parser.parse_args()
+
+    log.info("--- Starting Feniks Refactoring Agent ---")
+
+    # 1. Connect to DB and embedding model
+    try:
+        client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        model = SentenceTransformer(settings.EMBEDDING_MODEL)
+        log.info(f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+        log.info(f"Loaded embedding model: {settings.EMBEDDING_MODEL}")
+    except Exception as e:
+        log.error(f"Failed to initialize Qdrant client or embedding model: {e}")
+        sys.exit(1)
+
+    # 2. Find refactoring targets via semantic search
+    log.info(f"Searching for targets in collection '{settings.QDRANT_COLLECTION}'...")
+    try:
+        query_en = translate_pl_to_en(args.query)
+        log.info(f"Original query: '{args.query}' -> Translated: '{query_en}'")
+        
+        query_vector = model.encode(query_en, normalize_embeddings=True)
+        
+        qdrant_filter = parse_filter(args.filter)
+
+        search_response = client.search(
+            collection_name=settings.QDRANT_COLLECTION,
+            query_vector=query_vector,
+            query_filter=qdrant_filter,
+            score_threshold=args.score_threshold,
+            limit=args.limit or 50, # Ensure limit is not None
+            with_payload=True,
+        )
+        
+        # Get unique file paths from scored points
+        target_files = sorted(list(set(hit.payload['file_path'] for hit in search_response)))
+        
+        if args.limit:
+            target_files = target_files[:args.limit]
+
+        log.info(f"Found {len(target_files)} unique files to process with score >= {args.score_threshold}.")
+        if not target_files:
+            log.warning("No files matched the query and threshold. Exiting.")
+            return
+
+    except Exception as e:
+        log.error(f"Failed to query Qdrant: {e}")
+        sys.exit(1)
+
+    # 3. Apply recipe to each target
+    apply_recipe_script = project_root / "scripts" / "apply_recipe.py"
+    processed_count = 0
+    for file_path in target_files:
+        processed_count += 1
+        log.info(f"--- Processing file {processed_count}/{len(target_files)}: {file_path} ---")
+        
+        # The file_path from the DB is already relative to the project root,
+        # but we construct a full path for clarity and safety.
+        absolute_file_path = project_root / file_path
+        if not absolute_file_path.exists():
+            log.warning(f"File not found: {absolute_file_path}. Skipping.")
+            continue
+
+        cmd = [
+            sys.executable,
+            str(apply_recipe_script),
+            "--recipe", str(args.recipe),
+            "--file-path", str(absolute_file_path),
+        ]
+        if args.dry_run:
+            cmd.append("--dry-run")
+        
+        run_sub_process(cmd)
+
+    log.info("--- Feniks Refactoring Agent Finished ---")
+
+if __name__ == "__main__":
+    main()
+
+# scripts/refactor_and_commit.sh
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="/home/grzegorz/cloud/Dockerized/feniks"
+FILE="${1:?Użycie: scripts/refactor_and_commit.sh <ścieżka-do-pliku> [komunikat]}"
+MSG="${2:-refactor(factory): export function declarations ($(basename "$FILE"))}"
+
+cd "$ROOT"
+
+ts=$(date +%Y%m%d-%H%M%S)
+backup="runs/latest/$(basename "$FILE").pre-codemod.$ts.orig"
+mkdir -p runs/latest
+cp "$FILE" "$backup"
+
+restore() {
+  echo "[ERROR] Przywracam oryginał: $FILE"
+  cp "$backup" "$FILE"
+  git restore --staged -- "$FILE" 2>/dev/null || true
+}
+trap restore ERR
+
+# zastosuj codemod
+node scripts/codemods/angular-factory-export.cjs --file "$FILE"
+
+# smoke-parse JS
+node - <<'NODE' "$FILE"
+const fs = require('fs'); const p = require('@babel/parser');
+const f = process.argv[1]; const src = fs.readFileSync(f,'utf8');
+p.parse(src, { sourceType:'script', allowReturnOutsideFunction:true });
+console.log('[JS] parse OK:', f);
+NODE
+
+# testy Pythona (jeśli dostępne)
+if [ -x .venv/bin/pytest ] || command -v pytest >/dev/null; then
+  (.venv/bin/pytest -q || pytest -q)
+fi
+
+git add "$FILE" runs/latest/* || true
+git commit -m "$MSG"
+
+echo "[DONE] committed: $MSG"
+
+# scripts/search_demo.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Feniks – Knowledge Base Builder for AngularJS 1.x Frontend (all-in-one)
+----------------------------------------------------------------------
+Subcommands:
+  - index  : scan -> chunk -> enrich -> embed (dense + sparse) -> upsert to Qdrant
+  - search : hybrid search with PL->EN normalization, mode js/html/any, module filtering
+
+Why this is optimal for refactoring agents:
+  * Focused chunking: functions/constructs (service/factory/controller/directive) and HTML sections.
+  * AngularJS-aware enrichment: DI, $inject, anti-pattern flags, module names from app/src/<module>/...
+  * Hybrid retrieval: multilingual dense + tf-idf sparse in Qdrant, tuned for code+templates.
+  * Side artifacts: per-module "cards" (JSON) with symbols, dependencies, routes (ui-router/ngRoute heuristics).
+
+Tested with very large trees; uses streaming/ batching; skips vendor noise by default.
+
+Dependencies:
+  pip install qdrant-client sentence-transformers scikit-learn langdetect deep-translator
+"""
+
+import argparse
+import json
+import os
+import re
+import sys
+import time
+import math
+import hashlib
+from dataclasses import dataclass, asdict
+from pathlib import Path
+from typing import List, Dict, Any, Iterable, Optional, Tuple
+
+# --- 3rd party ---
+from langdetect import detect as ld_detect  # type: ignore
+from deep_translator import GoogleTranslator  # type: ignore
+from sentence_transformers import SentenceTransformer  # type: ignore
+
+from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore
+import numpy as np  # type: ignore
+
+from qdrant_client import QdrantClient
+from qdrant_client.models import (
+    Distance, VectorParams, PointStruct, SparseVector, SparseVectorParams,
+    Filter, FieldCondition, MatchAny, HnswConfigDiff, OptimizersConfigDiff,
+    CollectionParams
+)
+
+# ----------------------------- Utilities -----------------------------
+
+DEFAULT_IGNORE = [
+    "**/node_modules/**", "**/bower_components/**", "**/dist/**", "**/build/**",
+    "**/vendor/**", "**/.cache/**", "**/tmp/**", "**/.git/**",
+    "**/*.min.js", "**/*.map", "**/*.spec.js", "**/*.test.js", "**/*.d.ts"
+]
+
+JS_GLOB = ["app/src/**/*.js"]
+HTML_GLOB = ["app/src/**/*.html"]
+
+MULTILINGUAL_MODEL = "intfloat/multilingual-e5-base"  # 768D, dobre PL/EN
+
+AST_TYPES_DEFAULT = [
+    "CallExpression", "FunctionDeclaration", "VariableDeclarator",
+    "AssignmentExpression", "MethodDefinition"
+]
+
+AUTH_DI_DEFAULT = [
+    "AuthService", "UserService", "auth", "login", "session", "token",
+    "JwtService", "SessionService", "AclService", "PermissionsService"
+]
+
+HTML_KEYWORDS = [
+    "template", "html", "view", "form", "input", "label", "button",
+    "ng-if", "ng-show", "ng-hide", "ng-model", "ng-bind", "ng-submit",
+    "ng-repeat", "placeholder", "validation", "error", "message",
+    "register", "login", "password", "email"
+]
+JS_KEYWORDS = [
+    "auth", "authentication", "login", "logout", "user", "users", "password",
+    "token", "jwt", "session", "permissions", "roles", "service", "provider",
+    "factory", "guard", "interceptor", "credential", "oauth", "csrf"
+]
+
+def ensure_dir(p: Path) -> None:
+    p.mkdir(parents=True, exist_ok=True)
+
+def sha1(s: str) -> str:
+    return hashlib.sha1(s.encode("utf-8", "ignore")).hexdigest()
+
+def read_text_safely(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+def path_matches_any(path: Path, patterns: List[str]) -> bool:
+    from fnmatch import fnmatch
+    s = str(path.as_posix())
+    return any(fnmatch(s, pat) for pat in patterns)
+
+def detect_lang(s: str) -> str:
+    try:
+        return ld_detect(s)
+    except Exception:
+        if re.search(r"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", s):
+            return "pl"
+        return "en"
+
+def translate_pl_to_en(q: str) -> str:
+    lang = detect_lang(q)
+    if lang.startswith("en"):
+        return q
+    try:
+        return GoogleTranslator(source="auto", target="en").translate(q)
+    except Exception:
+        # fallback – very simple
+        repl = {
+            "refaktoryzuj":"refactor","serwis":"service","autentykacji":"authentication",
+            "autentykacja":"authentication","logowanie":"login","wylogowanie":"logout",
+            "użytkownika":"user","hasło":"password","token":"token","sesja":"session",
+            "uprawnienia":"permissions","rola":"role","rejestracja":"registration"
+        }
+        t = q.lower()
+        for k,v in repl.items():
+            t = re.sub(rf"\b{re.escape(k)}\b", v, t)
+        return t + " auth authentication login user service refactor token session password"
+
+def extract_module_from_path(path: Path) -> Optional[str]:
+    p = path.as_posix()
+    m = re.search(r"(?:^|/)app/src/([^/]+)/", p)
+    return m.group(1) if m else None
+
+def tokenize_simple(text: str) -> List[str]:
+    return re.findall(r"[A-Za-z0-9_#\-$]{2,}", text.lower())
+
+# -------------------------- AngularJS heuristics --------------------------
+
+@dataclass
+class Chunk:
+    id: str
+    file_path: str
+    module: Optional[str]
+    chunk_name: str
+    kind: str           # js_function | js_symbol | html_section
+    ast_node_type: str  # heuristic tag (e.g., Function | Controller | Service | Template)
+    dependencies_di: List[str]
+    anti_patterns: List[str]
+    text: str
+    start_line: int
+    end_line: int
+
+ANGULAR_SYMBOL_RE = re.compile(
+    r"""\. (?:service|factory|controller|directive|provider|value|constant)\s*\(\s*['"]([^'"]+)['"]""",
+    re.X
+)
+INJECT_ARRAY_RE = re.compile(r"""(?m)^[ \t]*\w+\s*\.\s*\$inject\s*=\s*\[([^\]]+)\]""")
+INJECT_PARAMS_RE = re.compile(r"""function\s*\(([^\)]*)\)""")
+MODULE_DECL_RE = re.compile(r"""angular\s*\.\s*module\s*\(\s*['"]([^'"]+)['"]\s*,\s*\[([^\]]*)\]\s*\)""")
+UIROUTER_STATE_RE = re.compile(r"""\.\s*state\s*\(\s*['"]([^'"]+)['"]\s*,\s*\{""")
+NGROUTE_WHEN_RE = re.compile(r"""\.\s*when\s*\(\s*['"]([^'"]+)['"]\s*,\s*\{""")
+
+def find_angular_symbols(js: str) -> List[Tuple[str,str]]:
+    # returns [(kind,name)]
+    out = []
+    for m in re.finditer(r"""\.(service|factory|controller|directive|provider|value|constant)\s*\(\s*['"]([^'"]+)['"]""", js):
+        out.append((m.group(1), m.group(2)))
+    return out
+
+def find_injects(js: str) -> List[str]:
+    deps = set()
+    for m in INJECT_ARRAY_RE.finditer(js):
+        arr = m.group(1)
+        deps.update([t.strip().strip("'\"") for t in arr.split(",") if t.strip()])
+    # also first function param list after symbol decl
+    for m in INJECT_PARAMS_RE.finditer(js):
+        params = [p.strip() for p in m.group(1).split(",") if p.strip()]
+        for p in params:
+            if re.match(r"^[A-Za-z_][$\w]*$", p) and p not in ("function",):
+                deps.add(p)
+    return sorted(deps)
+
+def detect_antipatterns(js: str, html: bool=False) -> List[str]:
+    flags = []
+    if not html:
+        if "$scope.$watch" in js: flags.append("scope_watch")
+        if "$digest" in js or "$apply" in js: flags.append("manual_digest")
+        if "angular.element(" in js or re.search(r"document\.\w+|window\.\w+|\$\(", js): flags.append("direct_dom")
+        if "$http" in js and "Service" not in js: flags.append("http_in_controller_or_raw")
+        if re.search(r"\b$q\.(defer|when|all)\b", js) and "async/await" not in js: flags.append("legacy_promises")
+        if re.search(r"\.success\s*\(|\.error\s*\(", js): flags.append("deprecated_$http_api")
+    else:
+        if "ng-repeat" in js: flags.append("heavy_ng_repeat")
+        if "ng-click" in js and "track by" not in js: flags.append("missing_ng_repeat_trackby")
+        if re.search(r"\bng-model\s*=\s*\"[^\"]+\"", js) and "ng-change" in js and "debounce" not in js:
+            flags.append("ng_change_without_debounce")
+    return flags
+
+def chunk_js_functions(js: str) -> List[Tuple[str,int,int]]:
+    """
+    Very light function-ish chunking: split by 'function ' or '=>', keep context lines.
+    Returns [(chunk_text, start_line, end_line)]
+    """
+    lines = js.splitlines()
+    idxs = [i for i,l in enumerate(lines) if re.search(r"\bfunction\b|\=\>", l)]
+    if not idxs:
+        return [("\n".join(lines), 1, len(lines))]
+    idxs = [0] + idxs + [len(lines)]
+    out = []
+    for a,b in zip(idxs, idxs[1:]):
+        sl = max(a-3, 0); el = min(b+3, len(lines))
+        txt = "\n".join(lines[sl:el])
+        out.append((txt, sl+1, el))
+    return out
+
+def chunk_html_sections(html: str) -> List[Tuple[str,int,int]]:
+    """
+    Split large templates along major container boundaries (forms, sections, div.page/row)
+    """
+    lines = html.splitlines()
+    anchors = [i for i,l in enumerate(lines) if re.search(r"<form|<section|<div[^>]+(container|row|col|page-header)", l)]
+    if not anchors:
+        return [("\n".join(lines), 1, len(lines))]
+    anchors = [0] + anchors + [len(lines)]
+    out = []
+    for a,b in zip(anchors, anchors[1:]):
+        sl = a; el = b if b> a else a+1
+        out.append(("\n".join(lines[sl:el]), sl+1, el))
+    return out
+
+# -------------------------- KB Builder (index) --------------------------
+
+@dataclass
+class KBConfig:
+    root: Path
+    out_dir: Path
+    collection: str
+    qdrant_host: str = "127.0.0.1"
+    qdrant_port: int = 6333
+    model_name: str = MULTILINGUAL_MODEL
+    reset: bool = False
+    write_ignores: bool = False
+
+def scan_files(root: Path,
+               includes: List[str],
+               excludes: List[str]) -> List[Path]:
+    files = []
+    for pattern in includes:
+        for p in root.glob(pattern):
+            if p.is_file() and not path_matches_any(p, excludes):
+                files.append(p)
+    return files
+
+def build_chunks(cfg: KBConfig) -> Tuple[List[Chunk], Dict[str, Any]]:
+    chunks: List[Chunk] = []
+    modules_card: Dict[str, Any] = {}
+    js_files = scan_files(cfg.root, JS_GLOB, DEFAULT_IGNORE)
+    html_files = scan_files(cfg.root, HTML_GLOB, DEFAULT_IGNORE)
+
+    # Per-module registry
+    reg: Dict[str, Dict[str, set]] = {}
+
+    # JS
+    for fp in js_files:
+        text = read_text_safely(fp)
+        module = extract_module_from_path(fp)
+
+        symbols = find_angular_symbols(text)  # (kind,name)
+        injects = find_injects(text)
+        anti = detect_antipatterns(text, html=False)
+
+        # update module registry
+        mkey = module or "-"
+        reg.setdefault(mkey, {"services":set(), "controllers":set(), "factories":set(),
+                              "directives":set(), "routes":set(), "templates":set(), "files":set()})
+        for kind,name in symbols:
+            reg[mkey]["files"].add(fp.as_posix())
+            reg[mkey][f"{kind}s" if kind.endswith("y")==False else "factories"].add(name)
+
+        # routes (ui-router / ngRoute)
+        for st in UIROUTER_STATE_RE.findall(text):
+            reg[mkey]["routes"].add(f"state:{st}")
+        for wh in NGROUTE_WHEN_RE.findall(text):
+            reg[mkey]["routes"].add(f"when:{wh}")
+
+        # chunk by functions
+        for i,(chunk_txt, sl, el) in enumerate(chunk_js_functions(text)):
+            chunk_name = ""
+            # best-effort: take first symbol near this region
+            sym = symbols[i][1] if i < len(symbols) else ""
+            if sym: chunk_name = sym
+            cid = sha1(f"{fp}:{sl}:{el}:{i}")
+            c = Chunk(
+                id=cid,
+                file_path=fp.as_posix(),
+                module=module,
+                chunk_name=chunk_name or f"fn_{i}",
+                kind="js_function",
+                ast_node_type=("Service" if ".service(" in chunk_txt else
+                               "Factory" if ".factory(" in chunk_txt else
+                               "Controller" if ".controller(" in chunk_txt else
+                               "Directive" if ".directive(" in chunk_txt else
+                               "Function"),
+                dependencies_di=sorted(set(injects)),
+                anti_patterns=anti,
+                text=chunk_txt,
+                start_line=sl,
+                end_line=el
+            )
+            chunks.append(c)
+
+    # HTML
+    for fp in html_files:
+        text = read_text_safely(fp)
+        module = extract_module_from_path(fp)
+        anti = detect_antipatterns(text, html=True)
+        mkey = module or "-"
+        reg.setdefault(mkey, {"services":set(), "controllers":set(), "factories":set(),
+                              "directives":set(), "routes":set(), "templates":set(), "files":set()})
+        reg[mkey]["files"].add(fp.as_posix())
+        reg[mkey]["templates"].add(fp.name)
+
+        for i,(chunk_txt, sl, el) in enumerate(chunk_html_sections(text)):
+            cid = sha1(f"{fp}:{sl}:{el}:html:{i}")
+            # derive a readable section name
+            head = re.search(r"<(form|section|div)[^>]*?(id|class)=[\"']([^\"']+)[\"']", chunk_txt)
+            name = head.group(3) if head else f"section_{i}"
+            c = Chunk(
+                id=cid,
+                file_path=fp.as_posix(),
+                module=module,
+                chunk_name=name,
+                kind="html_section",
+                ast_node_type="Template",
+                dependencies_di=[],
+                anti_patterns=anti,
+                text=chunk_txt,
+                start_line=sl,
+                end_line=el
+            )
+            chunks.append(c)
+
+    # Build module cards
+    for mkey, data in reg.items():
+        modules_card[mkey] = {
+            "module": mkey,
+            "services": sorted(list(data["services"])),
+            "controllers": sorted(list(data["controllers"])),
+            "factories": sorted(list(data["factories"])),
+            "directives": sorted(list(data["directives"])),
+            "routes": sorted(list(data["routes"])),
+            "templates": sorted(list(data["templates"])),
+            "files": sorted(list(data["files"]))
+        }
+
+    return chunks, modules_card
+
+# -------------------------- Embedding + TF-IDF --------------------------
+
+def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
+    corpus = [c.text for c in chunks]
+    vec = TfidfVectorizer(
+        token_pattern=r"[A-Za-z0-9_#\-$]{2,}",
+        ngram_range=(1,2),
+        min_df=2,
+        max_features=50000
+    )
+    X = vec.fit_transform(corpus)  # csr_matrix
+    return vec, X
+
+def emb_model(name: str) -> SentenceTransformer:
+    return SentenceTransformer(name)
+
+def dense_embeddings(model: SentenceTransformer, chunks: List[Chunk]) -> np.ndarray:
+    texts = [c.text[:5000] for c in chunks]  # protect memory
+    # normalize embeddings true -> cosine comparable
+    embs = model.encode(texts, normalize_embeddings=True, batch_size=64, show_progress_bar=True)
+    return np.array(embs)
+
+# ------------------------------ Qdrant I/O ------------------------------
+
+def ensure_collection(client: QdrantClient, name: str, dim: int, reset: bool) -> None:
+    exists = False
+    try:
+        client.get_collection(name)
+        exists = True
+    except Exception:
+        exists = False
+    if exists and reset:
+        client.delete_collection(name)
+        exists = False
+    if not exists:
+        client.create_collection(
+            collection_name=name,
+            vectors_config={"dense_code": VectorParams(size=dim, distance=Distance.COSINE)},
+            sparse_vectors_config={"sparse_keywords": SparseVectorParams()},
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=100, full_scan_threshold=10000),
+            optimizers_config=OptimizersConfigDiff(indexing_threshold=10000),
+            on_disk_payload=True
+        )
+
+def upsert_points(client: QdrantClient,
+                  collection: str,
+                  chunks: List[Chunk],
+                  dense: np.ndarray,
+                  X_tfidf, vocab: Dict[str,int],
+                  batch: int = 512) -> None:
+    ids = [i for i in range(len(chunks))]
+    # Build sparse vectors once
+    for i in range(0, len(chunks), batch):
+        j = min(i+batch, len(chunks))
+        batch_ids = ids[i:j]
+        vecs_dense = [dense[k].tolist() for k in batch_ids]
+
+        # sparse slice
+        Xb = X_tfidf[batch_ids]
+        sv: List[SparseVector] = []
+        for row in range(Xb.shape[0]):
+            s = Xb[row]
+            coo = s.tocoo()
+            sv.append(SparseVector(indices=coo.col.tolist(), values=coo.data.round(6).tolist()))
+
+        payloads = []
+        for k in batch_ids:
+            c = chunks[k]
+            payloads.append({
+                "chunk_name": c.chunk_name,
+                "file_path": c.file_path,
+                "module": c.module or "",
+                "ast_node_type": c.ast_node_type,
+                "kind": c.kind,
+                "dependencies_di": c.dependencies_di,
+                "anti_patterns": c.anti_patterns,
+                "start_line": c.start_line,
+                "end_line": c.end_line,
+                # useful for agents:
+                "tags": list(sorted(set(c.dependencies_di + c.anti_patterns))),
+            })
+
+        pts = [
+            PointStruct(
+                id=k,
+                vector={
+                    "dense_code": vecs_dense[idx]
+                },
+                payload=payloads[idx],
+                sparse_vectors={"sparse_keywords": sv[idx]}
+            ) for idx, k in enumerate(batch_ids)
+        ]
+        client.upsert(collection_name=collection, points=pts)
+
+# ------------------------------ Module Cards ----------------------------
+
+def write_module_cards(out_dir: Path, modules_card: Dict[str, Any]) -> None:
+    base = out_dir / "kb" / "modules"
+    ensure_dir(base)
+    for mod, data in modules_card.items():
+        (base / f"{mod}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    # global manifest
+    (out_dir / "kb" / "modules_manifest.json").write_text(
+        json.dumps({"modules": list(modules_card.keys())}, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+
+# ------------------------------ Search (CLI) ----------------------------
+
+def normalize_scores(values: List[float]) -> List[float]:
+    if not values:
+        return values
+    vmin, vmax = min(values), max(values)
+    if vmax <= vmin:
+        return [0.0 for _ in values]
+    return [(v - vmin) / (vmax - vmin) for v in values]
+
+def keyword_overlap_score(text: str, keywords: List[str]) -> float:
+    if not keywords:
+        return 0.0
+    t = text.lower()
+    hits = sum(1 for k in keywords if k.lower() in t)
+    return hits / float(len(keywords))
+
+def cmd_search(args: argparse.Namespace) -> None:
+    query_orig = args.query.strip()
+    query_en = query_orig if args.no_translate else translate_pl_to_en(query_orig)
+
+    # choose keywords
+    if args.mode == "html":
+        kw = list(set(HTML_KEYWORDS + JS_KEYWORDS))
+    elif args.mode == "js":
+        kw = JS_KEYWORDS
+    else:
+        kw = list(set(HTML_KEYWORDS + JS_KEYWORDS))
+
+    client = QdrantClient(host=args.host, port=args.port, prefer_grpc=True)
+    ci = client.get_collection(args.collection)
+    vec_size = ci.config.params.vectors["dense_code"].size
+
+    model = SentenceTransformer(args.model)
+    if model.get_sentence_embedding_dimension() != vec_size:
+        print(f"[WARN] model dim != collection dim ({model.get_sentence_embedding_dimension()} != {vec_size})", file=sys.stderr)
+    q_vec = model.encode([query_en], normalize_embeddings=True)[0]
+
+    # server-side minimal filter for js mode (DI/AST); modules & paths filter client-side
+    must = []
+    if args.mode == "js":
+        if args.deps:
+            must.append(FieldCondition(key="dependencies_di", match=MatchAny(any=args.deps)))
+        if args.ast_types:
+            must.append(FieldCondition(key="ast_node_type", match=MatchAny(any=args.ast_types)))
+    q_filter = Filter(must=must) if must else None
+
+    fetch_k = max(args.topk*3, args.topk)
+    res = client.search(
+        collection_name=args.collection,
+        query_vector=("dense_code", q_vec),
+        query_filter=q_filter,
+        limit=fetch_k,
+        with_payload=True,
+        with_vectors=False
+    )
+    if not res:
+        print("Brak wyników."); return
+
+    def module_ok(fp: str) -> bool:
+        if args.modules in ("all","*"):
+            return True
+        m = re.search(r"(?:^|/)app/src/([^/]+)/", fp.replace("\\","/"))
+        mod = m.group(1) if m else "-"
+        return mod in [x.strip() for x in args.modules.split(",") if x.strip()]
+
+    # client-side filters
+    filtered = []
+    for r in res:
+        p = r.payload or {}
+        fp = str(p.get("file_path",""))
+        paths_ok = any(sub in fp for sub in args.paths_include) if args.paths_include else True
+        if not paths_ok: continue
+        if not module_ok(fp): continue
+        filtered.append(r)
+    if not filtered:
+        print("Brak wyników po filtrach client-side."); return
+
+    dense_norm = normalize_scores([r.score for r in filtered])
+    reranked = []
+    for r,dn in zip(filtered, dense_norm):
+        p = r.payload or {}
+        fp = str(p.get("file_path",""))
+        ast = str(p.get("ast_node_type",""))
+        deps = p.get("dependencies_di", [])
+        kind = p.get("kind","")
+        modm = re.search(r"(?:^|/)app/src/([^/]+)/", fp.replace("\\","/"))
+        module_name = modm.group(1) if modm else "-"
+
+        is_js = fp.endswith(".js"); is_html = fp.endswith(".html")
+        ext_bonus = 0.0
+        if args.mode=="js" and is_js: ext_bonus+=0.06
+        if args.mode=="html" and is_html: ext_bonus+=0.08
+        path_bonus = 0.0
+        if args.mode=="html" and re.search(r"(templates|views|partials)/", fp.replace("\\","/")):
+            path_bonus += 0.04
+
+        kw_text = " ".join([fp, ast, " ".join(deps) if isinstance(deps,list) else str(deps), kind])
+        kw_score = keyword_overlap_score(kw_text, kw)
+
+        final = args.alpha*dn + (1.0-args.alpha)*kw_score + ext_bonus + path_bonus
+        reranked.append((final, r, module_name))
+    reranked.sort(key=lambda t: t[0], reverse=True)
+    top = reranked[:args.topk]
+
+    print(f'[Feniks] Query (orig): "{query_orig}"')
+    print(f'[Feniks] Query (en)  : "{query_en}"')
+    print(f"[Feniks] Collection  : {args.collection} | vec_size={vec_size} | model={args.model}")
+    print(f"[Feniks] Mode        : {args.mode}")
+    print(f"[Feniks] Paths inc   : {args.paths_include}")
+    print(f"[Feniks] Modules     : {args.modules}")
+    if args.mode=="js":
+        print(f"[Feniks] Filters     : deps={args.deps} ast={args.ast_types}")
+    print("")
+    for score,r,mod in top:
+        p = r.payload or {}
+        fp = p.get("file_path","")
+        ast = p.get("ast_node_type","—")
+        deps = p.get("dependencies_di", [])
+        name = p.get("chunk_name","")
+        print(f"[{score:0.4f}] [{mod}] {fp} :: {ast} :: deps={deps if deps else []}")
+        if name: print(f"    {name}")
+
+# ------------------------------ Index (CLI) -----------------------------
+
+def cmd_index(args: argparse.Namespace) -> None:
+    cfg = KBConfig(
+        root=Path(args.root).resolve(),
+        out_dir=Path(args.out).resolve(),
+        collection=args.collection,
+        qdrant_host=args.host,
+        qdrant_port=args.port,
+        model_name=args.model,
+        reset=args.reset,
+        write_ignores=args.write_ignores
+    )
+    t0 = time.time()
+    ensure_dir(cfg.out_dir)
+    if cfg.write_ignores:
+        ign = cfg.out_dir / ".feniksignore"
+        ign.write_text("\n".join(DEFAULT_IGNORE)+"\n", encoding="utf-8")
+
+    print(f"[KB] Scanning: {cfg.root}")
+    chunks, modules_card = build_chunks(cfg)
+    print(f"[KB] Chunks: {len(chunks)} (JS+HTML)")
+
+    # Save raw chunks.jsonl for audit
+    chunks_path = cfg.out_dir / "data" / "chunks.jsonl"
+    ensure_dir(chunks_path.parent)
+    with chunks_path.open("w", encoding="utf-8") as f:
+        for c in chunks:
+            rec = asdict(c)
+            f.write(json.dumps(rec, ensure_ascii=False)+"\n")
+    print(f"[KB] Saved chunks: {chunks_path}")
+
+    # TF-IDF
+    print("[KB] Building TF-IDF...")
+    vec, X = build_tfidf(chunks)
+
+    # Dense embeddings
+    print(f"[KB] Loading embedder: {cfg.model_name}")
+    model = emb_model(cfg.model_name)
+    print("[KB] Embedding (dense)...")
+    D = dense_embeddings(model, chunks)
+    dim = D.shape[1]
+
+    # Qdrant
+    client = QdrantClient(host=cfg.qdrant_host, port=cfg.qdrant_port, prefer_grpc=True)
+    print(f"[KB] Ensuring collection: {cfg.collection}")
+    ensure_collection(client, cfg.collection, dim, cfg.reset)
+
+    print("[KB] Upserting to Qdrant...")
+    upsert_points(client, cfg.collection, chunks, D, X, vec.vocabulary_)
+
+    # Module cards
+    print("[KB] Writing module cards...")
+    write_module_cards(cfg.out_dir, modules_card)
+
+    dt = time.time() - t0
+    print(f"[KB] DONE in {dt:0.1f}s | collection={cfg.collection} | points={len(chunks)}")
+    print(f"[KB] Modules: {len(modules_card)} | cards at {cfg.out_dir/'kb/modules'}")
+
+# ------------------------------ CLI Parser ------------------------------
+
+def make_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(description="Feniks KB Builder (AngularJS 1.x)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p_idx = sub.add_parser("index", help="Scan -> Chunk -> Embed -> Upsert")
+    p_idx.add_argument("--root", required=True, help="Frontend root (e.g., /home/.../frontend)")
+    p_idx.add_argument("--out", default="feniks", help="Output dir for data/kb (default: feniks)")
+    p_idx.add_argument("--collection", default="frontend_feniks", help="Qdrant collection name")
+    p_idx.add_argument("--host", default="127.0.0.1")
+    p_idx.add_argument("--port", type=int, default=6333)
+    p_idx.add_argument("--model", default=MULTILINGUAL_MODEL)
+    p_idx.add_argument("--reset", action="store_true", help="Drop & recreate collection")
+    p_idx.add_argument("--write-ignores", action="store_true", help="Emit .feniksignore with sane defaults")
+
+    p_s = sub.add_parser("search", help="Hybrid search (for quick checks / agents)")
+    p_s.add_argument("query")
+    p_s.add_argument("--collection", default="frontend_feniks")
+    p_s.add_argument("--host", default="127.0.0.1")
+    p_s.add_argument("--port", type=int, default=6333)
+    p_s.add_argument("--model", default=MULTILINGUAL_MODEL)
+    p_s.add_argument("--topk", type=int, default=10)
+    p_s.add_argument("--alpha", type=float, default=0.7)
+    p_s.add_argument("--mode", choices=["js","html","any"], default="js")
+    p_s.add_argument("--deps", nargs="*", default=AUTH_DI_DEFAULT)
+    p_s.add_argument("--paths-include", nargs="*", default=["app/src/"])
+    p_s.add_argument("--ast-types", nargs="*", default=AST_TYPES_DEFAULT)
+    p_s.add_argument("--modules", default="all", help="e.g., cart,client-zone,index or 'all'")
+    p_s.add_argument("--no-translate", action="store_true")
+    return ap
+
+def main():
+    ap = make_parser()
+    args = ap.parse_args()
+    if args.cmd == "index":
+        cmd_index(args)
+    elif args.cmd == "search":
+        cmd_search(args)
+    else:
+        ap.print_help()
+
+if __name__ == "__main__":
+    main()
+
+# scripts/validate_ir.py
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from jsonschema import validate, ValidationError
+
+# Add project root to allow sibling imports
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
+from feniks.logger import log
+
+def main():
+    parser = argparse.ArgumentParser(description="Validate a Feniks IR JSONL file against the canonical schema.")
+    parser.add_argument("--schema", type=Path, required=True, help="Path to the ir.schema.json file.")
+    parser.add_argument("--in", dest="input_path", type=Path, required=True, help="Path to the IR JSONL file to validate.")
+    args = parser.parse_args()
+
+    log.info(f"Loading schema from {args.schema}")
+    try:
+        with args.schema.open("r") as f:
+            schema = json.load(f)
+    except (IOError, json.JSONDecodeError) as e:
+        log.error(f"Failed to load or parse schema file: {e}")
+        sys.exit(1)
+
+    log.info(f"Validating IR file: {args.input_path}")
+    error_count = 0
+    line_num = 0
+    with args.input_path.open("r", encoding="utf-8") as f:
+        for line_num, line in enumerate(f, 1):
+            try:
+                instance = json.loads(line)
+                validate(instance=instance, schema=schema)
+            except json.JSONDecodeError as e:
+                log.error(f"L{line_num}: JSON parse error: {e}")
+                error_count += 1
+            except ValidationError as e:
+                log.error(f"L{line_num}: Schema validation error for chunk '{instance.get('id', 'N/A')}': {e.message} (path: {list(e.path)}) ")
+                error_count += 1
+
+    if error_count > 0:
+        log.error(f"Validation failed with {error_count} errors.")
+        sys.exit(1)
+    else:
+        log.info(f"Successfully validated {line_num} records.")
+
+if __name__ == "__main__":
+    main()
+
+# test.js
+console.log(require.resolve.paths('recast'));
+try {
+    require('recast');
+    console.log('recast found');
+} catch (e) {
+    console.error(e.message);
+}
+
+# tests/__init__.py
+# This file makes the 'tests' directory a Python package.
+
+# tests/behavior_oracles.json
+[
+  {
+    "story_name": "User Login",
+    "steps": [
+      {
+        "action": "goto",
+        "url": "{{BASE_URL}}/pl"
+      },
+      {
+        "action": "click",
+        "selector": "button.cm-btn-success"
+      },
+      {
+        "action": "click",
+        "selector": "a[href=\"/pl/zaloguj-sie\"]"
+      },
+      {
+        "action": "wait_for_selector",
+        "selector": "form[ng-submit=\"login(credentials)\"]"
+      },
+      {
+        "action": "fill",
+        "selector": "form[ng-submit=\"login(credentials)\"] #user-email",
+        "value": "office@diditalprint.pro"
+      },
+      {
+        "action": "fill",
+        "selector": "form[ng-submit=\"login(credentials)\"] #user-password",
+        "value": "1234"
+      },
+      {
+        "action": "click",
+        "selector": "form[ng-submit=\"login(credentials)\"] button[type=\"submit\"]"
+      },
+      {
+        "action": "wait_for_selector",
+        "selector": "a[ui-sref=\"client-zone-orders\"]"
+      }
+    ]
+  }
+]
+
+# tests/oracles/content_oracles.json
+{
+  "/en": {
+    "description": "Homepage",
+    "assertions": [
+      {
+        "selector": "nav.navbar",
+        "type": "visible",
+        "description": "Main navigation bar should be visible"
+      },
+      {
+        "selector": "a.navbar-brand",
+        "type": "visible",
+        "description": "Logo should be visible"
+      },
+      {
+        "selector": "a[ui-sref='cart']",
+        "type": "visible",
+        "description": "Cart link should be visible"
+      },
+      {
+        "selector": "a[ui-sref='login']",
+        "type": "visible",
+        "description": "Login link should be visible"
+      },
+      {
+        "selector": "div#content-main",
+        "type": "visible",
+        "description": "Main content container should be visible"
+      },
+      {
+        "selector": "#content-main .btn-group-vertical",
+        "type": "count",
+        "expected": 8,
+        "description": "There should be 7 main category button groups"
+      },
+      {
+        "selector": "#content-main h1.page-header",
+        "type": "contains_text",
+        "expected": "promotions",
+        "description": "The first header in the main content should be 'promotions'"
+      }
+    ]
+  },
+  "/en/client/my-zone/orders": {
+    "description": "My Orders page (requires login)",
+    "login": {
+      "user": "office@digitalprint.pro",
+      "pass": "1234"
+    },
+    "assertions": [
+      {
+        "selector": "h1.page-header",
+        "type": "visible",
+        "description": "Main header on My Orders page should be visible"
+      },
+      {
+        "selector": "h1.page-header",
+        "type": "contains_text",
+        "expected": "My zone",
+        "description": "Main header should be 'My zone'"
+      }
+    ]
+  }
+}
+
+# tests/test_behavior_oracle.py
+# tests/test_behavior_oracle.py
+import os
+import json
+from pathlib import Path
+from typing import Optional
+
+import pytest
+from playwright.sync_api import Page, expect
+
+# --- Konfiguracja i dane ---
+BEHAVIOR_ORACLES_PATH = Path(__file__).parent / "behavior_oracles.json"
+with open(BEHAVIOR_ORACLES_PATH, "r", encoding="utf-8") as f:
+    behavior_oracles = json.load(f)
+
+# Pozwala uruchomić te same scenariusze na prod i lokalnie
+# Przykład: BASE_URL=https://printworks.pl pytest -k behavior_oracle
+BASE_URL = os.getenv("BASE_URL", "http://localtest.me")
+DEBUG = os.getenv("DEBUG_BEHAVIOR", "0") == "1"
+
+
+# --- Utilsy ---
+
+def expand_vars(s: Optional[str]) -> Optional[str]:
+    """W JSON możesz pisać np. {{BASE_URL}}/pl – tutaj to rozwiniemy."""
+    if not s:
+        return s
+    return s.replace("{{BASE_URL}}", BASE_URL)
+
+
+def _first_existing_locator(page: Page, selector: str):
+    """
+    Obsługa selektora w formie 'sel1 || sel2 || sel3'.
+    Zwraca pierwszy istniejący locator.
+    """
+    candidates = [part.strip() for part in selector.split("||")]
+    for sel in candidates:
+        loc = page.locator(sel)
+        if loc.count() > 0:
+            return loc
+    # jeśli nic nie istnieje, zwróć locator pierwszego — pozwoli uzyskać czytelny błąd Playwrighta
+    return page.locator(candidates[0])
+
+
+def _resolve_locator(page: Page, selector: str):
+    """
+    Zawsze zwraca TYLKO jeden element:
+    - jeśli podano 'sel1 || sel2', wybiera pierwszy istniejący
+    - jeśli selektor zwraca wiele elementów, bierze .first
+    """
+    if "||" in selector:
+        loc = _first_existing_locator(page, selector)
+    else:
+        loc = page.locator(selector)
+    # gwarancja pojedynczości, by uniknąć strict=True errors
+    return loc.first
+
+
+def _maybe_debug(page: Page, name: str):
+    if not DEBUG:
+        return
+    Path(f"debug_{name}.html").write_text(page.content(), encoding="utf-8")
+    page.screenshot(path=f"debug_{name}.png")
+
+
+def prepare_test_data(oracles):
+    return [
+        pytest.param(story["story_name"], story["steps"], id=story["story_name"])
+        for story in oracles
+    ]
+
+
+# --- Test właściwy ---
+
+@pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))
+def test_behavior_oracle(page: Page, story_name: str, steps: list):
+    print(f"Running story: {story_name}")
+
+    for step in steps:
+        action = step.get("action")
+        selector = step.get("selector")
+        value = step.get("value")
+        raw_url = step.get("url")
+        url = expand_vars(raw_url)
+        assertion = step.get("assertion")
+
+        print(f"- Executing step: {action}")
+
+        if action == "goto":
+            if not url:
+                raise ValueError(f"Step 'goto' requires a non-empty url in story '{story_name}'")
+            page.goto(url)
+            # Przy AngularJS zwykle warto dać chwilę na inicjalizację routingu:
+            # (nie używam tu 'networkidle', bo bywa mylące przy SPA)
+            _maybe_debug(page, "goto")
+
+        elif action == "click":
+            if not selector:
+                raise ValueError(f"Step 'click' requires 'selector' in story '{story_name}'")
+            _resolve_locator(page, selector).click()
+            _maybe_debug(page, "after_click")
+
+        elif action == "fill":
+            if not selector:
+                raise ValueError(f"Step 'fill' requires 'selector' in story '{story_name}'")
+            if value is None:
+                raise ValueError(f"Step 'fill' requires 'value' in story '{story_name}'")
+            # zabezpieczenie przed strict=True i wieloma polami o tym samym selektorze
+            _resolve_locator(page, selector).fill(str(value))
+
+        elif action == "wait_for_selector":
+            if not selector:
+                raise ValueError(f"Step 'wait_for_selector' requires 'selector' in story '{story_name}'")
+            if "||" in selector:
+                # czekamy aż którykolwiek z wariantów się pojawi (visible)
+                variants = [s.strip() for s in selector.split("||")]
+                # zainicjuj oczekiwanie na pierwszy, by złapać timeout, jeśli nic się nie pojawi
+                for sel in variants:
+                    try:
+                        _resolve_locator(page, sel).wait_for(state="visible")
+                        break
+                    except Exception:
+                        continue
+                else:
+                    # nic nie „wyszło”
+                    _resolve_locator(page, variants[0]).wait_for(state="visible")
+            else:
+                _resolve_locator(page, selector).wait_for(state="visible")
+            _maybe_debug(page, "after_wait_for_selector")
+
+        elif action == "wait_for_url":
+            if not url:
+                raise ValueError(f"Step 'wait_for_url' requires 'url' in story '{story_name}'")
+            # W SPA stabilniejsze niż page.wait_for_url():
+            expect(page).to_have_url(url)
+            _maybe_debug(page, "after_wait_for_url")
+
+        elif action == "expect":
+            if not selector:
+                raise ValueError(f"Step 'expect' requires 'selector' in story '{story_name}'")
+            loc = _resolve_locator(page, selector)
+
+            if assertion == "visible":
+                expect(loc).to_be_visible()
+            elif assertion == "hidden":
+                expect(loc).to_be_hidden()
+            elif assertion == "count":
+                expect(loc).to_have_count(int(value))
+            elif assertion == "contains_text":
+                expect(loc).to_contain_text(str(value))
+            else:
+                raise ValueError(f"Unknown assertion type: {assertion}")
+
+        else:
+            raise ValueError(f"Unknown action type: {action}")
+
+# tests/test_behavior_oracle____old_verion.py
+import os
+import re
+import json
+import pytest
+from pathlib import Path
+from playwright.sync_api import Page, expect
+
+BEHAVIOR_ORACLES_PATH = Path(__file__).parent / "behavior_oracles.json"
+with open(BEHAVIOR_ORACLES_PATH, "r", encoding="utf-8") as f:
+    behavior_oracles = json.load(f)
+
+# ------------- Konfiguracja hosta -------------
+# Pozwala uruchomić te same scenariusze na prod i lokalnie
+BASE_URL = os.getenv("BASE_URL", "http://localtest.me")
+
+DEBUG = os.getenv("DEBUG_BEHAVIOR", "0") == "1"
+
+def expand_vars(s: str | None) -> str | None:
+    if not s:
+        return s
+    return s.replace("{{BASE_URL}}", BASE_URL)
+
+def first_existing_locator(page: Page, selector: str):
+    """
+    Pozwala podać listę selektorów rozdzielonych '||' (NIE przecinkiem w CSS),
+    a my zwracamy pierwszy istniejący. To bezpieczniejsze niż przecinki z strict=True.
+    """
+    parts = [p.strip() for p in selector.split("||")]
+    for sel in parts:
+        loc = page.locator(sel)
+        if loc.count() > 0:
+            return loc
+    # jeśli nic nie weszło – zwracamy locator na pierwszy, by dostać czytelny błąd Playwrighta
+    return page.locator(parts[0])
+
+def prepare_test_data(oracles):
+    data = []
+    for story in oracles:
+        data.append(pytest.param(story["story_name"], story["steps"], id=story["story_name"]))
+    return data
+
+@pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))
+def test_behavior_oracle(page: Page, story_name: str, steps: list):
+    print(f"Running story: {story_name}")
+
+    for step in steps:
+        action = step.get("action")
+        raw_selector = step.get("selector")
+        selector = raw_selector
+        value = step.get("value")
+        raw_url = step.get("url")
+        url = expand_vars(raw_url)
+        assertion = step.get("assertion")
+
+        print(f"- Executing step: {action}")
+
+        if action == "goto":
+            goto_url = expand_vars(step["url"])
+            if goto_url is None:
+                raise ValueError(f"Step 'goto' requires a non-None url in story '{story_name}'")
+            page.goto(goto_url)
+            if DEBUG:
+                page.screenshot(path="debug_goto.png")
+                Path("debug_goto.html").write_text(page.content(), encoding="utf-8")
+
+        elif action == "click":
+            # BEZ debugowego bałaganu i bez psucia wcięć
+            # Zawsze klikamy w kontekście strict=True (domyślnie)
+            page.locator(selector).click()
+            if DEBUG:
+                page.screenshot(path="debug_after_click.png")
+                Path("debug_after_click.html").write_text(page.content(), encoding="utf-8")
+
+        elif action == "fill":
+            # Nie używamy selektorów z przecinkiem – jeżeli potrzebujemy wariantów,
+            # to dostarczamy je jako 'sel1 || sel2'
+            if "||" in selector:
+                first_existing_locator(page, selector).fill(value)
+            else:
+                page.locator(selector).fill(value)
+
+        elif action == "wait_for_selector":
+            # Akceptujemy listę wariantów przez '||'
+            if "||" in selector:
+                # czekamy aż któryś istnieje
+                parts = [p.strip() for p in selector.split("||")]
+                page.wait_for_selector(parts[0])  # start timer
+                # sprawdzamy iteracyjnie
+                found = False
+                for sel in parts:
+                    try:
+                        page.wait_for_selector(sel, timeout=300)  # krótki check
+                        found = True
+                        break
+                    except Exception:
+                        continue
+                if not found:
+                    # finalnie normalny timeout dla pierwszego
+                    page.wait_for_selector(parts[0])
+            else:
+                page.wait_for_selector(selector)
+
+        elif action == "wait_for_url":
+            if url is None:
+                raise ValueError(f"Step 'wait_for_url' requires a non-None url in story '{story_name}'")
+            page.wait_for_url(url)
+
+        elif action == "wait_for_url_optional":
+            # Nie blokujemy testu jeśli SPA nie robi twardej nawigacji.
+            if url is None:
+                raise ValueError(f"Step 'wait_for_url_optional' requires a non-None url in story '{story_name}'")
+            try:
+                page.wait_for_url(url, timeout=3000)
+            except Exception:
+                # brak twardej nawigacji — OK
+                pass
+
+        elif action == "expect":
+            locator = page.locator(selector)
+            if assertion == "visible":
+                expect(locator).to_be_visible()
+            elif assertion == "count":
+                expect(locator).to_have_count(int(value))
+            elif assertion == "contains_text":
+                expect(locator).to_contain_text(value, timeout=5000)
+            else:
+                raise ValueError(f"Unknown assertion type: {assertion}")
+
+        else:
+            raise ValueError(f"Unknown action type: {action}")
+
+# tests/test_content_oracle.py
+import pytest
+import json
+from pathlib import Path
+from playwright.sync_api import Page, expect
+
+# Define the root of the project and load the oracle data
+PROJECT_ROOT = Path(__file__).parent.parent
+ORACLE_DATA_PATH = PROJECT_ROOT / "tests" / "oracles" / "content_oracles.json"
+
+with open(ORACLE_DATA_PATH, 'r', encoding='utf-8') as f:
+    oracle_data = json.load(f)
+
+# Prepare the data for parametrization
+# This converts the dictionary into a list of tuples that pytest can use
+# Each tuple contains the URL and the full data object for that URL
+test_cases = [(url, data) for url, data in oracle_data.items()]
+
+def login_user(page: Page, credentials: dict):
+    """Helper function to perform login."""
+    page.goto("http://localtest.me/en/login")
+    # Use the specific ID for the login form's email input to avoid ambiguity
+    page.locator("#user-email").fill(credentials["user"])
+    page.locator("input[name='password']").fill(credentials["pass"])
+    page.locator("button.btn-login").click()
+    # After clicking, we don't wait here. The next page's assertions will handle the wait.
+
+@pytest.mark.parametrize("url,data", test_cases)
+def test_page_content_oracle(page: Page, url: str, data: dict):
+    """
+    A data-driven test that navigates to a URL and performs a series of assertions
+    based on the definitions in content_oracles.json. It also handles login if required.
+    """
+    base_url = "http://localtest.me"
+    full_url = f"{base_url}{url}"
+    
+    # Perform login if required by the oracle data
+    if "login" in data:
+        login_user(page, data["login"])
+    
+    page.goto(full_url)
+
+    assertions = data.get("assertions", [])
+    for assertion in assertions:
+        selector = assertion["selector"]
+        assertion_type = assertion["type"]
+        locator = page.locator(selector)
+
+        if assertion_type == "visible":
+            expect(locator).to_be_visible(timeout=10000)
+        elif assertion_type == "count":
+            expected_count = assertion["expected"]
+            expect(locator).to_have_count(expected_count)
+        elif assertion_type == "contains_text":
+            expected_text = assertion["expected"]
+            # Use .first because this assertion is for a single element's text
+            expect(locator.first).to_contain_text(expected_text)
+        else:
+            pytest.fail(f"Unknown assertion type '{assertion_type}' in oracle data.")
+
+# tests/test_e2e_pipeline.py
+
+import sys
+import uuid
+from pathlib import Path
+
+import pytest
+from qdrant_client import QdrantClient
+
+# Correct the path to allow imports from the project root and scripts directory
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / 'scripts'))
+
+from feniks_cli import run_build_process
+from feniks.config import settings
+
+
+@pytest.mark.e2e
+def test_full_end_to_end_pipeline(monkeypatch):
+    """
+    An end-to-end test that runs the full data processing pipeline on the actual
+    frontend-master data and verifies the outcome in a real Qdrant instance.
+    """
+    # 1. Setup: Define a unique collection name for this test run
+    collection_name = f"test-collection-{uuid.uuid4()}"
+    
+    qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+
+    try:
+        # 2. Execute: Run the full build process with the unique collection name
+        run_build_process(reset_collection=True, collection_name=collection_name)
+
+        # 3. Verify: Check the results in Qdrant
+        collection_info = qdrant_client.get_collection(collection_name=collection_name)
+        
+        # Assert that the collection was created and is not empty
+        assert collection_info is not None
+        assert collection_info.points_count > 0
+
+        print(f"\n✅ E2E test passed: Successfully ingested {collection_info.points_count} points into collection '{collection_name}'.")
+
+    finally:
+        # 4. Cleanup: Delete the test collection from Qdrant
+        qdrant_client.delete_collection(collection_name=collection_name)
+        print(f"\n🧹 Cleaned up test collection '{collection_name}'.")
+
+# tests/test_search.py.disabled
+import argparse
+from unittest.mock import MagicMock, patch
+import pytest
+from qdrant_client.models import ScoredPoint, Filter
+
+from scripts.build_kb import cmd_search
+
+@pytest.fixture
+def mock_qdrant_client():
+    """Mocks the QdrantClient."""
+    client = MagicMock()
+    
+    # Mock the nested attribute access needed by the test
+    mock_collection_info = MagicMock()
+    mock_collection_info.config.params.vectors = {
+        "dense_code": MagicMock(size=384)
+    }
+    client.get_collection.return_value = mock_collection_info
+
+    # Mock search response
+    search_results = [
+        ScoredPoint(id=2, version=1, score=0.8, payload={'file_path': 'app/src/cart/CartService.js', 'ast_node_type': 'service', 'dependencies_di': ['AuthService']}),
+    ]
+    client.search.return_value = search_results
+    
+    return client
+
+@pytest.fixture
+def mock_sentence_transformer():
+    """Mocks the SentenceTransformer model."""
+    model = MagicMock()
+    model.get_sentence_embedding_dimension.return_value = 384
+    model.encode.return_value = [[0.1] * 384]
+    return model
+
+def test_cmd_search_flow(capsys, mock_qdrant_client, mock_sentence_transformer):
+    """
+    Tests the main flow of the cmd_search function, including client calls and output.
+    """
+    with patch('scripts.build_kb.QdrantClient', return_value=mock_qdrant_client), \
+         patch('scripts.build_kb.SentenceTransformer', return_value=mock_sentence_transformer):
+
+        args = argparse.Namespace(
+            query="find auth service",
+            collection="test_collection",
+            host="localhost",
+            port=6333,
+            model="mock_model",
+            topk=3,
+            alpha=0.7,
+            mode="js",
+            deps=["AuthService"],
+            paths_include=["app/src/"],
+            ast_types=["service"],
+            modules="all",
+            no_translate=False
+        )
+
+        cmd_search(args)
+
+        # 1. Verify Qdrant client was called correctly
+        mock_qdrant_client.get_collection.assert_called_with("test_collection")
+        
+        # Check that search was called
+        mock_qdrant_client.search.assert_called_once()
+        call_args, call_kwargs = mock_qdrant_client.search.call_args
+        
+        # Check the query filter
+        query_filter = call_kwargs.get('query_filter')
+        assert isinstance(query_filter, Filter)
+        assert 'AuthService' in query_filter.must[0].match.any
+        assert 'service' in query_filter.must[1].match.any
+
+        # 2. Verify SentenceTransformer was used
+        mock_sentence_transformer.encode.assert_called_once()
+
+        # 3. Verify the output
+        captured = capsys.readouterr()
+        output = captured.out
+        
+        assert "[Feniks] Query (en)  : \"find auth service\"" in output
+        assert "app/src/cart/CartService.js" in output # This one has 'AuthService' as a dependency
+        assert "app/src/auth/AuthService.js" not in output # Should be filtered out by mock
+        
+        # This one should be filtered out by the client-side module check or deps filter
+        assert "app/src/index/HomeCtrl.js" not in output
+
+# --- PODSUMOWANIE ---
+# Plików zebranych: 46
+# Łącznie linii (oryginalne pliki): 4615

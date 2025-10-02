@@ -2,12 +2,75 @@ import yaml
 import argparse
 import logging
 from pathlib import Path
-import esprima
-import escodegen
+import sys
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] - %(message)s')
 log = logging.getLogger(__name__)
+
+# --- Language Plugins ---
+
+class LanguagePlugin:
+    """Abstract base class for language-specific plugins."""
+    def parse(self, code: str):
+        raise NotImplementedError
+    
+    def generate(self, code_ast) -> str:
+        raise NotImplementedError
+
+    def find_matches(self, pattern: dict, code_ast):
+        raise NotImplementedError
+
+class JavaScriptPlugin(LanguagePlugin):
+    """Plugin for handling JavaScript code."""
+    def __init__(self):
+        try:
+            import esprima
+            import escodegen
+            self.esprima = esprima
+            self.escodegen = escodegen
+        except ImportError:
+            log.error("JavaScript dependencies (esprima, escodegen) are not installed. Please run 'pip install esprima escodegen'.")
+            sys.exit(1)
+
+    def parse(self, code: str):
+        return self.esprima.parse(code, {'loc': True})
+
+    def generate(self, code_ast) -> str:
+        return self.escodegen.generate(code_ast)
+
+    def find_matches(self, pattern: dict, code_ast):
+        """Finds nodes in the AST that match the given abstract pattern."""
+        node_type = pattern.get('node')
+        if node_type == 'function_call':
+            return self._find_function_calls(pattern, code_ast)
+        return []
+
+    def _find_function_calls(self, pattern, code_ast):
+        matches = []
+        callee_name_pattern = pattern.get('callee_name', '').replace('.*', '(.*)')
+        
+        def _traverse(node):
+            if node.type == 'CallExpression':
+                callee_str = self.escodegen.generate(node.callee)
+                log.info(f"Checking callee: {callee_str} against pattern: {callee_name_pattern}")
+                if re.match(callee_name_pattern, callee_str):
+                    matches.append(node)
+            
+            for key in dir(node):
+                if key.startswith('_'):
+                    continue
+                value = getattr(node, key)
+                if isinstance(value, list):
+                    for item in value:
+                        if hasattr(item, 'type'):
+                            _traverse(item)
+                elif hasattr(value, 'type'):
+                    _traverse(value)
+
+        _traverse(code_ast)
+        return matches
 
 # --- Action Handlers ---
 
@@ -20,265 +83,44 @@ def handle_replace_string(content: str, action: dict) -> str:
         return content
     
     log.info(f"Replacing string: '{old_string}' -> '{new_string}'")
-    return content.replace(old_string, new_string)
-
-def handle_ast_transform(content: str, action: dict) -> str:
-    """Handles the 'ast_transform' action for AngularJS factories."""
-    log.info("Performing AST transformation (AngularJS factory to TS functions).")
-    try:
-        code_ast = esprima.parseScript(content, options={'loc': True})
-        transformer = AstTransformer(code_ast)
-        
-        modified_ast = transformer.transform_to_exported_functions()
-        if not modified_ast:
-            log.warning("AST transform: Could not find a suitable AngularJS factory to transform.")
-            return content
-        
-        return escodegen.generate(to_dict(modified_ast))
-
-    except esprima.Error as e:
-        log.error(f"Failed to parse JavaScript file for AST transform: {e}")
-        return content
-    except Exception as e:
-        log.error(f"An error occurred during AST transformation: {e}")
-        return content
-
-# --- AST Transformation Logic (specific to AngularJS factory) ---
-
-def to_dict(node):
-    """Recursively converts an esprima node to a dictionary."""
-    if isinstance(node, esprima.nodes.Node):
-        result = {'type': node.type}
-        for key in node.keys():
-            if key == 'loc':
-                continue
-            value = getattr(node, key)
-            result[key] = to_dict(value)
-        return result
-    elif isinstance(node, list):
-        return [to_dict(item) for item in node]
-    elif isinstance(node, dict):
-        result = {}
-        for key, value in node.items():
-            if key == 'loc':
-                continue
-            result[key] = to_dict(value)
-        return result
-    else:
-        return node
-
-class AstTransformer:
-    """Handles AST-based transformations for AngularJS factories."""
-
-    def __init__(self, code_ast):
-        self.ast = code_ast
-        self.factory_node = None
-
-    def _find_factory_node(self):
-        """Finds the factory declaration node in the AST."""
-        for node in self.ast.body:
-            if (
-                node.type == 'ExpressionStatement' and
-                node.expression.type == 'CallExpression' and
-                node.expression.callee.type == 'MemberExpression' and
-                node.expression.callee.property.name == 'factory'
-            ):
-                # Support for multiple factories in one file: transform the first one found.
-                self.factory_node = node
-                return True
-        return False
-
-    def _get_returned_identifier_name(self, factory_body):
-        """Finds the name of the identifier in the return statement."""
-        for node in reversed(factory_body):
-            if node.type == 'ReturnStatement' and node.argument.type == 'Identifier':
-                return node.argument.name
-        return None
-
-    def _get_function_declarations_from_returned_object(self, factory_body):
-        """
-        Handles the pattern where an object literal is returned, e.g.,
-        return { func1: func1, func2: func2 };
-        """
-        returned_function_names = []
-        for node in reversed(factory_body):
-            if node.type == 'ReturnStatement' and node.argument.type == 'ObjectExpression':
-                returned_function_names = [prop.key.name for prop in node.argument.properties]
-                break
-        
-        if not returned_function_names:
-            return []
-
-        new_body = []
-        for node in factory_body:
-            if node.type == 'FunctionDeclaration' and node.id.name in returned_function_names:
-                export_declaration = esprima.nodes.ExportNamedDeclaration(
-                    declaration=node,
-                    specifiers=[],
-                    source=None
-                )
-                new_body.append(export_declaration)
-        return new_body
-
-    def _get_function_declarations_from_identifier(self, factory_body, identifier_name: str):
-        """
-        Handles the pattern where a service object is built and its identifier is returned, e.g.,
-        var MyService = {}; MyService.func1 = function() {}; return MyService;
-        """
-        new_body = []
-        for node in factory_body:
-            if (
-                node.type == 'ExpressionStatement' and
-                node.expression.type == 'AssignmentExpression' and
-                node.expression.left.type == 'MemberExpression' and
-                hasattr(node.expression.left.object, 'name') and
-                node.expression.left.object.name == identifier_name and
-                node.expression.right.type == 'FunctionExpression'
-            ):
-                func_name = node.expression.left.property.name
-                func_body = node.expression.right.body
-                func_params = node.expression.right.params
-
-                # Create a new FunctionDeclaration
-                func_declaration = esprima.nodes.FunctionDeclaration(
-                    id=esprima.nodes.Identifier(name=func_name),
-                    params=func_params,
-                    body=func_body,
-                    generator=False
-                )
-
-                # Wrap it in an ExportNamedDeclaration
-                export_declaration = esprima.nodes.ExportNamedDeclaration(
-                    declaration=func_declaration,
-                    specifiers=[],
-                    source=None
-                )
-                new_body.append(export_declaration)
-        return new_body
-
-    def transform_to_exported_functions(self):
-        """Transforms the factory into a set of exported functions."""
-        if not self._find_factory_node():
-            return None
-
-        factory_func = self.factory_node.expression.arguments[1]
-        if factory_func.type != 'FunctionExpression':
-            return None
-        
-        factory_body = factory_func.body.body
-        
-        # Try the "return identifier" pattern first
-        returned_identifier = self._get_returned_identifier_name(factory_body)
-        if returned_identifier:
-            log.info(f"Found factory pattern: 'return {returned_identifier}'")
-            new_body_nodes = self._get_function_declarations_from_identifier(factory_body, returned_identifier)
-        else:
-            # Fallback to the "return object literal" pattern
-            log.info("Found factory pattern: 'return { ... }'")
-            new_body_nodes = self._get_function_declarations_from_returned_object(factory_body)
-
-        if not new_body_nodes:
-            return None
-
-        # Replace the original factory declaration with the new exported functions
-        original_ast_body = self.ast.body
-        new_ast_body = []
-        for node in original_ast_body:
-            if node == self.factory_node:
-                new_ast_body.extend(new_body_nodes)
-            else:
-                # Preserve other statements in the file (e.g., other factories)
-                new_ast_body.append(node)
-        
-        self.ast.body = new_ast_body
-        return self.ast
+    return re.sub(old_string, new_string, content, flags=re.DOTALL)
 
 # --- Pattern Matching Engine ---
 
-def _is_node_match(node, pattern_dict: dict) -> bool:
-    """Recursively checks if an AST node matches a pattern dictionary."""
-    if not node or not isinstance(pattern_dict, dict):
-        return False
-
-    for key, pattern_value in pattern_dict.items():
-        if not hasattr(node, key):
-            return False
-        
-        node_value = getattr(node, key)
-
-        if isinstance(pattern_value, dict):
-            if not _is_node_match(node_value, pattern_value):
-                return False
-        elif isinstance(pattern_value, list):
-            if not isinstance(node_value, list) or len(node_value) != len(pattern_value):
-                return False
-            for i, item in enumerate(pattern_value):
-                if not _is_node_match(node_value[i], item):
-                    return False
-        else:
-            if node_value != pattern_value:
-                return False
-    return True
-
-class AstMatcher:
-    """Traverses an AST to find if any node matches the given pattern."""
-
-    def __init__(self, pattern: dict):
-        self.pattern = pattern
-        self.match_found = False
-
-    def visit(self, node):
-        if self.match_found or not node:
-            return
-
-        if isinstance(node, list):
-            for item in node:
-                self.visit(item)
-            return
-
-        if not hasattr(node, 'type'):
-            return
-
-        if _is_node_match(node, self.pattern):
-            self.match_found = True
-            return
-
-        # Manually traverse known properties that can contain child nodes
-        for prop in ['body', 'expression', 'callee', 'object', 'property', 'arguments', 'declarations', 'init', 'update', 'test', 'consequent', 'alternate', 'left', 'right', 'elements', 'id', 'params', 'argument']:
-            if hasattr(node, prop):
-                child = getattr(node, prop)
-                self.visit(child)
-
-def handle_ast_match(content: str, pattern: dict) -> bool:
-    """Handles the 'ast_match' pattern by parsing and traversing the AST."""
-    log.info("Checking for AST match...")
+def handle_ast_match(content: str, pattern: dict, plugin) -> bool:
+    """Handles the 'ast_match' pattern using a language plugin."""
+    log.info(f"Checking for AST match with pattern: {pattern}")
     try:
-        code_ast = esprima.parseScript(content, options={'loc': True, 'tolerant': True})
-        
-        match_pattern = pattern.get('match', {})
-
-        matcher = AstMatcher(match_pattern)
-        matcher.visit(code_ast)
-        
-        if matcher.match_found:
-            log.info("AST pattern matched.")
+        code_ast = plugin.parse(content)
+        matches = plugin.find_matches(pattern, code_ast)
+        if matches:
+            log.info(f"Found {len(matches)} match(es) for AST pattern.")
+            return True
         else:
-            log.warning("AST pattern did not match.")
-            
-        return matcher.match_found
-    except esprima.Error as e:
-        log.error(f"Failed to parse JavaScript for AST matching: {e}")
-        return False
+            log.warning("No match found for AST pattern.")
+            return False
     except Exception as e:
-        log.error(f"An error occurred during AST matching: {e}", exc_info=True)
+        log.error(f"Error during AST matching: {e}")
+        return False
+
+def handle_file_contains(content: str, pattern: dict, plugin) -> bool:
+    """Handles the 'file_contains' pattern."""
+    log.info(f"Checking for file content match...")
+    search_pattern = pattern.get('pattern', '')
+    if re.search(search_pattern, content, re.DOTALL):
+        log.info(f"File content matched pattern: '{search_pattern}'.")
+        return True
+    else:
+        log.warning(f"File content did not match pattern: '{search_pattern}'.")
         return False
 
 PATTERN_CHECKER = {
+    'file_contains': handle_file_contains,
     'ast_match': handle_ast_match,
 }
 
-def check_patterns(content: str, patterns: list) -> bool:
-    """Checks if the content matches any of the given patterns."""
+def check_patterns(content: str, patterns: list, plugin) -> bool:
+    """Checks if the content matches any of the given patterns using a plugin."""
     if not patterns:
         log.warning("No patterns defined in recipe. Assuming match to proceed with actions.")
         return True
@@ -288,7 +130,7 @@ def check_patterns(content: str, patterns: list) -> bool:
         handler = PATTERN_CHECKER.get(pattern_type)
         
         if handler:
-            if handler(content, pattern):
+            if handler(content, pattern, plugin):
                 log.info(f"Successfully matched pattern of type '{pattern_type}'.")
                 return True
         else:
@@ -298,6 +140,63 @@ def check_patterns(content: str, patterns: list) -> bool:
     return False
 
 # --- Main Engine ---
+
+def handle_ast_transform(content: str, action: dict, plugin) -> str:
+    """Handles the 'ast_transform' action."""
+    log.info("Performing AST transformation.")
+    try:
+        code_ast = plugin.parse(content)
+        # For this specific recipe, we assume a single pattern.
+        pattern = action.get('pattern') 
+        matches = plugin.find_matches(pattern, code_ast)
+
+        if not matches:
+            log.warning("No AST nodes found to transform.")
+            return content
+
+        # For simplicity, this example transforms the first match found.
+        # A more robust implementation would handle multiple matches.
+        node_to_replace = matches[0]
+        
+        # Extract the factory function
+        factory_function = node_to_replace.arguments[1]
+        if factory_function.type != 'FunctionExpression':
+            log.warning("Second argument to factory is not a function. Skipping.")
+            return content
+
+        # Find the return statement in the factory function
+        return_statement = None
+        for item in factory_function.body.body:
+            if item.type == 'ReturnStatement':
+                return_statement = item
+                break
+        
+        if not return_statement or return_statement.argument.type != 'ObjectExpression':
+            log.warning("No object literal returned from factory. Skipping.")
+            return content
+
+        # Generate new functions
+        new_functions = []
+        for prop in return_statement.argument.properties:
+            func_name = prop.key.name
+            func_body = plugin.generate(prop.value)
+            new_functions.append(f"export const {func_name} = {func_body};")
+
+        new_code = '\n'.join(new_functions)
+        
+        # Replace the old factory call with the new functions
+        # This is a simplification. A real implementation would use a more robust replacement.
+        start = node_to_replace.loc.start.line -1 
+        end = node_to_replace.loc.end.line
+        lines = content.split('\n')
+        
+        modified_lines = lines[:start] + [new_code] + lines[end:]
+        return '\n'.join(modified_lines)
+
+    except Exception as e:
+        log.error(f"Error during AST transformation: {e}")
+        return content
+
 
 ACTION_DISPATCHER = {
     'replace_string': handle_replace_string,
@@ -312,13 +211,35 @@ def load_recipe(recipe_path: Path) -> dict:
     with open(recipe_path, 'r') as f:
         return yaml.safe_load(f)
 
+def get_language_plugin(file_path: Path):
+    """
+    Dynamically selects a language plugin based on the file extension.
+    For now, it's hardcoded to return JavaScriptPlugin for .js files.
+    """
+    if file_path.suffix == '.js':
+        log.info("JavaScript file detected. Loading JavaScriptPlugin.")
+        return JavaScriptPlugin()
+    # In the future, you could add more plugins here, e.g.:
+    # elif file_path.suffix == '.py':
+    #     return PythonPlugin()
+    else:
+        log.warning(f"No language plugin found for file extension: {file_path.suffix}")
+        return None
+
 def apply_recipe(recipe: dict, file_path: Path, dry_run: bool = True):
     """Applies a loaded recipe to a specific file."""
     log.info(f"Applying recipe '{(recipe.get('name'))}' to file: {file_path}")
+    
+    plugin = get_language_plugin(file_path)
+    if not plugin:
+        log.error("Aborting recipe application due to missing language plugin.")
+        return
+
     original_content = file_path.read_text()
 
-    # First, check if any pattern matches before proceeding
-    if not check_patterns(original_content, recipe.get('patterns', [])):
+    # Check patterns using the plugin if they exist
+    patterns = recipe.get('patterns', [])
+    if patterns and not check_patterns(original_content, patterns, plugin):
         return
 
     modified_content = original_content
@@ -327,7 +248,11 @@ def apply_recipe(recipe: dict, file_path: Path, dry_run: bool = True):
         handler = ACTION_DISPATCHER.get(action_type)
         
         if handler:
-            modified_content = handler(modified_content, action)
+            # Pass the plugin to handlers that need it
+            if action_type in ['ast_transform']:
+                modified_content = handler(modified_content, action, plugin)
+            else:
+                modified_content = handler(modified_content, action)
         else:
             log.warning(f"No handler found for action type: '{action_type}'. Skipping.")
 
@@ -337,9 +262,13 @@ def apply_recipe(recipe: dict, file_path: Path, dry_run: bool = True):
 
     if dry_run:
         log.info("Dry run mode: Changes will not be written to disk.")
-        print("\n--- ORIGINAL ---\n")
+        print("""
+--- ORIGINAL ---
+""")
         print(original_content)
-        print("\n--- MODIFIED (dry-run) ---\n")
+        print("""
+--- MODIFIED (dry-run) ---
+""")
         print(modified_content)
     else:
         log.info(f"Writing changes to {file_path}")
@@ -352,7 +281,11 @@ def main():
     parser.add_argument("--recipe", required=True, help="Path to the recipe YAML file.")
     parser.add_argument("--file-path", required=True, help="Path to the file to be transformed.")
     parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying files.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging.")
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     try:
         recipe = load_recipe(Path(args.recipe))

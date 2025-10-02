@@ -11,7 +11,9 @@ langdetect
 deep-translator
 pytest-cov
 jsonschema
-esprima
-escodegen
+PyYAML==6.0.1
+esprima==4.0.1
+escodegen==1.0.11
+-e .
 pytest-playwright
 beautifulsoup4

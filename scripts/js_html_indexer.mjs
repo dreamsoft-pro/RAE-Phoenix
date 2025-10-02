@@ -197,6 +197,41 @@ function calleeNameFromNode(node) {
   return null;
 }
 
+function parseHTML(filePath, code) {
+  const file = toUnix(filePath);
+  const id = `${file}:1-${code.split('\n').length}:html:whole-file`;
+  const record = {
+    id,
+    filePath: file,
+    module: null,
+    name: path.basename(file),
+    kind: 'template',
+    language: 'html',
+    nodeType: 'File',
+    dependencies: [],
+    antiPatterns: [],
+    text: code,
+    start: 1,
+    end: code.split('\n').length,
+    route: null,
+    symbol: path.basename(file),
+    metadata: {
+      calls_functions: [],
+      api_endpoints: [],
+      ui_routes: [],
+      cyclomatic_complexity: 1,
+      eventfulness: {
+          watchers: 0,
+          emits: 0,
+          broadcasts: 0
+      },
+      summary_en: null,
+      business_tags: []
+    }
+  };
+  return [record];
+}
+
 function parseJS(filePath, code, modulesCtx) {
   const ast = babelParser.parse(code, {
     sourceType: 'module',
@@ -205,7 +240,7 @@ function parseJS(filePath, code, modulesCtx) {
   const chunks = [];
   const routes = [];
 
-  function pushChunk({id, kind, name, module, start, end, text, depsDI}) {
+  function pushChunk({id, kind, name, module, start, end, text, deps, language}) {
     const file = toUnix(filePath);
     const calls = new Set();
     const api = new Set();
@@ -252,8 +287,9 @@ function parseJS(filePath, code, modulesCtx) {
       module,
       name,
       kind,
+      language,
       nodeType: 'Function',
-      dependenciesDI: depsDI || [],
+      dependencies: deps.map(d => ({ type: 'di', value: d })) || [],
       antiPatterns: [],
       text,
       start: start ?? 1,
@@ -319,7 +355,7 @@ function parseJS(filePath, code, modulesCtx) {
           const lines = code.split('\n').slice(start.line - 1, end.line).join('\n');
           const id = `${toUnix(filePath)}:${start.line}-${end.line}:${propName}:${name ?? 'anonymous'}`;
           const kindMap = {controller:'component', component:'component', service:'service', factory:'service', directive:'directive', filter:'filter', config:'route'};
-          pushChunk({id, kind: kindMap[propName] || 'util', name: name ?? 'anonymous', module: moduleName, start: start.line, end: end.line, text: lines, depsDI: deps});
+          pushChunk({id, kind: kindMap[propName] || 'util', name: name ?? 'anonymous', module: moduleName, start: start.line, end: end.line, text: lines, deps, language: 'javascript'});
         }
       }
     }
@@ -386,8 +422,9 @@ function parseJS(filePath, code, modulesCtx) {
         module: null,
         name: r.controller || r.state || (r.url ?? 'route'),
         kind: 'route',
+        language: 'javascript',
         nodeType: 'Object',
-        dependenciesDI: [],
+        dependencies: [],
         antiPatterns: [],
         text,
         start: 1, end: 1,
@@ -416,6 +453,7 @@ async function main() {
 
   const patterns = [
     toUnix(path.join(root, '**/*.js')),
+    toUnix(path.join(root, '**/*.html')),
   ];
   const entries = await fg(patterns, { dot: false, onlyFiles: true });
   let total = 0;
@@ -426,7 +464,13 @@ async function main() {
     if (!code) continue;
     const modulesCtx = { currentModule: null };
     try {
-      const recs = parseJS(file, code, modulesCtx);
+      let recs = [];
+      if (file.endsWith('.js')) {
+        recs = parseJS(file, code, modulesCtx);
+      } else if (file.endsWith('.html')) {
+        recs = parseHTML(file, code);
+      }
+
       for (const r of recs) {
         out.write(JSON.stringify(r) + '\n');
         total++;
