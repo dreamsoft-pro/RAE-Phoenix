@@ -29,11 +29,12 @@ from feniks.core.models.behavior import (
     BehaviorCheckResult
 )
 from feniks.exceptions import FeniksError
+from feniks.adapters.storage.base import BehaviorStorageBackend, register_storage_backend
 
 log = get_logger("adapters.storage.behavior")
 
 
-class BehaviorStore:
+class BehaviorStore(BehaviorStorageBackend):
     """
     Storage adapter for Behavior models.
 
@@ -102,6 +103,18 @@ class BehaviorStore:
 
         return scenarios
 
+    def delete_scenario(self, scenario_id: str) -> bool:
+        """Delete a scenario by ID. Returns True if deleted, False if not found."""
+        file_path = self.scenarios_dir / f"{scenario_id}.json"
+
+        if file_path.exists():
+            file_path.unlink()
+            log.info(f"Deleted scenario: {scenario_id}")
+            return True
+        else:
+            log.warning(f"Scenario not found for deletion: {scenario_id}")
+            return False
+
     # ========================================================================
     # Snapshot Storage
     # ========================================================================
@@ -122,7 +135,8 @@ class BehaviorStore:
     def load_snapshots(
         self,
         scenario_id: str,
-        environment: Optional[str] = None
+        environment: Optional[str] = None,
+        limit: Optional[int] = None
     ) -> List[BehaviorSnapshot]:
         """Load all snapshots for a scenario, optionally filtered by environment."""
         snapshots = []
@@ -147,7 +161,15 @@ class BehaviorStore:
 
                 snapshots.append(BehaviorSnapshot(**data))
 
+        # Apply limit if specified
+        if limit is not None and len(snapshots) > limit:
+            snapshots = snapshots[:limit]
+
         return snapshots
+
+    def save_snapshots_batch(self, snapshots: List[BehaviorSnapshot], output_path: Path) -> None:
+        """Save snapshots to batch file (JSONL)."""
+        self.save_snapshots_jsonl(snapshots, output_path)
 
     def save_snapshots_jsonl(self, snapshots: List[BehaviorSnapshot], output_path: Path) -> None:
         """Save snapshots to JSONL file (for CLI output)."""
@@ -158,6 +180,10 @@ class BehaviorStore:
                 f.write(json.dumps(snapshot.model_dump(mode="json")) + "\n")
 
         log.info(f"Saved {len(snapshots)} snapshots to {output_path}")
+
+    def load_snapshots_batch(self, input_path: Path) -> List[BehaviorSnapshot]:
+        """Load snapshots from batch file (JSONL)."""
+        return self.load_snapshots_jsonl(input_path)
 
     def load_snapshots_jsonl(self, input_path: Path) -> List[BehaviorSnapshot]:
         """Load snapshots from JSONL file."""
@@ -208,8 +234,12 @@ class BehaviorStore:
         log.warning(f"Contract not found: {contract_id}")
         return None
 
-    def load_contracts_for_scenario(self, scenario_id: str) -> List[BehaviorContract]:
-        """Load all contracts for a scenario."""
+    def load_contracts_for_scenario(
+        self,
+        scenario_id: str,
+        version: Optional[str] = None
+    ) -> List[BehaviorContract]:
+        """Load all contracts for a scenario, optionally filtered by version."""
         contracts = []
         scenario_dir = self.contracts_dir / scenario_id
 
@@ -219,9 +249,17 @@ class BehaviorStore:
         for file_path in scenario_dir.glob("*.json"):
             with file_path.open("r") as f:
                 data = json.load(f)
-            contracts.append(BehaviorContract(**data))
+            contract = BehaviorContract(**data)
+
+            # Filter by version if specified
+            if version is None or contract.version == version:
+                contracts.append(contract)
 
         return contracts
+
+    def save_contracts_batch(self, contracts: List[BehaviorContract], output_path: Path) -> None:
+        """Save contracts to batch file (JSONL)."""
+        self.save_contracts_jsonl(contracts, output_path)
 
     def save_contracts_jsonl(self, contracts: List[BehaviorContract], output_path: Path) -> None:
         """Save contracts to JSONL file (for CLI output)."""
@@ -232,6 +270,10 @@ class BehaviorStore:
                 f.write(json.dumps(contract.model_dump(mode="json")) + "\n")
 
         log.info(f"Saved {len(contracts)} contracts to {output_path}")
+
+    def load_contracts_batch(self, input_path: Path) -> List[BehaviorContract]:
+        """Load contracts from batch file (JSONL)."""
+        return self.load_contracts_jsonl(input_path)
 
     def load_contracts_jsonl(self, input_path: Path) -> List[BehaviorContract]:
         """Load contracts from JSONL file."""
@@ -266,6 +308,38 @@ class BehaviorStore:
 
         log.info(f"Saved check result for snapshot: {result.snapshot_id}")
 
+    def load_check_results(
+        self,
+        scenario_id: Optional[str] = None,
+        limit: Optional[int] = None
+    ) -> List[BehaviorCheckResult]:
+        """Load check results, optionally filtered by scenario."""
+        results = []
+
+        # Iterate through date directories
+        for date_dir in sorted(self.results_dir.iterdir(), reverse=True):
+            if not date_dir.is_dir():
+                continue
+
+            for file_path in date_dir.glob("*.json"):
+                with file_path.open("r") as f:
+                    data = json.load(f)
+                result = BehaviorCheckResult(**data)
+
+                # Filter by scenario if specified
+                if scenario_id is None or result.scenario_id == scenario_id:
+                    results.append(result)
+
+                    # Check limit
+                    if limit is not None and len(results) >= limit:
+                        return results
+
+        return results
+
+    def save_check_results_batch(self, results: List[BehaviorCheckResult], output_path: Path) -> None:
+        """Save check results to batch file (JSONL)."""
+        self.save_check_results_jsonl(results, output_path)
+
     def save_check_results_jsonl(self, results: List[BehaviorCheckResult], output_path: Path) -> None:
         """Save check results to JSONL file (for CLI output)."""
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -275,6 +349,10 @@ class BehaviorStore:
                 f.write(json.dumps(result.model_dump(mode="json")) + "\n")
 
         log.info(f"Saved {len(results)} check results to {output_path}")
+
+    def load_check_results_batch(self, input_path: Path) -> List[BehaviorCheckResult]:
+        """Load check results from batch file (JSONL)."""
+        return self.load_check_results_jsonl(input_path)
 
     def load_check_results_jsonl(self, input_path: Path) -> List[BehaviorCheckResult]:
         """Load check results from JSONL file."""
@@ -294,7 +372,7 @@ class BehaviorStore:
 
 
 # ============================================================================
-# Factory Function
+# Factory Function & Registration
 # ============================================================================
 
 _behavior_store_instance = None
@@ -316,3 +394,7 @@ def get_behavior_store(storage_dir: str = "data/behavior") -> BehaviorStore:
         _behavior_store_instance = BehaviorStore(storage_dir=storage_dir)
 
     return _behavior_store_instance
+
+
+# Register file-based backend
+register_storage_backend("file", BehaviorStore)
