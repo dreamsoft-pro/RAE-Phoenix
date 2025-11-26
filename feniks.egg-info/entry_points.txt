@@ -1,2 +1,2 @@
 [console_scripts]
-feniks = scripts.apply_recipe:main
+feniks = feniks.core.cli:main

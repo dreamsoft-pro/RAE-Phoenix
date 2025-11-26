@@ -1,3 +1,63 @@
 Metadata-Version: 2.4
 Name: feniks
 Version: 0.1.0
+Summary: RAE-Feniks - Enterprise-grade code analysis, meta-reflection, and refactoring engine
+Author: RAE-Feniks Team
+License: MIT
+Keywords: code-analysis,refactoring,rae,meta-reflection,ast
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pydantic-settings>=2.0
+Requires-Dist: python-dotenv>=0.19
+Requires-Dist: qdrant-client>=1.7
+Requires-Dist: sentence-transformers>=2.2
+Requires-Dist: scikit-learn>=1.0
+Requires-Dist: numpy>=1.21
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: ruff>=0.1; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+
+# Feniks: Inteligentny Silnik do Refaktoryzacji Kodu
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Feniks to uniwersalne i rozszerzalne narzędzie, które wykorzystuje moc dużych modeli językowych (LLM) do automatyzacji procesu refaktoryzacji kodu. Dzięki architekturze opartej na wtyczkach i recepturach, Feniks może być łatwo dostosowany do pracy z dowolnym językiem programowania i szerokim zakresem zadań modernizacyjnych.
+
+## Główne Cechy
+
+- **Wsparcie dla Wielu Języków**: Elastyczny system wtyczek pozwala na łatwe dodawanie wsparcia dla nowych języków programowania.
+- **Sterowanie przez Receptury**: Zadania refaktoryzacji są definiowane w prostych plikach YAML, co pozwala na precyzyjne sterowanie procesem bez zmiany kodu silnika.
+- **Inteligentne Wyszukiwanie**: Wykorzystuje wektorową bazę danych (Qdrant) do semantycznego wyszukiwania fragmentów kodu, które wymagają refaktoryzacji.
+- **Dynamiczne Dopasowanie Narzędzi**: Agent automatycznie dobiera najlepszą recepturę i wtyczkę językową do znalezionego kodu.
+- **Otwarty na Rozwój**: Zaprojektowany z myślą o społeczności – dodawanie nowych funkcji jest proste i dobrze udokumentowane.
+
+## Architektura
+
+Feniks opiera się na modułowej architekturze, która oddziela logikę orkiestracji od specyfiki języków i zadań.
+
+Szczegółowy opis komponentów i przepływu danych znajdziesz w dokumencie [**ARCHITECTURE.md**](docs/ARCHITECTURE.md).
+
+## Pierwsze Kroki
+
+*(Ta sekcja zostanie rozwinięta w przyszłości o instrukcje instalacji i użytkowania)*
+
+## Jak Współtworzyć Projekt?
+
+Chcesz pomóc w rozwoju Feniksa? Świetnie! Stworzyliśmy przewodnik, który krok po kroku wyjaśnia, jak dodawać nowe receptury, wtyczki językowe i jak weryfikować swoje zmiany.
+
+Zapoznaj się z naszym [**Przewodnikiem dla Współtwórców**](docs/CONTRIBUTING.md).
+
+## Licencja
+
+Projekt jest udostępniany na licencji MIT. Zobacz plik `LICENSE`, aby uzyskać więcej informacji.
