@@ -32,6 +32,7 @@ from feniks.infra.tracing import trace, span
 from feniks.adapters.ingest.jsonl_loader import load_jsonl_chunks
 from feniks.adapters.storage.qdrant import upsert_points, ensure_collection
 from feniks.adapters.llm.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
+from feniks.apps.cli.behavior import register_behavior_commands
 
 log = get_logger("cli")
 
@@ -516,6 +517,9 @@ def main():
     serve_parser.add_argument("--port", type=int, default=8000)
     serve_parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     serve_parser.set_defaults(func=handle_serve_api)
+
+    # Behavior commands (Legacy Behavior Guard)
+    register_behavior_commands(subparsers)
 
     # Parse arguments
     args = parser.parse_args()
