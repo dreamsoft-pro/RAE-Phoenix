@@ -15,9 +15,12 @@ feniks.egg-info/requires.txt
 feniks.egg-info/top_level.txt
 feniks/core/__init__.py
 feniks/core/cli.py
+feniks/core/ingest_pipeline.py
 feniks/embedding/__init__.py
 feniks/embedding/embed.py
 feniks/ingest/__init__.py
+feniks/ingest/filters.py
+feniks/ingest/jsonl_loader.py
 feniks/plugins/__init__.py
 feniks/plugins/javascript.py
 feniks/store/__init__.py

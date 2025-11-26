@@ -1,0 +1,193 @@
+"""
+Feniks ingestion pipeline - orchestrates the process of loading code chunks into Qdrant.
+"""
+from pathlib import Path
+from typing import Optional, List
+
+import numpy as np
+from qdrant_client import QdrantClient
+
+from feniks.logger import get_logger
+from feniks.config import settings
+from feniks.types import Chunk
+from feniks.exceptions import FeniksIngestError, FeniksStoreError, FeniksConfigError
+from feniks.ingest.jsonl_loader import load_jsonl
+from feniks.ingest.filters import ChunkFilter, create_default_filter
+from feniks.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
+from feniks.store import ensure_collection, upsert_points
+
+log = get_logger("core.ingest")
+
+
+class IngestPipeline:
+    """
+    Orchestrates the ingestion pipeline: JSONL → filtering → embeddings → Qdrant.
+    """
+
+    def __init__(
+        self,
+        qdrant_host: Optional[str] = None,
+        qdrant_port: Optional[int] = None,
+        embedding_model_name: Optional[str] = None
+    ):
+        """
+        Initialize the ingestion pipeline.
+
+        Args:
+            qdrant_host: Qdrant host (defaults to settings)
+            qdrant_port: Qdrant port (defaults to settings)
+            embedding_model_name: Embedding model name (defaults to settings)
+        """
+        self.qdrant_host = qdrant_host or settings.qdrant_host
+        self.qdrant_port = qdrant_port or settings.qdrant_port
+        self.embedding_model_name = embedding_model_name or settings.embedding_model
+
+        log.info(f"IngestPipeline initialized: Qdrant={self.qdrant_host}:{self.qdrant_port}, "
+                 f"Model={self.embedding_model_name}")
+
+    def run(
+        self,
+        jsonl_path: Path,
+        collection_name: str = "code_chunks",
+        reset_collection: bool = False,
+        chunk_filter: Optional[ChunkFilter] = None,
+        skip_errors: bool = False,
+        batch_size: int = 512
+    ) -> dict:
+        """
+        Run the complete ingestion pipeline.
+
+        Args:
+            jsonl_path: Path to the JSONL file containing chunks
+            collection_name: Name of the Qdrant collection
+            reset_collection: Whether to reset the collection before ingestion
+            chunk_filter: Optional filter for chunks
+            skip_errors: Whether to skip invalid chunks
+            batch_size: Batch size for Qdrant upsert
+
+        Returns:
+            dict: Statistics about the ingestion process
+
+        Raises:
+            FeniksIngestError: If ingestion fails
+            FeniksStoreError: If Qdrant operations fail
+        """
+        stats = {
+            "loaded": 0,
+            "filtered": 0,
+            "ingested": 0,
+            "collection": collection_name,
+            "reset": reset_collection
+        }
+
+        try:
+            # Step 1: Load chunks from JSONL
+            log.info("Step 1/5: Loading chunks from JSONL...")
+            chunks = load_jsonl(jsonl_path, normalize_paths=True, skip_errors=skip_errors)
+            stats["loaded"] = len(chunks)
+            log.info(f"Loaded {len(chunks)} chunks")
+
+            # Step 2: Filter chunks
+            log.info("Step 2/5: Filtering chunks...")
+            if chunk_filter is None:
+                chunk_filter = create_default_filter()
+
+            chunks = chunk_filter.filter_chunks(chunks)
+            stats["filtered"] = stats["loaded"] - len(chunks)
+            log.info(f"After filtering: {len(chunks)} chunks remaining")
+
+            if not chunks:
+                raise FeniksIngestError("No chunks remaining after filtering")
+
+            # Step 3: Create embeddings
+            log.info("Step 3/5: Creating embeddings...")
+            embedding_model = get_embedding_model(self.embedding_model_name)
+            dense_embeddings = create_dense_embeddings(embedding_model, chunks)
+            log.info(f"Created dense embeddings: shape={dense_embeddings.shape}")
+
+            # Build TF-IDF sparse vectors
+            tfidf_vectorizer, tfidf_matrix = build_tfidf(chunks)
+            log.info(f"Created TF-IDF sparse vectors: shape={tfidf_matrix.shape}")
+
+            # Step 4: Connect to Qdrant and ensure collection exists
+            log.info("Step 4/5: Connecting to Qdrant...")
+            try:
+                qdrant_client = QdrantClient(host=self.qdrant_host, port=self.qdrant_port)
+
+                # Test connection
+                collections = qdrant_client.get_collections()
+                log.info(f"Connected to Qdrant. Existing collections: "
+                        f"{[c.name for c in collections.collections]}")
+
+            except Exception as e:
+                raise FeniksStoreError(f"Failed to connect to Qdrant at "
+                                      f"{self.qdrant_host}:{self.qdrant_port}: {e}") from e
+
+            # Ensure collection exists
+            ensure_collection(
+                client=qdrant_client,
+                name=collection_name,
+                dim=dense_embeddings.shape[1],
+                reset=reset_collection
+            )
+            log.info(f"Collection '{collection_name}' ready")
+
+            # Step 5: Upsert points to Qdrant
+            log.info("Step 5/5: Upserting points to Qdrant...")
+            upsert_points(
+                client=qdrant_client,
+                collection=collection_name,
+                chunks=chunks,
+                dense=dense_embeddings,
+                X_tfidf=tfidf_matrix,
+                vocab=tfidf_vectorizer.vocabulary_,
+                batch=batch_size
+            )
+            stats["ingested"] = len(chunks)
+            log.info(f"Successfully ingested {len(chunks)} chunks to collection '{collection_name}'")
+
+            return stats
+
+        except (FeniksIngestError, FeniksStoreError):
+            raise
+        except Exception as e:
+            raise FeniksIngestError(f"Ingestion pipeline failed: {e}") from e
+
+
+def run_ingest(
+    jsonl_path: Path,
+    collection_name: str = "code_chunks",
+    reset_collection: bool = False,
+    include_patterns: Optional[List[str]] = None,
+    exclude_patterns: Optional[List[str]] = None,
+    skip_errors: bool = False
+) -> dict:
+    """
+    Convenience function to run the ingestion pipeline.
+
+    Args:
+        jsonl_path: Path to the JSONL file
+        collection_name: Name of the Qdrant collection
+        reset_collection: Whether to reset the collection
+        include_patterns: File patterns to include
+        exclude_patterns: File patterns to exclude
+        skip_errors: Whether to skip invalid chunks
+
+    Returns:
+        dict: Statistics about the ingestion
+    """
+    # Create filter
+    chunk_filter = ChunkFilter(
+        include_patterns=include_patterns,
+        exclude_patterns=exclude_patterns
+    ) if (include_patterns or exclude_patterns) else create_default_filter()
+
+    # Create and run pipeline
+    pipeline = IngestPipeline()
+    return pipeline.run(
+        jsonl_path=jsonl_path,
+        collection_name=collection_name,
+        reset_collection=reset_collection,
+        chunk_filter=chunk_filter,
+        skip_errors=skip_errors
+    )

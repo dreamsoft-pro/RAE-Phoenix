@@ -5,10 +5,12 @@ Handles code ingestion, analysis, and refactoring workflows.
 """
 import argparse
 import sys
+from pathlib import Path
 
 from feniks.logger import get_logger
 from feniks.config import settings
 from feniks.exceptions import FeniksError
+from feniks.core.ingest_pipeline import run_ingest
 
 log = get_logger("cli")
 
@@ -21,10 +23,37 @@ def handle_version():
 
 
 def handle_ingest(args):
-    """Handle the ingest command (to be implemented in Iteration 2)."""
-    log.info("Ingest command will be implemented in Iteration 2")
-    log.info(f"Project root: {args.project_root}")
+    """Handle the ingest command."""
+    log.info("=== Feniks Ingest Pipeline ===")
+    log.info(f"JSONL path: {args.jsonl_path}")
     log.info(f"Collection: {args.collection}")
+    log.info(f"Reset collection: {args.reset}")
+
+    # Validate JSONL path
+    jsonl_path = Path(args.jsonl_path)
+    if not jsonl_path.exists():
+        raise FeniksError(f"JSONL file not found: {jsonl_path}")
+
+    # Parse filter patterns
+    include_patterns = args.include.split(",") if args.include else None
+    exclude_patterns = args.exclude.split(",") if args.exclude else None
+
+    # Run ingestion
+    stats = run_ingest(
+        jsonl_path=jsonl_path,
+        collection_name=args.collection,
+        reset_collection=args.reset,
+        include_patterns=include_patterns,
+        exclude_patterns=exclude_patterns,
+        skip_errors=args.skip_errors
+    )
+
+    # Print summary
+    log.info("=== Ingestion Complete ===")
+    log.info(f"Loaded: {stats['loaded']} chunks")
+    log.info(f"Filtered out: {stats['filtered']} chunks")
+    log.info(f"Ingested: {stats['ingested']} chunks")
+    log.info(f"Collection: {stats['collection']}")
 
 
 def handle_analyze(args):
@@ -61,21 +90,36 @@ def main():
         help="Ingest code from indexers into knowledge base"
     )
     ingest_parser.add_argument(
-        "--project-root",
-        type=str,
-        required=True,
-        help="Path to the project root directory"
-    )
-    ingest_parser.add_argument(
         "--jsonl-path",
         type=str,
-        help="Path to the indexer JSONL output"
+        required=True,
+        help="Path to the indexer JSONL output file"
     )
     ingest_parser.add_argument(
         "--collection",
         type=str,
         default="code_chunks",
         help="Qdrant collection name (default: code_chunks)"
+    )
+    ingest_parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Reset the collection before ingestion"
+    )
+    ingest_parser.add_argument(
+        "--include",
+        type=str,
+        help="Comma-separated include patterns (e.g., '*.js,src/**')"
+    )
+    ingest_parser.add_argument(
+        "--exclude",
+        type=str,
+        help="Comma-separated exclude patterns (e.g., '*.test.js,*.spec.js')"
+    )
+    ingest_parser.add_argument(
+        "--skip-errors",
+        action="store_true",
+        help="Skip invalid chunks instead of failing"
     )
     ingest_parser.set_defaults(func=handle_ingest)
 
