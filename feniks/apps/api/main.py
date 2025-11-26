@@ -14,7 +14,8 @@
 """
 Feniks API - RESTful interface for the Feniks system.
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Dict, List, Optional
 from pydantic import BaseModel
 
@@ -24,8 +25,12 @@ from feniks.core.reflection.engine import MetaReflectionEngine
 from feniks.core.policies.manager import PolicyManager
 from feniks.infra.metrics import get_metrics_collector
 from feniks.infra.logging import get_logger
+from feniks.security.auth import get_auth_manager, User, AuthenticationError, AuthorizationError
+from feniks.security.rbac import RBACManager, Permission
+from feniks.config.settings import settings
 
 log = get_logger("apps.api")
+security = HTTPBearer(auto_error=False)
 
 app = FastAPI(
     title="Feniks API",
@@ -37,10 +42,64 @@ app = FastAPI(
 reflection_engine = MetaReflectionEngine()
 policy_manager = PolicyManager()
 metrics = get_metrics_collector()
+auth_manager = get_auth_manager(jwt_secret=settings.jwt_secret)
+rbac_manager = RBACManager()
 
 # In-memory storage for reports (replace with DB in production)
 _reports_db: Dict[str, FeniksReport] = {}
 _reflections_db: Dict[str, List[MetaReflection]] = {}
+
+# --- Authentication Dependencies ---
+
+async def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
+) -> Optional[User]:
+    """
+    Get current authenticated user from JWT token or API key.
+    Returns None if authentication is disabled or no credentials provided.
+    """
+    if not settings.auth_enabled:
+        # Auth disabled - return mock admin user
+        from feniks.security.auth import UserRole
+        return User(
+            user_id="system",
+            username="system",
+            email="system@feniks.local",
+            role=UserRole.ADMIN,
+            projects=["*"]
+        )
+
+    if not credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    try:
+        token = credentials.credentials
+        user = auth_manager.authenticate(token)
+        log.debug(f"Authenticated user: {user.username}")
+        return user
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=401,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+def require_permission(permission: Permission):
+    """
+    Dependency factory for requiring specific permission.
+    """
+    async def permission_checker(user: User = Depends(get_current_user)) -> User:
+        if not rbac_manager.has_permission(user.role, permission):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Permission denied: {permission.value} required"
+            )
+        return user
+    return permission_checker
 
 # --- Models ---
 
@@ -56,10 +115,16 @@ class AnalyzeSessionResponse(BaseModel):
 # --- Endpoints ---
 
 @app.post("/sessions/analyze", response_model=AnalyzeSessionResponse)
-async def analyze_session(request: AnalyzeSessionRequest, background_tasks: BackgroundTasks):
+async def analyze_session(
+    request: AnalyzeSessionRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(require_permission(Permission.ANALYZE_CODE))
+):
     """
     Submit a session for Post-Mortem analysis.
+    Requires: ANALYZE_CODE permission
     """
+    log.info(f"User {user.username} analyzing session for project {request.project_id}")
     report_id = f"rep-{request.session_summary.session_id}"
     
     # Run analysis synchronously for now (can be backgrounded)
@@ -89,9 +154,13 @@ async def analyze_session(request: AnalyzeSessionRequest, background_tasks: Back
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/report/{report_id}", response_model=List[MetaReflection])
-async def get_report(report_id: str):
+async def get_report(
+    report_id: str,
+    user: User = Depends(require_permission(Permission.VIEW_REPORTS))
+):
     """
     Get the analysis report (meta-reflections) for a session.
+    Requires: VIEW_REPORTS permission
     """
     if report_id not in _reflections_db:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -99,9 +168,10 @@ async def get_report(report_id: str):
     return _reflections_db[report_id]
 
 @app.get("/patterns/errors")
-async def get_error_patterns():
+async def get_error_patterns(user: User = Depends(require_permission(Permission.VIEW_REPORTS))):
     """
     Get aggregated error patterns (Longitudinal).
+    Requires: VIEW_REPORTS permission
     """
     # Mock implementation for MVP
     # In real world, query DB/Vector Store for common patterns
@@ -113,9 +183,10 @@ async def get_error_patterns():
     }
 
 @app.get("/metrics")
-async def get_metrics():
+async def get_metrics(user: User = Depends(require_permission(Permission.VIEW_METRICS))):
     """
     Get system metrics.
+    Requires: VIEW_METRICS permission
     """
     return metrics.get_metrics()
 
