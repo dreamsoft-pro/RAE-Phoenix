@@ -48,6 +48,21 @@ class Settings(BaseSettings):
     rae_api_key: Optional[str] = None
     rae_timeout: int = 30  # seconds
 
+    # --- Enterprise Settings (Iteration 7) ---
+    # Observability
+    metrics_enabled: bool = True
+    metrics_export_path: Optional[str] = None
+
+    # Security
+    auth_enabled: bool = False
+    jwt_secret: Optional[str] = None
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_hours: int = 24
+
+    # Governance
+    cost_control_enabled: bool = False
+    default_project_budget: float = 1000.0  # Default budget in cost units
+
     @property
     def frontend_root(self) -> Path:
         """Returns the frontend root path, with default fallback."""
