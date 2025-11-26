@@ -17,6 +17,8 @@ from feniks.core.system_model_builder import build_system_model
 from feniks.core.capability_detector import CapabilityDetector
 from feniks.core.report_generator import generate_report
 from feniks.core.meta_reflection_engine import generate_meta_reflections, save_meta_reflections
+from feniks.integrations.rae_client import create_rae_client, RAEError
+from feniks.integrations.rae_formatter import RAEFormatter
 
 log = get_logger("core.analysis")
 
@@ -170,6 +172,61 @@ class AnalysisPipeline:
 
         return chunk
 
+    def _sync_with_rae(self, system_model: SystemModel, meta_reflections: list) -> bool:
+        """
+        Sync analysis results with RAE.
+
+        Args:
+            system_model: The system model
+            meta_reflections: List of meta-reflections
+
+        Returns:
+            bool: True if sync was successful, False otherwise
+        """
+        # Create RAE client
+        rae_client = create_rae_client()
+        if not rae_client:
+            log.debug("RAE client not available, skipping sync")
+            return False
+
+        try:
+            # Format data for RAE
+            formatter = RAEFormatter()
+
+            # 1. Store meta-reflections
+            if meta_reflections:
+                log.info(f"Storing {len(meta_reflections)} meta-reflections to RAE...")
+                for reflection in meta_reflections:
+                    try:
+                        payload = formatter.format_meta_reflection(reflection)
+                        rae_client.store_meta_reflection(payload)
+                    except RAEError as e:
+                        log.warning(f"Failed to store meta-reflection {reflection.id}: {e}")
+
+            # 2. Store system capabilities
+            if system_model.capabilities:
+                log.info(f"Storing {len(system_model.capabilities)} capabilities to RAE...")
+                try:
+                    capabilities_payload = formatter.format_system_capabilities(system_model)
+                    rae_client.store_system_capabilities(capabilities_payload)
+                except RAEError as e:
+                    log.warning(f"Failed to store system capabilities: {e}")
+
+            # 3. Store complete system model
+            log.info("Storing system model to RAE...")
+            try:
+                system_model_payload = formatter.format_system_model(system_model)
+                rae_client.store_system_model(system_model_payload)
+            except RAEError as e:
+                log.warning(f"Failed to store system model: {e}")
+
+            log.info("RAE sync completed successfully")
+            return True
+
+        except Exception as e:
+            log.error(f"RAE sync failed: {e}", exc_info=True)
+            return False
+
     def run(
         self,
         project_id: str,
@@ -239,8 +296,16 @@ class AnalysisPipeline:
                 save_meta_reflections(meta_reflections, meta_reflections_output, format="jsonl")
                 log.info(f"Meta-reflections saved to {meta_reflections_output}")
 
-            # Step 5: Generate report (including meta-reflections)
-            log.info("Step 5/6: Generating report...")
+            # Step 5: Sync with RAE (if enabled)
+            log.info("Step 5/7: Syncing with RAE...")
+            rae_sync_success = self._sync_with_rae(system_model, meta_reflections)
+            if rae_sync_success:
+                log.info("Successfully synced data with RAE")
+            else:
+                log.info("RAE sync skipped (disabled or failed)")
+
+            # Step 6: Generate report (including meta-reflections)
+            log.info("Step 6/7: Generating report...")
             report = generate_report(system_model, output_path, meta_reflections=meta_reflections)
 
             if output_path:
@@ -249,8 +314,8 @@ class AnalysisPipeline:
                 # Print summary to console
                 print("\n" + report)
 
-            # Step 6: Statistics
-            log.info("Step 6/6: Analysis complete")
+            # Step 7: Statistics
+            log.info("Step 7/7: Analysis complete")
             log.info(f"  Project: {stats['project_id']}")
             log.info(f"  Chunks: {stats['chunks_loaded']}")
             log.info(f"  Modules: {stats['modules']}")

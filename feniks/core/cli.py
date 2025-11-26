@@ -21,6 +21,9 @@ def handle_version():
     print("Feniks v0.1.0 - RAE Code Analysis and Refactoring Engine")
     print(f"Profile: {settings.feniks_profile}")
     print(f"Project root: {settings.project_root}")
+    print(f"RAE Integration: {'enabled' if settings.rae_enabled else 'disabled'}")
+    if settings.rae_enabled and settings.rae_base_url:
+        print(f"RAE URL: {settings.rae_base_url}")
 
 
 def handle_ingest(args):
@@ -62,6 +65,14 @@ def handle_analyze(args):
     log.info("=== Feniks Analysis Pipeline ===")
     log.info(f"Project ID: {args.project_id}")
     log.info(f"Collection: {args.collection}")
+
+    # Override RAE setting if specified
+    if hasattr(args, 'rae_enabled') and args.rae_enabled is not None:
+        original_rae_enabled = settings.rae_enabled
+        settings.rae_enabled = args.rae_enabled
+        log.info(f"RAE integration: {'enabled' if args.rae_enabled else 'disabled'} (overridden)")
+    else:
+        log.info(f"RAE integration: {'enabled' if settings.rae_enabled else 'disabled'}")
 
     # Parse output paths
     output_path = Path(args.output) if args.output else None
@@ -177,6 +188,12 @@ def main():
         "--meta-reflections",
         type=str,
         help="Output path for meta-reflections JSONL (e.g., reflections.jsonl)"
+    )
+    analyze_parser.add_argument(
+        "--rae-enabled",
+        type=lambda x: x.lower() in ['true', '1', 'yes'],
+        default=None,
+        help="Enable/disable RAE integration (overrides config)"
     )
     analyze_parser.set_defaults(func=handle_analyze)
 
