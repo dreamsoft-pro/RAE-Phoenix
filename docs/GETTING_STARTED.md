@@ -14,8 +14,8 @@ This guide will walk you through installing RAE-Feniks and running your first co
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/feniks.git
-cd feniks
+git clone https://github.com/dreamsoft-pro/RAE-Feniks.git
+cd RAE-Feniks
 ```
 
 ### 2. Create Virtual Environment
@@ -408,7 +408,7 @@ Key options:
 
 - **Documentation**: `docs/`
 - **Examples**: `examples/`
-- **Issues**: https://github.com/your-org/feniks/issues
+- **Issues**: https://github.com/dreamsoft-pro/RAE-Feniks/issues
 
 ## What's Next?
 

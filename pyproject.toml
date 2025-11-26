@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "RAE-Feniks - Enterprise-grade code analysis, meta-reflection, and refactoring engine"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
-    {name = "RAE-Feniks Team"}
+    {name = "DreamSoft Pro"}
 ]
 keywords = ["code-analysis", "refactoring", "rae", "meta-reflection", "ast"]
 classifiers = [
