@@ -15,6 +15,8 @@ from feniks.ingest.jsonl_loader import load_jsonl
 from feniks.ingest.filters import ChunkFilter, create_default_filter
 from feniks.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
 from feniks.store import ensure_collection, upsert_points
+from feniks.observability.metrics import get_metrics_collector
+from feniks.governance.cost_controller import get_cost_controller
 
 log = get_logger("core.ingest")
 
@@ -79,6 +81,13 @@ class IngestPipeline:
             "collection": collection_name,
             "reset": reset_collection
         }
+
+        # Start metrics tracking
+        metrics_collector = get_metrics_collector() if settings.metrics_enabled else None
+        operation = metrics_collector.start_operation("ingest", collection_name) if metrics_collector else None
+
+        # Check budget
+        cost_controller = get_cost_controller() if settings.cost_control_enabled else None
 
         try:
             # Step 1: Load chunks from JSONL
@@ -146,11 +155,35 @@ class IngestPipeline:
             stats["ingested"] = len(chunks)
             log.info(f"Successfully ingested {len(chunks)} chunks to collection '{collection_name}'")
 
+            # Complete metrics tracking
+            if operation and metrics_collector:
+                metrics_collector.complete_operation(
+                    operation,
+                    success=True,
+                    metadata={"chunks_ingested": len(chunks)}
+                )
+
+            # Charge cost
+            if cost_controller:
+                try:
+                    # Check budget first
+                    cost_controller.check_budget(collection_name, "ingest", quantity=len(chunks) // 1000 or 1)
+                    # Charge actual cost
+                    cost_controller.charge_operation(collection_name, "ingest", quantity=len(chunks) // 1000 or 1)
+                except Exception as e:
+                    log.warning(f"Cost tracking failed: {e}")
+
             return stats
 
-        except (FeniksIngestError, FeniksStoreError):
+        except (FeniksIngestError, FeniksStoreError) as e:
+            # Complete metrics with error
+            if operation and metrics_collector:
+                metrics_collector.complete_operation(operation, success=False, error=str(e))
             raise
         except Exception as e:
+            # Complete metrics with error
+            if operation and metrics_collector:
+                metrics_collector.complete_operation(operation, success=False, error=str(e))
             raise FeniksIngestError(f"Ingestion pipeline failed: {e}") from e
 
 

@@ -13,6 +13,8 @@ from feniks.exceptions import FeniksError
 from feniks.core.ingest_pipeline import run_ingest
 from feniks.core.analysis_pipeline import run_analysis, AnalysisPipeline
 from feniks.refactor.refactor_engine import RefactorEngine
+from feniks.observability.metrics import get_metrics_collector
+from feniks.governance.cost_controller import get_cost_controller
 
 log = get_logger("cli")
 
@@ -25,6 +27,9 @@ def handle_version():
     print(f"RAE Integration: {'enabled' if settings.rae_enabled else 'disabled'}")
     if settings.rae_enabled and settings.rae_base_url:
         print(f"RAE URL: {settings.rae_base_url}")
+    print(f"Metrics: {'enabled' if settings.metrics_enabled else 'disabled'}")
+    print(f"Auth: {'enabled' if settings.auth_enabled else 'disabled'}")
+    print(f"Cost Control: {'enabled' if settings.cost_control_enabled else 'disabled'}")
 
 
 def handle_ingest(args):
@@ -220,6 +225,92 @@ def handle_refactor(args):
         return 2
 
 
+def handle_metrics(args):
+    """Handle the metrics command."""
+    log.info("=== Feniks Metrics ===")
+
+    metrics_collector = get_metrics_collector()
+    metrics = metrics_collector.get_metrics()
+
+    # Print summary
+    print("\n" + "="*80)
+    print("Feniks Metrics Summary")
+    print("="*80)
+    print(f"Uptime: {metrics['uptime_seconds']:.1f}s")
+    print(f"Total Projects: {metrics['system']['total_projects']}")
+    print(f"Total Operations: {metrics['system']['total_operations']}")
+    print()
+
+    # Ingests
+    ingests = metrics['system']['ingests']
+    print("Ingests:")
+    print(f"  Total: {ingests['total']}")
+    print(f"  Successful: {ingests['successful']}")
+    print(f"  Success Rate: {ingests['success_rate']:.1f}%")
+    print(f"  Avg Duration: {ingests['avg_duration']:.2f}s")
+    print(f"  Total Chunks: {ingests['total_chunks']}")
+    print()
+
+    # Analyses
+    analyses = metrics['system']['analyses']
+    print("Analyses:")
+    print(f"  Total: {analyses['total']}")
+    print(f"  Successful: {analyses['successful']}")
+    print(f"  Success Rate: {analyses['success_rate']:.1f}%")
+    print(f"  Avg Duration: {analyses['avg_duration']:.2f}s")
+    print(f"  Total Meta-Reflections: {analyses['total_meta_reflections']}")
+    print()
+
+    # Refactorings
+    refactorings = metrics['system']['refactorings']
+    print("Refactorings:")
+    print(f"  Total: {refactorings['total']}")
+    print(f"  Successful: {refactorings['successful']}")
+    print(f"  Success Rate: {refactorings['success_rate']:.1f}%")
+    print(f"  Avg Duration: {refactorings['avg_duration']:.2f}s")
+    print(f"  Total Patches: {refactorings['total_patches']}")
+    print()
+
+    # Per-project breakdown
+    if args.project_id:
+        project_metrics = metrics_collector.get_project_metrics(args.project_id)
+        if project_metrics:
+            print(f"Project: {args.project_id}")
+            print(f"  Ingests: {project_metrics['ingests']}")
+            print(f"  Analyses: {project_metrics['analyses']}")
+            print(f"  Refactorings: {project_metrics['refactorings']}")
+            print(f"  Chunks: {project_metrics['chunks']}")
+            print(f"  Meta-Reflections: {project_metrics['meta_reflections']}")
+            print(f"  Patches: {project_metrics['patches']}")
+        else:
+            print(f"No metrics found for project: {args.project_id}")
+        print()
+
+    # Export if requested
+    if args.export:
+        export_path = Path(args.export)
+        metrics_collector.export_metrics(export_path)
+        print(f"Metrics exported to: {export_path}")
+
+    # Cost report if enabled
+    if settings.cost_control_enabled:
+        cost_controller = get_cost_controller()
+        cost_report = cost_controller.get_cost_report(args.project_id)
+        print("\nCost Report:")
+        if args.project_id and cost_report.get("budget"):
+            budget = cost_report["budget"]
+            print(f"  Budget: {budget['total']:.2f}")
+            print(f"  Spent: {budget['spent']:.2f}")
+            print(f"  Remaining: {budget['remaining']:.2f}")
+            print(f"  Utilization: {budget['utilization']:.1f}%")
+        elif not args.project_id:
+            print(f"  Total Spent: {cost_report.get('total_spent', 0):.2f}")
+            print(f"  Projects: {len(cost_report.get('projects', {}))}")
+
+    print("="*80)
+    return 0
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -358,6 +449,23 @@ def main():
         help="Perform dry run without applying changes (default: True)"
     )
     refactor_parser.set_defaults(func=handle_refactor)
+
+    # Metrics command (Iteration 7 - Enterprise)
+    metrics_parser = subparsers.add_parser(
+        "metrics",
+        help="View system metrics and cost reports"
+    )
+    metrics_parser.add_argument(
+        "--project-id",
+        type=str,
+        help="Show metrics for specific project"
+    )
+    metrics_parser.add_argument(
+        "--export",
+        type=str,
+        help="Export metrics to JSON file (e.g., metrics.json)"
+    )
+    metrics_parser.set_defaults(func=handle_metrics)
 
     # Parse arguments
     args = parser.parse_args()
