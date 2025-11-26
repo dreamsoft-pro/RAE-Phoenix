@@ -149,15 +149,23 @@ Feniks natywnie wspiera ustrukturyzowane logowanie (JSON) i metryki biznesowe.
 
 ## 🎯 Status Projektu
 
-- **Wersja:** 0.1.0 (Enterprise-Grade Ready)
+- **Wersja:** 0.2.0 (Deep Integration Complete)
 - **Status:** ⭐⭐⭐⭐⭐ Production Ready
 - **Test Coverage:** 80%+
-- **Commity:** 50+
-- **Linie kodu:** ~15,000+
+- **Commity:** 60+
+- **Linie kodu:** ~17,500+
 - **Ostatnia aktualizacja:** 2025-11-26
 
 ### Najnowsze Dodatki (2025-11-26)
-- ✅ **Legacy Behavior Guard** - Phase 1 Complete (6 commitów, 2,700 linii)
+- ✅ **Legacy Behavior Guard - Phase 2** - Deep Integration Complete (9 commitów, 2,500 linii)
+  - Storage layer (BehaviorStore)
+  - Scenario runners (HTTP, CLI)
+  - Contract generation algorithms
+  - Behavior comparison engine
+  - Reflection loop integrations (Post-Mortem, Longitudinal)
+  - Policy settings integration
+  - Comprehensive test suite (20+ tests)
+- ✅ **Legacy Behavior Guard - Phase 1** - Complete (6 commitów, 2,700 linii)
 - ✅ **Enterprise Upgrade** - 14 zadań, 80%+ coverage (14 commitów, 1,868 linii)
 - ✅ **CI/CD Pipeline** - GitHub Actions multi-version testing
 - ✅ **OpenTelemetry + Prometheus** - Full observability

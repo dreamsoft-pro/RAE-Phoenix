@@ -8,6 +8,92 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - 2025-11-26
 
+### Legacy Behavior Guard - Phase 2 Complete ✅✅
+
+Pełna implementacja **Deep Integration** - wykonalnej warstwy Legacy Behavior Guard z integracją reflection loops i konfigurowalnymi politykami.
+
+#### Added
+- **Behavior Storage Layer** (`5880b17`)
+  - BehaviorStore z file-based JSONL persistence
+  - Hierarchical directory structure: scenarios/{id}, snapshots/{scenario}/{env}, contracts/{scenario}
+  - JSONL batch operations dla CLI integration
+  - Singleton factory pattern (get_behavior_store)
+  - ~318 linii w `feniks/adapters/storage/behavior_store.py`
+
+- **HTTP Scenario Runner** (`a2df7e4`)
+  - HTTPRunner z requests library
+  - Full HTTP method support (GET, POST, PUT, PATCH, DELETE)
+  - Request/response capture z timing
+  - Success criteria validation (status codes, JSON paths)
+  - Simple JSONPath parser ($.key.subkey[0])
+  - Comprehensive error handling (timeout, connection, generic)
+  - ~297 linii w `feniks/adapters/runners/http_runner.py`
+
+- **CLI Scenario Runner** (`4ff944d`)
+  - CLIRunner z subprocess execution
+  - Command execution z timeout
+  - Stdout/stderr capture z exit code tracking
+  - Pattern matching (regex + literal)
+  - Environment variables i working directory support
+  - ~314 linii w `feniks/adapters/runners/cli_runner.py`
+
+- **Contract Generation Algorithms** (`0d372df`)
+  - ContractGenerator ze statistical analysis
+  - Automatic derivation of success criteria z observations
+  - HTTP criteria: status codes, JSON paths (confidence-based)
+  - CLI criteria: exit codes, stdout/stderr patterns
+  - DOM criteria: required selectors based on consistency
+  - Log criteria: error pattern identification
+  - Configurable confidence threshold i percentiles
+  - ~416 linii w `feniks/core/behavior/contract_generator.py`
+
+- **Behavior Comparison Engine** (`fcaee06`)
+  - BehaviorComparisonEngine dla snapshot validation
+  - Multi-layer validation: HTTP, CLI, DOM, logs, performance
+  - Risk score calculation z severity weights (critical=1.0, high=0.7, medium=0.4, low=0.2)
+  - Comprehensive violation reporting z details
+  - JSON path traversal z array index support
+  - ~492 linii w `feniks/core/behavior/comparison_engine.py`
+
+- **Post-Mortem Reflection Integration** (`114d917`)
+  - Extended PostMortemAnalyzer z behavior check analysis
+  - _analyze_behavior_checks() method
+  - Reflections dla: failed checks, high-risk violations, repeated patterns
+  - Deployment blocking recommendations
+  - ~137 linii dodanych do `feniks/core/reflection/post_mortem.py`
+
+- **Longitudinal Reflection Integration** (`7841bab`)
+  - Extended LongitudinalAnalyzer z behavior trend analysis
+  - _analyze_behavior_trends() method
+  - Detection: declining pass rate (>15%), rising risk (>25%), emerging/escalating patterns
+  - Temporal pattern analysis using Counter
+  - ~172 linii dodanych do `feniks/core/reflection/longitudinal.py`
+
+- **Policy Settings Integration** (`b7ac962`)
+  - 9 nowych behavior settings w config/settings.py
+  - Environment variable configuration dla wszystkich thresholds
+  - Factory functions: create_max_behavior_risk_policy(), create_minimum_coverage_policy()
+  - Centralized configuration management
+  - ~75 linii dodanych
+
+- **Comprehensive Test Suite** (`cd56ed3`)
+  - 20+ test cases dla Phase 2 components
+  - ContractGenerator tests (generation, validation, error handling)
+  - BehaviorComparisonEngine tests (HTTP, CLI, risk scoring)
+  - Reflection integration tests (Post-Mortem, Longitudinal)
+  - ~434 linii w `feniks/tests/unit/core/behavior/test_phase2_components.py`
+
+#### Statistics - Legacy Behavior Guard Phase 2
+- **Commits**: 9
+- **Lines of Code**: ~2,500
+- **Core Components**: 5 (Storage, HTTPRunner, CLIRunner, ContractGenerator, ComparisonEngine)
+- **Reflection Integrations**: 2 (Post-Mortem, Longitudinal)
+- **Factory Functions**: 6
+- **Settings**: 9 configurable parameters
+- **Tests**: 20+ test cases
+
+---
+
 ### Legacy Behavior Guard - Phase 1 Complete ✅
 
 Kompletna implementacja systemu **Legacy Behavior Guard** - parasola bezpieczeństwa nad refaktoryzacją systemów bez testów.
