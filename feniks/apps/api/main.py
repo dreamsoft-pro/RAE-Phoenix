@@ -36,8 +36,94 @@ security = HTTPBearer(auto_error=False)
 
 app = FastAPI(
     title="Feniks API",
-    description="Enterprise-grade Code Analysis and Reflection Engine",
-    version="0.1.0"
+    description="""
+# Feniks: Meta-Reflective Code Analysis Engine
+
+Enterprise-grade system for analyzing code quality, detecting reasoning patterns, and generating actionable recommendations.
+
+## Features
+
+- **Post-Mortem Analysis**: Analyze completed sessions for failures, inefficiencies, and patterns
+- **Longitudinal Trend Detection**: Track quality and cost trends over time
+- **Cost & Quality Policies**: Enforce guardrails and budgets
+- **RAE Integration**: Store meta-reflections for long-term learning
+- **Prometheus Metrics**: Export operational metrics for monitoring
+
+## Authentication
+
+All endpoints (except `/health` and `/metrics/prometheus`) require authentication using:
+- **JWT Bearer Token**: `Authorization: Bearer <token>`
+- **API Key**: `Authorization: <api-key>`
+
+Set `auth_enabled=false` in configuration to disable authentication (not recommended for production).
+
+## Permissions
+
+- **VIEWER**: View reports and metrics
+- **ANALYST**: View + analyze sessions
+- **REFACTORER**: Analyst + execute refactorings
+- **ADMIN**: Full access
+
+## Quick Start
+
+```bash
+# Analyze a session
+curl -X POST https://api.feniks.io/sessions/analyze \\
+  -H "Authorization: Bearer $TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"project_id": "my-project", "session_summary": {...}}'
+
+# Get report
+curl https://api.feniks.io/report/rep-session-123 \\
+  -H "Authorization: Bearer $TOKEN"
+
+# Get metrics (Prometheus format)
+curl https://api.feniks.io/metrics/prometheus
+```
+
+## Rate Limits
+
+- **Default**: 100 requests/minute per IP
+- **Analyze endpoint**: 10 requests/minute (compute-intensive)
+
+## Support
+
+- Documentation: https://docs.feniks.io
+- GitHub: https://github.com/your-org/feniks
+- Issues: https://github.com/your-org/feniks/issues
+    """,
+    version="0.1.0",
+    openapi_tags=[
+        {
+            "name": "sessions",
+            "description": "Session analysis operations. Submit sessions for post-mortem analysis and retrieve results."
+        },
+        {
+            "name": "reports",
+            "description": "Report retrieval and management. Access meta-reflections and analysis results."
+        },
+        {
+            "name": "patterns",
+            "description": "Error pattern analysis. View aggregated patterns from longitudinal analysis."
+        },
+        {
+            "name": "metrics",
+            "description": "System metrics and observability. Access operational metrics in JSON or Prometheus format."
+        },
+        {
+            "name": "health",
+            "description": "Health checks and system status."
+        }
+    ],
+    contact={
+        "name": "Feniks Team",
+        "email": "support@feniks.io",
+        "url": "https://feniks.io"
+    },
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
 )
 
 # --- Dependencies ---
@@ -117,7 +203,18 @@ class AnalyzeSessionResponse(BaseModel):
 
 # --- Endpoints ---
 
-@app.post("/sessions/analyze", response_model=AnalyzeSessionResponse)
+@app.post(
+    "/sessions/analyze",
+    response_model=AnalyzeSessionResponse,
+    tags=["sessions"],
+    summary="Analyze a session",
+    responses={
+        200: {"description": "Analysis completed successfully"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Insufficient permissions"},
+        500: {"description": "Analysis failed"}
+    }
+)
 async def analyze_session(
     request: AnalyzeSessionRequest,
     background_tasks: BackgroundTasks,
@@ -125,7 +222,30 @@ async def analyze_session(
 ):
     """
     Submit a session for Post-Mortem analysis.
-    Requires: ANALYZE_CODE permission
+
+    Analyzes a completed agent session to detect:
+    - Reasoning failures and loops
+    - Cost overruns
+    - Quality issues (empty thoughts, forbidden patterns)
+
+    **Requires**: ANALYZE_CODE permission
+
+    **Example**:
+    ```json
+    {
+      "project_id": "my-project",
+      "session_summary": {
+        "session_id": "sess-123",
+        "duration": 120.5,
+        "success": true,
+        "reasoning_traces": [...],
+        "cost_profile": {
+          "total_tokens": 5000,
+          "cost_usd": 0.15
+        }
+      }
+    }
+    ```
     """
     log.info(f"User {user.username} analyzing session for project {request.project_id}")
     report_id = f"rep-{request.session_summary.session_id}"
@@ -156,25 +276,53 @@ async def analyze_session(
         log.error(f"Analysis failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/report/{report_id}", response_model=List[MetaReflection])
+@app.get(
+    "/report/{report_id}",
+    response_model=List[MetaReflection],
+    tags=["reports"],
+    summary="Get analysis report",
+    responses={
+        200: {"description": "Report retrieved successfully"},
+        404: {"description": "Report not found"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Insufficient permissions"}
+    }
+)
 async def get_report(
     report_id: str,
     user: User = Depends(require_permission(Permission.VIEW_REPORTS))
 ):
     """
     Get the analysis report (meta-reflections) for a session.
-    Requires: VIEW_REPORTS permission
+
+    Returns a list of meta-reflections generated from post-mortem analysis.
+
+    **Requires**: VIEW_REPORTS permission
+
+    **Report ID Format**: `rep-{session_id}`
     """
     if report_id not in _reflections_db:
         raise HTTPException(status_code=404, detail="Report not found")
     
     return _reflections_db[report_id]
 
-@app.get("/patterns/errors")
+@app.get(
+    "/patterns/errors",
+    tags=["patterns"],
+    summary="Get error patterns",
+    responses={
+        200: {"description": "Error patterns retrieved"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Insufficient permissions"}
+    }
+)
 async def get_error_patterns(user: User = Depends(require_permission(Permission.VIEW_REPORTS))):
     """
-    Get aggregated error patterns (Longitudinal).
-    Requires: VIEW_REPORTS permission
+    Get aggregated error patterns from longitudinal analysis.
+
+    Returns common patterns detected across multiple sessions.
+
+    **Requires**: VIEW_REPORTS permission
     """
     # Mock implementation for MVP
     # In real world, query DB/Vector Store for common patterns
@@ -185,23 +333,69 @@ async def get_error_patterns(user: User = Depends(require_permission(Permission.
         ]
     }
 
-@app.get("/metrics")
+@app.get(
+    "/metrics",
+    tags=["metrics"],
+    summary="Get system metrics (JSON)",
+    responses={
+        200: {"description": "Metrics retrieved"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Insufficient permissions"}
+    }
+)
 async def get_metrics(user: User = Depends(require_permission(Permission.VIEW_METRICS))):
     """
-    Get system metrics.
-    Requires: VIEW_METRICS permission
+    Get system metrics in JSON format.
+
+    Returns operational metrics including uptime, operations count, and quality scores.
+
+    **Requires**: VIEW_METRICS permission
     """
     return metrics.get_metrics()
 
-@app.get("/metrics/prometheus")
+@app.get(
+    "/metrics/prometheus",
+    tags=["metrics"],
+    summary="Get Prometheus metrics",
+    responses={
+        200: {
+            "description": "Prometheus metrics in text format",
+            "content": {"text/plain": {}}
+        }
+    }
+)
 async def prometheus_metrics_endpoint():
     """
-    Prometheus metrics endpoint (text/plain format).
-    Public endpoint - no authentication required for scraping.
+    Prometheus metrics endpoint in standard text/plain format.
+
+    **Public endpoint** - No authentication required (designed for Prometheus scraping).
+
+    **Metrics exported**:
+    - `feniks_cost_total`: Total cost in USD
+    - `feniks_quality_score`: Current quality score (0.0 - 1.0)
+    - `feniks_recommendations_count`: Total recommendations generated
+    - `feniks_operations_total`: Total operations executed
+    - `feniks_errors_total`: Total errors encountered
+    - `feniks_operation_duration_seconds`: Operation duration histogram
+    - `feniks_uptime_seconds`: Service uptime
     """
     metrics_data = prometheus_metrics.export_prometheus()
     return Response(content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8")
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Health check",
+    responses={
+        200: {"description": "Service is healthy"}
+    }
+)
 async def health_check():
+    """
+    Basic health check endpoint.
+
+    Returns service status and version. Always returns 200 if service is running.
+
+    **Public endpoint** - No authentication required.
+    """
     return {"status": "ok", "version": "0.1.0"}
