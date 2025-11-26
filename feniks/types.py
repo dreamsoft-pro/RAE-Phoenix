@@ -175,3 +175,74 @@ class SystemModel:
 
     # Metadata
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+# --- Meta-Reflection Types (Iteration 4) ---
+
+class ReflectionLevel(Enum):
+    """Level of reflection."""
+    OBSERVATION = 0  # Pure observations from data
+    REFLECTION = 1   # Conclusions and insights
+    META_REFLECTION = 2  # Reflections about reflections/processes
+
+
+class ReflectionScope(Enum):
+    """Scope of the reflection."""
+    CODEBASE = "codebase"  # Entire codebase
+    MODULE = "module"       # Single module
+    SYSTEM = "system"       # System architecture
+    PATTERN = "pattern"     # Code pattern
+    TECHNICAL_DEBT = "technical_debt"  # Technical debt
+
+
+class ReflectionImpact(Enum):
+    """Impact level of the reflection."""
+    CRITICAL = "critical"  # Requires immediate attention
+    REFACTOR_RECOMMENDED = "refactor-recommended"  # Should be addressed
+    MONITOR = "monitor"    # Keep an eye on it
+    INFORMATIONAL = "informational"  # Just FYI
+
+
+@dataclass
+class ReflectionEvidence:
+    """Evidence supporting a meta-reflection."""
+    type: str  # metric, pattern, analysis, etc.
+    source: str  # Where the evidence comes from
+    value: Any  # The actual evidence value
+    context: Optional[str] = None  # Additional context
+
+
+@dataclass
+class MetaReflection:
+    """
+    Represents a meta-reflection about the codebase.
+
+    Levels:
+    - 0 (OBSERVATION): Pure data observations
+    - 1 (REFLECTION): Insights and conclusions
+    - 2 (META_REFLECTION): Reflections about the quality of code/architecture
+    """
+    id: str
+    timestamp: str
+    project_id: str
+    level: ReflectionLevel
+    scope: ReflectionScope
+    impact: ReflectionImpact
+
+    # Content
+    title: str
+    content: str
+
+    # Evidence and context
+    evidence: List[ReflectionEvidence] = field(default_factory=list)
+    related_modules: List[str] = field(default_factory=list)
+    related_files: List[str] = field(default_factory=list)
+
+    # Recommendations
+    recommendations: List[str] = field(default_factory=list)
+
+    # Metadata
+    origin: str = "feniks"
+    tags: List[str] = field(default_factory=list)
+    confidence: float = 1.0
+    metadata: Dict[str, Any] = field(default_factory=dict)

@@ -63,14 +63,16 @@ def handle_analyze(args):
     log.info(f"Project ID: {args.project_id}")
     log.info(f"Collection: {args.collection}")
 
-    # Parse output path
+    # Parse output paths
     output_path = Path(args.output) if args.output else None
+    meta_reflections_output = Path(args.meta_reflections) if args.meta_reflections else None
 
     # Run analysis
     system_model = run_analysis(
         project_id=args.project_id,
         collection_name=args.collection,
         output_path=output_path,
+        meta_reflections_output=meta_reflections_output,
         limit=args.limit
     )
 
@@ -170,6 +172,11 @@ def main():
         "--limit",
         type=int,
         help="Limit number of chunks to analyze (for testing)"
+    )
+    analyze_parser.add_argument(
+        "--meta-reflections",
+        type=str,
+        help="Output path for meta-reflections JSONL (e.g., reflections.jsonl)"
     )
     analyze_parser.set_defaults(func=handle_analyze)
 

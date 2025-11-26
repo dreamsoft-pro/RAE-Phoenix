@@ -16,6 +16,7 @@ from feniks.exceptions import FeniksError, FeniksStoreError
 from feniks.core.system_model_builder import build_system_model
 from feniks.core.capability_detector import CapabilityDetector
 from feniks.core.report_generator import generate_report
+from feniks.core.meta_reflection_engine import generate_meta_reflections, save_meta_reflections
 
 log = get_logger("core.analysis")
 
@@ -174,6 +175,7 @@ class AnalysisPipeline:
         project_id: str,
         collection_name: str = "code_chunks",
         output_path: Optional[Path] = None,
+        meta_reflections_output: Optional[Path] = None,
         limit: Optional[int] = None
     ) -> SystemModel:
         """
@@ -183,6 +185,7 @@ class AnalysisPipeline:
             project_id: Project identifier
             collection_name: Qdrant collection name
             output_path: Optional path to save report
+            meta_reflections_output: Optional path to save meta-reflections JSONL
             limit: Optional limit on chunks to analyze
 
         Returns:
@@ -225,9 +228,20 @@ class AnalysisPipeline:
             stats["capabilities"] = len(system_model.capabilities)
             log.info(f"Detected {len(system_model.capabilities)} capabilities")
 
-            # Step 4: Generate report
-            log.info("Step 4/5: Generating report...")
-            report = generate_report(system_model, output_path)
+            # Step 4: Generate meta-reflections
+            log.info("Step 4/6: Generating meta-reflections...")
+            meta_reflections = generate_meta_reflections(system_model)
+            stats["meta_reflections"] = len(meta_reflections)
+            log.info(f"Generated {len(meta_reflections)} meta-reflections")
+
+            # Save meta-reflections if output path specified
+            if meta_reflections_output:
+                save_meta_reflections(meta_reflections, meta_reflections_output, format="jsonl")
+                log.info(f"Meta-reflections saved to {meta_reflections_output}")
+
+            # Step 5: Generate report (including meta-reflections)
+            log.info("Step 5/6: Generating report...")
+            report = generate_report(system_model, output_path, meta_reflections=meta_reflections)
 
             if output_path:
                 log.info(f"Report saved to {output_path}")
@@ -235,8 +249,8 @@ class AnalysisPipeline:
                 # Print summary to console
                 print("\n" + report)
 
-            # Step 5: Statistics
-            log.info("Step 5/5: Analysis complete")
+            # Step 6: Statistics
+            log.info("Step 6/6: Analysis complete")
             log.info(f"  Project: {stats['project_id']}")
             log.info(f"  Chunks: {stats['chunks_loaded']}")
             log.info(f"  Modules: {stats['modules']}")
@@ -255,6 +269,7 @@ def run_analysis(
     project_id: str,
     collection_name: str = "code_chunks",
     output_path: Optional[Path] = None,
+    meta_reflections_output: Optional[Path] = None,
     limit: Optional[int] = None
 ) -> SystemModel:
     """
@@ -264,6 +279,7 @@ def run_analysis(
         project_id: Project identifier
         collection_name: Qdrant collection name
         output_path: Optional path to save report
+        meta_reflections_output: Optional path to save meta-reflections JSONL
         limit: Optional limit on chunks to analyze
 
     Returns:
@@ -274,5 +290,6 @@ def run_analysis(
         project_id=project_id,
         collection_name=collection_name,
         output_path=output_path,
+        meta_reflections_output=meta_reflections_output,
         limit=limit
     )
