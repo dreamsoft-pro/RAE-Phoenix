@@ -17,4 +17,22 @@ Built-in refactoring recipes.
 from feniks.core.refactor.recipes.reduce_complexity import ReduceComplexityRecipe
 from feniks.core.refactor.recipes.extract_function import ExtractFunctionRecipe
 
-__all__ = ["ReduceComplexityRecipe", "ExtractFunctionRecipe"]
+# AngularJS migration recipes
+from feniks.core.refactor.recipes.angularjs import (
+    ControllerToComponentRecipe,
+    DirectiveToComponentRecipe,
+    TemplateToJsxRecipe,
+    RoutingToAppRouterRecipe,
+    ScopeToHooksRecipe,
+)
+
+__all__ = [
+    "ReduceComplexityRecipe",
+    "ExtractFunctionRecipe",
+    # AngularJS migration recipes
+    "ControllerToComponentRecipe",
+    "DirectiveToComponentRecipe",
+    "TemplateToJsxRecipe",
+    "RoutingToAppRouterRecipe",
+    "ScopeToHooksRecipe",
+]
