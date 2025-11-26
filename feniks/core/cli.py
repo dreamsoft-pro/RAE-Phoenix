@@ -11,7 +11,8 @@ from feniks.logger import get_logger
 from feniks.config import settings
 from feniks.exceptions import FeniksError
 from feniks.core.ingest_pipeline import run_ingest
-from feniks.core.analysis_pipeline import run_analysis
+from feniks.core.analysis_pipeline import run_analysis, AnalysisPipeline
+from feniks.refactor.refactor_engine import RefactorEngine
 
 log = get_logger("cli")
 
@@ -97,9 +98,126 @@ def handle_analyze(args):
 
 
 def handle_refactor(args):
-    """Handle the refactor command (to be implemented in Iteration 6)."""
-    log.info("Refactor command will be implemented in Iteration 6")
-    log.info(f"Query: {args.query}")
+    """Handle the refactor command."""
+    log.info("=== Feniks Refactoring Workflow ===")
+
+    # Initialize refactor engine
+    engine = RefactorEngine()
+
+    # List recipes if requested
+    if args.list_recipes:
+        log.info("Available refactoring recipes:")
+        for recipe in engine.list_recipes():
+            print(f"  - {recipe['name']}: {recipe['description']}")
+            print(f"    Risk: {recipe['risk_level']}")
+        return
+
+    # Validate required args
+    if not args.recipe:
+        log.error("Recipe name required. Use --list-recipes to see available recipes.")
+        return 1
+
+    if not args.project_id:
+        log.error("Project ID required (--project-id)")
+        return 1
+
+    log.info(f"Recipe: {args.recipe}")
+    log.info(f"Project ID: {args.project_id}")
+    log.info(f"Collection: {args.collection}")
+    log.info(f"Dry run: {args.dry_run}")
+
+    try:
+        # Step 1: Load system model and chunks
+        log.info("Step 1/3: Loading system model and chunks...")
+        pipeline = AnalysisPipeline()
+
+        # Load chunks
+        chunks = pipeline._load_chunks_from_qdrant(args.collection)
+        log.info(f"Loaded {len(chunks)} chunks")
+
+        # Build system model
+        from feniks.core.system_model_builder import build_system_model
+        from feniks.core.capability_detector import CapabilityDetector
+
+        system_model = build_system_model(chunks, args.project_id)
+        detector = CapabilityDetector()
+        system_model = detector.enrich_system_model(system_model, chunks)
+        log.info(f"Built system model: {system_model.total_modules} modules")
+
+        # Step 2: Run refactoring workflow
+        log.info("Step 2/3: Running refactoring workflow...")
+
+        # Parse target
+        target = None
+        if args.target_module:
+            target = {"module_name": args.target_module}
+
+        # Set output directory
+        output_dir = Path(args.output) if args.output else Path("output/refactor")
+
+        # Run workflow
+        result = engine.run_workflow(
+            recipe_name=args.recipe,
+            system_model=system_model,
+            chunks=chunks,
+            target=target,
+            dry_run=args.dry_run,
+            output_dir=output_dir
+        )
+
+        if not result:
+            log.info("No refactoring needed")
+            return 0
+
+        # Step 3: Display results
+        log.info("Step 3/3: Refactoring complete")
+        log.info(f"  Status: {'Success' if result.success else 'Failed'}")
+        log.info(f"  Files changed: {result.total_changes}")
+        log.info(f"  Risk level: {result.plan.risk_level.value}")
+
+        if result.patch_path:
+            log.info(f"  Patch: {result.patch_path}")
+
+        if result.errors:
+            log.warning(f"  Errors: {len(result.errors)}")
+            for error in result.errors:
+                log.error(f"    - {error}")
+
+        if result.warnings:
+            log.warning(f"  Warnings: {len(result.warnings)}")
+            for warning in result.warnings:
+                log.warning(f"    - {warning}")
+
+        # Print summary
+        print("\n" + "="*80)
+        print(f"Refactoring: {result.plan.recipe_name}")
+        print("="*80)
+        print(f"Status: {'✓ Success' if result.success else '✗ Failed'}")
+        print(f"Risk: {result.plan.risk_level.value.upper()}")
+        print(f"\nRationale: {result.plan.rationale}")
+        print(f"\nFiles changed: {result.total_changes}")
+        for file_path in result.changed_files[:5]:
+            print(f"  - {file_path}")
+        if len(result.changed_files) > 5:
+            print(f"  ... and {len(result.changed_files) - 5} more")
+
+        if result.patch_path:
+            print(f"\nPatch saved to: {result.patch_path}")
+            print(f"Report saved to: {output_dir / f'refactor_report_{args.recipe}.md'}")
+
+        print("\nNext steps:")
+        for step in result.plan.validation_steps[:3]:
+            print(f"  - {step}")
+        print("="*80)
+
+        return 0 if result.success else 1
+
+    except FeniksError as e:
+        log.error(f"Refactoring failed: {e}")
+        return 1
+    except Exception as e:
+        log.error(f"Unexpected error: {e}", exc_info=True)
+        return 2
 
 
 def main():
@@ -203,20 +321,41 @@ def main():
         help="Execute refactoring workflows"
     )
     refactor_parser.add_argument(
-        "--query",
-        type=str,
-        required=True,
-        help="Natural language query for refactoring targets"
+        "--list-recipes",
+        action="store_true",
+        help="List available refactoring recipes"
     )
     refactor_parser.add_argument(
         "--recipe",
         type=str,
-        help="Path to refactoring recipe"
+        help="Refactoring recipe name (e.g., reduce_complexity, extract_function)"
+    )
+    refactor_parser.add_argument(
+        "--project-id",
+        type=str,
+        help="Project identifier"
+    )
+    refactor_parser.add_argument(
+        "--collection",
+        type=str,
+        default="code_chunks",
+        help="Qdrant collection name (default: code_chunks)"
+    )
+    refactor_parser.add_argument(
+        "--target-module",
+        type=str,
+        help="Target specific module for refactoring"
+    )
+    refactor_parser.add_argument(
+        "--output",
+        type=str,
+        help="Output directory for patches and reports (default: output/refactor)"
     )
     refactor_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Perform dry run without applying changes"
+        default=True,
+        help="Perform dry run without applying changes (default: True)"
     )
     refactor_parser.set_defaults(func=handle_refactor)
 
