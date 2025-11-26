@@ -121,7 +121,7 @@ When RAE integration is enabled:
 
 ```
 ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│   Feniks    │────────▶│     RAE     │────────▶│ Self-Model  │
+│   Feniks    │───────▶│     RAE     │───────▶│ Self-Model  │
 │  Analysis   │ query   │  Reasoning  │ update  │   Memory    │
 └─────────────┘         └─────────────┘         └─────────────┘
        │                       │                       │
