@@ -35,7 +35,16 @@ Został zaprojektowany jako warstwa analityczna nad silnikiem **RAE (Reflective 
 *   **CI/CD Integration**: Blokuj merge przy wysokim ryzyku.
 *   Szczegóły w [docs/LEGACY_BEHAVIOR_GUARD.md](docs/LEGACY_BEHAVIOR_GUARD.md)
 
-### 5. Dostępność
+### 5. AngularJS Migration Recipes 🆕
+*   **Automated Migration**: 5 specialized recipes for AngularJS → Next.js migration
+*   **Controller to Component**: Automatic conversion of controllers to React components
+*   **Template to JSX**: HTML templates → TSX with full directive support
+*   **Routing Migration**: $routeProvider/ui-router → Next.js App Router
+*   **Scope to Hooks**: $scope/$rootScope → useState/Context API
+*   **Behavior Guard Integration**: Validate migrations with automated testing
+*   Szczegóły w [docs/ANGULARJS_MIGRATION.md](docs/ANGULARJS_MIGRATION.md)
+
+### 6. Dostępność
 *   **CLI**: Potężne narzędzie wiersza poleceń do integracji z CI/CD.
 *   **REST API**: Nowoczesne API (FastAPI) do integracji z dashboardami i zewnętrznymi narzędziami.
 *   **Behavior CLI**: Dedykowane komendy dla Legacy Behavior Guard (`feniks behavior`).
@@ -136,6 +145,10 @@ Feniks natywnie wspiera ustrukturyzowane logowanie (JSON) i metryki biznesowe.
 - **[BEHAVIOR_CONTRACT_MODELS.md](docs/BEHAVIOR_CONTRACT_MODELS.md)** - 🆕 Specyfikacja modeli Behavior
 - **[examples/](docs/examples/)** - 🆕 Przykładowe scenariusze YAML (UI, API, CLI)
 
+### AngularJS Migration
+- **[ANGULARJS_MIGRATION.md](docs/ANGULARJS_MIGRATION.md)** - 🆕 Kompletny przewodnik po migracji AngularJS → Next.js
+- **[Feniks–Recipe_Pack_AngularJS_1-3.md](docs/Feniks–Recipe_Pack_AngularJS_1-3.md)** - Specyfikacja Recipe Pack dla AngularJS
+
 ### Historia i Postęp
 - **[CHANGELOG.md](CHANGELOG.md)** - 🆕 Historia zmian i postęp prac w czasie
 - **[IMPLEMENTACJA_PLANU_NAPRAWY_PODSUMOWANIE.md](docs/IMPLEMENTACJA_PLANU_NAPRAWY_PODSUMOWANIE.md)** - Podsumowanie upgrade do Enterprise-Grade
@@ -149,14 +162,25 @@ Feniks natywnie wspiera ustrukturyzowane logowanie (JSON) i metryki biznesowe.
 
 ## 🎯 Status Projektu
 
-- **Wersja:** 0.3.0 (Enterprise Ready)
+- **Wersja:** 0.4.0 (AngularJS Migration Ready)
 - **Status:** ⭐⭐⭐⭐⭐ Production Ready
 - **Test Coverage:** 80%+
-- **Commity:** 70+
-- **Linie kodu:** ~21,000+
-- **Ostatnia aktualizacja:** 2025-11-26
+- **Commity:** 75+
+- **Linie kodu:** ~27,000+
+- **Ostatnia aktualizacja:** 2025-11-27
 
-### Najnowsze Dodatki (2025-11-26)
+### Najnowsze Dodatki (2025-11-27)
+- ✅ **AngularJS Migration Recipes** - Complete Migration Pack (5 recipes, ~6,000 linii)
+  - Controller to Component recipe (automatic conversion)
+  - Directive to Component/Hook recipe (smart strategy selection)
+  - Template to JSX recipe (full directive support)
+  - Routing to App Router recipe ($routeProvider/ui-router → Next.js)
+  - Scope to Hooks recipe ($scope/$rootScope → React hooks)
+  - Behavior Guard integration (automated testing)
+  - Comprehensive test suite (15+ tests)
+  - Full documentation and examples
+
+### Poprzednie Dodatki (2025-11-26)
 - ✅ **Legacy Behavior Guard - Phase 3** - Enterprise Ready Complete (8 commitów, 3,500 linii)
   - UI runner with Playwright (browser automation)
   - Storage abstraction layer (pluggable backends)
