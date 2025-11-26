@@ -11,8 +11,8 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / 'scripts'))
 
-from feniks.logger import log
-from feniks.types import Chunk, ApiEndpoint
+from feniks.infra.logging import log
+from feniks.core.models.types import Chunk, ApiEndpoint
 from feniks_cli import load_ir_chunks
 
 def normalize_path(url: str) -> str:

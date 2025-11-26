@@ -7,7 +7,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from feniks.logger import log
+from feniks.infra.logging import log
 
 def calculate_criticality(chunk: dict) -> float:
     """Calculates an advanced migration difficulty score based on multiple factors."""

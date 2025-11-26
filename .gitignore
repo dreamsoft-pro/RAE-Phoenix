@@ -61,3 +61,4 @@ requirements.txt
 # OS
 .DS_Store
 Thumbs.db
+venv/

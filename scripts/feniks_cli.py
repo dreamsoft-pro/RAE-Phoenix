@@ -10,11 +10,11 @@ from typing import List
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from feniks.logger import log
-from feniks.config import settings
-from feniks.types import Chunk, GitInfo, MigrationSuggestion, ApiEndpoint
-from feniks.embed import get_embedding_model, create_dense_embeddings, build_tfidf
-from feniks.qdrant import ensure_collection, upsert_points
+from feniks.infra.logging import log
+from feniks.config.settings import settings
+from feniks.core.models.types import Chunk, GitInfo, MigrationSuggestion, ApiEndpoint
+from feniks.adapters.llm.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
+from feniks.adapters.storage.qdrant import ensure_collection, upsert_points
 from qdrant_client import QdrantClient
 
 def run_external_script(cmd: List[str], cwd: Path):
@@ -75,12 +75,12 @@ def load_ir_chunks(path: Path) -> List[Chunk]:
                 log.error(f"Could not parse IR chunk line: {e} -> {line}")
     return chunks
 
-def run_build_process(reset_collection: bool = False, collection_name: str = settings.QDRANT_COLLECTION):
+def run_build_process(reset_collection: bool = False, collection_name: str = settings.qdrant_collection):
     log.info("--- Starting Feniks Knowledge Base Build (Advanced) ---")
     try:
         # --- 0. Setup output directories ---
         log.info("Step 0: Setting up output directories...")
-        run_dir = settings.PROJECT_ROOT / "runs" / "latest"
+        run_dir = settings.project_root / "runs" / "latest"
         run_dir.mkdir(parents=True, exist_ok=True)
         raw_chunks_path = run_dir / "chunks.mjs.jsonl"
         enriched_chunks_path = run_dir / "chunks.enriched.jsonl"
@@ -89,31 +89,31 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
 
         # --- 1. Run Node.js Indexer ---
         log.info("Step 1: Running advanced Node.js indexer...")
-        frontend_path = settings.PROJECT_ROOT / "frontend-master"
-        indexer_cmd = ["node", str(settings.NODE_INDEXER_PATH), "--root", str(frontend_path), "--out", str(raw_chunks_path)]
-        run_external_script(indexer_cmd, cwd=settings.PROJECT_ROOT)
+        frontend_path = settings.project_root / "frontend-master"
+        indexer_cmd = ["node", str(settings.node_indexer_path), "--root", str(frontend_path), "--out", str(raw_chunks_path)]
+        run_external_script(indexer_cmd, cwd=settings.project_root)
         log.info("Step 1: Finished running advanced Node.js indexer.")
 
         # --- 2. Run Python Git Blame Enricher ---
         log.info("Step 2: Enriching chunks with git blame information...")
-        enricher_path = settings.PROJECT_ROOT / "scripts" / "enrich_git_blame.py"
+        enricher_path = settings.project_root / "scripts" / "enrich_git_blame.py"
         enricher_cmd = [sys.executable, str(enricher_path), "--repo", str(frontend_path), "--in", str(raw_chunks_path), "--out", str(enriched_chunks_path)]
-        run_external_script(enricher_cmd, cwd=settings.PROJECT_ROOT)
+        run_external_script(enricher_cmd, cwd=settings.project_root)
         log.info("Step 2: Finished enriching chunks with git blame information.")
 
         # --- 2.5. Convert to IR ---
         log.info("Step 2.5: Converting to Feniks Intermediate Representation (IR)...")
-        converter_path = settings.PROJECT_ROOT / "scripts" / "convert_to_ir.py"
+        converter_path = settings.project_root / "scripts" / "convert_to_ir.py"
         converter_cmd = [sys.executable, str(converter_path), "--in", str(enriched_chunks_path), "--out", str(ir_chunks_path)]
-        run_external_script(converter_cmd, cwd=settings.PROJECT_ROOT)
+        run_external_script(converter_cmd, cwd=settings.project_root)
         log.info("Step 2.5: Finished converting to Feniks IR.")
 
         # --- 2.6. Validate IR ---
         log.info("Step 2.6: Validating Feniks IR against schema...")
-        validator_path = settings.PROJECT_ROOT / "scripts" / "validate_ir.py"
-        schema_path = settings.PROJECT_ROOT / "schemas" / "ir.schema.json"
+        validator_path = settings.project_root / "scripts" / "validate_ir.py"
+        schema_path = settings.project_root / "schemas" / "ir.schema.json"
         validator_cmd = [sys.executable, str(validator_path), "--schema", str(schema_path), "--in", str(ir_chunks_path)]
-        run_external_script(validator_cmd, cwd=settings.PROJECT_ROOT)
+        run_external_script(validator_cmd, cwd=settings.project_root)
         log.info("Step 2.6: Finished validating Feniks IR.")
 
         # --- 3. Load IR Chunks ---
@@ -126,7 +126,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
 
         # --- 4. Embeddings ---
         log.info("Step 4: Creating dense and sparse embeddings...")
-        model = get_embedding_model(settings.EMBEDDING_MODEL)
+        model = get_embedding_model(settings.embedding_model)
         dense_embs = create_dense_embeddings(model, chunks)
         tfidf_vec, tfidf_matrix = build_tfidf(chunks)
         log.info(f"Created {dense_embs.shape[0]} dense embeddings.")
@@ -134,7 +134,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
 
         # --- 5. Qdrant Ingestion ---
         log.info("Step 5: Connecting to Qdrant and upserting points...")
-        qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        qdrant_client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
         ensure_collection(client=qdrant_client, name=collection_name, dim=dense_embs.shape[1], reset=reset_collection)
         upsert_points(client=qdrant_client, collection=collection_name, chunks=chunks, dense=dense_embs, X_tfidf=tfidf_matrix, vocab=tfidf_vec.vocabulary_)
         log.info(f"Upserted {len(chunks)} points to Qdrant collection '{collection_name}'.")
@@ -148,7 +148,7 @@ def run_build_process(reset_collection: bool = False, collection_name: str = set
 
 def run_refactor_agent(query: str, recipe: Path, dry_run: bool, filter_: str | None, score_threshold: float, limit: int | None):
     """Wrapper to call the refactor_agent.py script."""
-    script_path = settings.PROJECT_ROOT / "scripts" / "refactor_agent.py"
+    script_path = settings.project_root / "scripts" / "refactor_agent.py"
     cmd = [
         sys.executable, str(script_path),
         "--query", query,
@@ -163,17 +163,17 @@ def run_refactor_agent(query: str, recipe: Path, dry_run: bool, filter_: str | N
         cmd.extend(["--limit", str(limit)])
     
     # Use run_external_script but be mindful of streaming output if needed later
-    run_external_script(cmd, cwd=settings.PROJECT_ROOT)
+    run_external_script(cmd, cwd=settings.project_root)
 
 def run_generate_openapi(input_path: Path, output_path: Path):
     """Wrapper to call the generate_openapi.py script."""
-    script_path = settings.PROJECT_ROOT / "scripts" / "generate_openapi.py"
+    script_path = settings.project_root / "scripts" / "generate_openapi.py"
     cmd = [
         sys.executable, str(script_path),
         "--in", str(input_path),
         "--out", str(output_path),
     ]
-    run_external_script(cmd, cwd=settings.PROJECT_ROOT)
+    run_external_script(cmd, cwd=settings.project_root)
 
 def main():
     parser = argparse.ArgumentParser(description="Feniks Knowledge Base Builder and Refactoring CLI")

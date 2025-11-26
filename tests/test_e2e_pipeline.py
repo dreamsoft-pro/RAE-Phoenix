@@ -12,7 +12,7 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / 'scripts'))
 
 from feniks_cli import run_build_process
-from feniks.config import settings
+from feniks.config.settings import settings
 
 
 @pytest.mark.e2e
@@ -24,7 +24,7 @@ def test_full_end_to_end_pipeline(monkeypatch):
     # 1. Setup: Define a unique collection name for this test run
     collection_name = f"test-collection-{uuid.uuid4()}"
     
-    qdrant_client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+    qdrant_client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
 
     try:
         # 2. Execute: Run the full build process with the unique collection name

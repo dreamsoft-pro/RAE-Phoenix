@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 import jwt
 import hashlib
 
-from feniks.logger import get_logger
+from feniks.infra.logging import get_logger
 from feniks.exceptions import FeniksError
 
 log = get_logger("security.auth")

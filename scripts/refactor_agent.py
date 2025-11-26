@@ -2,7 +2,7 @@ import argparse
 import os
 from qdrant_client import QdrantClient
 import yaml
-from feniks.config import get_config
+from feniks.config.settings import settings
 from feniks.utils import get_git_root, get_llm
 from feniks.plugins import get_plugin
 
@@ -69,8 +69,8 @@ def main():
     parser.add_argument("--limit", type=int, default=3, help="Number of chunks to retrieve")
     args = parser.parse_args()
 
-    config = get_config()
-    client = QdrantClient(config.qdrant_url)
+    config = settings
+    client = QdrantClient(host=config.qdrant_host, port=config.qdrant_port)
 
     chunks = client.search(
         collection_name=config.qdrant_collection,

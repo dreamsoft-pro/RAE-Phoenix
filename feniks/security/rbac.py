@@ -17,7 +17,7 @@ RBAC Manager - Role-Based Access Control.
 from typing import Dict, Set
 from enum import Enum
 
-from feniks.logger import get_logger
+from feniks.infra.logging import get_logger
 from feniks.security.auth import UserRole
 
 log = get_logger("security.rbac")

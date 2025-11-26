@@ -1,35 +1,107 @@
-# Architektura Projektu Feniks
+# Architektura Systemu Feniks
 
-Feniks został zaprojektowany jako elastyczny i rozszerzalny silnik do refaktoryzacji kodu, napędzany przez duże modele językowe (LLM). Jego architektura opiera się na wtyczkach i recepturach, co pozwala na łatwe dostosowanie do różnych języków programowania i zadań.
+**Wersja:** 2.0 (Enterprise Ready)  
+**Data:** 26 Listopada 2025
 
-## Główne Komponenty
+## 1. Koncepcja Wysokopoziomowa
 
-Architektura składa się z czterech głównych komponentów:
+Feniks to system zaprojektowany w oparciu o zasady **Clean Architecture** (Architektura Cebulowa/Heksagonalna). Głównym celem tej architektury jest uniezależnienie logiki biznesowej (Core) od zewnętrznych frameworków, baz danych i interfejsów użytkownika.
 
-1.  **Silnik (Engine)**: Centralna część aplikacji, która orkiestruje całym procesem refaktoryzacji.
-2.  **Baza Wektorowa (Vector Database)**: Przechowuje fragmenty kodu (chunki) w postaci wektorowej, umożliwiając szybkie i semantyczne wyszukiwanie.
-3.  **Wtyczki Językowe (Plugins)**: Moduły specyficzne dla danego języka programowania, odpowiedzialne za analizę i transformację kodu (np. operacje na Abstrakcyjnym Drzewie Składni - AST).
-4.  **Receptury (Recipes)**: Pliki konfiguracyjne YAML, które definiują konkretne zadanie refaktoryzacji, zawierając m.in. szablony promptów dla LLM.
+### Diagram Warstw
 
-## Przepływ Danych (Data Flow)
+```
++---------------------------------------------------------------+
+|                      APPS (Warstwa Wejścia)                   |
+|  +-------------+    +-------------+    +-------------------+  |
+|  |     CLI     |    |   REST API  |    |  Async Workers    |  |
+|  +------+------+    +------+------+    +---------+---------+  |
+|         |                  |                     |            |
++---------|------------------|---------------------|------------+
+          |                  |                     |
+          v                  v                     v
++---------------------------------------------------------------+
+|                      CORE (Logika Biznesowa)                  |
+|                                                               |
+|  +----------------+    +-----------------+    +------------+  |
+|  |   Reflection   |    |   Evaluation    |    |  Policies  |  |
+|  |    Engine      |    |    Pipeline     |    |  Manager   |  |
+|  +-------+--------+    +--------+--------+    +-----+------+  |
+|          |                      |                   |         |
+|          +-----------+----------+-------------------+         |
+|                      |                                        |
+|              +-------v-------+                                |
+|              | Domain Models |                                |
+|              +---------------+                                |
++---------------------------------------------------------------+
+          ^                  ^                     ^
+          |                  |                     |
++---------|------------------|---------------------|------------+
+|         |                  |                     |            |
+|  +------+------+    +------+------+    +---------+---------+  |
+|  |  Qdrant     |    |  RAE Client |    |   LLM Adapter     |  |
+|  |  Adapter    |    |  Adapter    |    |   Adapter         |  |
+|  +-------------+    +-------------+    +-------------------+  |
+|                                                               |
+|                   ADAPTERS (Infrastruktura)                   |
++---------------------------------------------------------------+
+```
 
-Proces refaktoryzacji przebiega następująco:
+---
 
-1.  **Inicjacja**: Użytkownik uruchamia agenta (`scripts/refactor_agent.py`) z zapytaniem (`--query`) opisującym, jaki kod chce znaleźć, oraz ścieżką do receptury lub katalogu z recepturami (`--recipe`).
+## 2. Opis Modułów
 
-2.  **Wyszukiwanie**: Silnik wysyła zapytanie do bazy wektorowej (Qdrant), aby znaleźć najbardziej pasujące fragmenty kodu.
+### 2.1. Core (`feniks/core`)
+Serce systemu. Tutaj znajdują się reguły biznesowe, które nie zależą od żadnych zewnętrznych bibliotek (poza standardowymi).
 
-3.  **Wybór Narzędzi (Dla każdego fragmentu kodu)**:
-    a. **Wybór Receptury**: Jeśli jako argument podano katalog, silnik ocenia wszystkie receptury w tym katalogu i wybiera tę z najwyższym wynikiem dopasowania do aktualnego fragmentu kodu. Oceniane są m.in. tagi i zgodność języka.
-    b. **Wybór Wtyczki**: Na podstawie metadanych fragmentu kodu (pola `language`), silnik dynamicznie ładuje odpowiednią wtyczkę językową (np. `PythonPlugin` dla kodu w Pythonie).
+*   **Models (`core/models`)**: Definicje obiektów domeny (`SessionSummary`, `FeniksReport`, `ReasoningTrace`). Są to czyste klasy danych (Pydantic), używane do komunikacji między warstwami.
+*   **Reflection (`core/reflection`)**: Silnik meta-refleksji. Zawiera logikę analizy post-mortem, longitudinal i self-model. To tutaj zapadają decyzje o jakości kodu.
+*   **Evaluation (`core/evaluation`)**: Pipeline przetwarzania danych. Koordynuje pobieranie danych, analizę i generowanie raportów.
+*   **Policies (`core/policies`)**: Strażnicy systemu (Guardrails). Moduł ten zawiera reguły kosztowe i jakościowe, które są egzekwowane na każdym etapie analizy.
 
-4.  **Generowanie Prompta**: Silnik używa szablonu z wybranej receptury (`prompt_template`) i wstawia w niego treść fragmentu kodu, aby stworzyć precyzyjny prompt dla modelu LLM.
+### 2.2. Adapters (`feniks/adapters`)
+Warstwa odpowiedzialna za komunikację ze światem zewnętrznym. Implementuje interfejsy wymagane przez Core.
 
-5.  **Interakcja z LLM**: Prompt jest wysyłany do modelu językowego, który zwraca sugestię zrefaktoryzowanego kodu.
+*   **Storage (`adapters/storage`)**: Obsługa Qdrant (baza wektorowa). Tłumaczy obiekty domenowe na punkty wektorowe i odwrotnie.
+*   **RAE Client (`adapters/rae_client`)**: Klient integrujący się z silnikiem RAE. Wysyła i pobiera pamięć agentów.
+*   **LLM (`adapters/llm`)**: Abstrakcja nad modelami językowymi (OpenAI, Gemini, Claude). Obecnie obsługuje głównie generowanie embeddingów.
 
-6.  **Transformacja i Zastosowanie Zmian (w przygotowaniu)**:
-    *   Odpowiedź LLM wraz z oryginalnym kodem jest przekazywana do wtyczki językowej.
-    *   Wtyczka parsuje oba fragmenty kodu do postaci AST, a następnie próbuje zintegrować zmiany w sposób bezpieczny i składniowo poprawny.
-    *   Zmiany są zapisywane z powrotem do pliku źródłowego.
+### 2.3. Apps (`feniks/apps`)
+Punkty wejścia do aplikacji. Te moduły "sklejają" system w całość, inicjalizując odpowiednie adaptery i przekazując je do Core.
 
-Dzięki tej modułowej architekturze, dodanie wsparcia dla nowego języka programowania lub nowego rodzaju refaktoryzacji sprowadza się do stworzenia odpowiedniej wtyczki i receptury, bez potrzeby modyfikacji głównego silnika.
+*   **CLI (`apps/cli`)**: Interfejs wiersza poleceń.
+*   **API (`apps/api`)**: Serwer FastAPI udostępniający funkcjonalności przez HTTP.
+
+### 2.4. Infra (`feniks/infra`)
+Wspólne narzędzia infrastrukturalne (Cross-cutting concerns).
+
+*   **Logging**: Ustrukturyzowane logowanie JSON.
+*   **Tracing**: Śledzenie kontekstu wykonania (Trace ID, Span ID).
+*   **Metrics**: Zbieranie metryk biznesowych i technicznych.
+
+---
+
+## 3. Przepływ Danych (Data Flow)
+
+### Scenariusz: Analiza Post-Mortem
+
+1.  **CLI/API** otrzymuje żądanie analizy sesji (`SessionSummary`).
+2.  **Policy Manager** sprawdza, czy sesja nie przekroczyła budżetu lub nie zawiera rażących błędów jakościowych.
+3.  **Reflection Engine** uruchamia analizę Post-Mortem:
+    *   Analizuje ślady rozumowania (`ReasoningTrace`).
+    *   Wykrywa pętle i puste akcje.
+4.  **Evaluation Pipeline** pobiera dodatkowy kontekst z **Qdrant** (jeśli potrzebny).
+5.  Wygenerowane **Meta-Refleksje** są:
+    *   Zapisywane w raporcie.
+    *   Wysyłane do **RAE** (przez RAE Client) w celu "nauczenia" agenta na przyszłość.
+6.  Raport końcowy (`FeniksReport`) jest zwracany do użytkownika.
+
+---
+
+## 4. Stos Technologiczny
+
+*   **Język**: Python 3.10+
+*   **Web Framework**: FastAPI, Uvicorn
+*   **Validation**: Pydantic V2
+*   **Vector DB**: Qdrant
+*   **HTTP Client**: Requests / Httpx
+*   **Testy**: Pytest, Playwright (E2E)

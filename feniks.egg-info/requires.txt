@@ -5,6 +5,7 @@ qdrant-client>=1.7
 sentence-transformers>=2.2
 scikit-learn>=1.0
 numpy>=1.21
+PyJWT>=2.8
 
 [dev]
 pytest>=7.0

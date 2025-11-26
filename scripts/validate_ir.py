@@ -9,7 +9,7 @@ from jsonschema import validate, ValidationError
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from feniks.logger import log
+from feniks.infra.logging import log
 
 def main():
     parser = argparse.ArgumentParser(description="Validate a Feniks IR JSONL file against the canonical schema.")

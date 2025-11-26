@@ -18,8 +18,8 @@ Handles formatting of meta-reflections, system models, and capabilities for RAE 
 from typing import Dict, Any, List
 from datetime import datetime
 
-from feniks.logger import get_logger
-from feniks.types import MetaReflection, SystemModel, Capability, Module
+from feniks.infra.logging import get_logger
+from feniks.core.models.types import MetaReflection, SystemModel, Capability, Module
 
 log = get_logger("integrations.rae_formatter")
 

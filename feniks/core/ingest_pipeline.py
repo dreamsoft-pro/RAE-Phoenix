@@ -20,16 +20,16 @@ from typing import Optional, List
 import numpy as np
 from qdrant_client import QdrantClient
 
-from feniks.logger import get_logger
-from feniks.config import settings
-from feniks.types import Chunk
+from feniks.infra.logging import get_logger
+from feniks.config.settings import settings
+from feniks.core.models.types import Chunk
 from feniks.exceptions import FeniksIngestError, FeniksStoreError, FeniksConfigError
-from feniks.ingest.jsonl_loader import load_jsonl
-from feniks.ingest.filters import ChunkFilter, create_default_filter
+from feniks.adapters.ingest.jsonl_loader import load_jsonl
+from feniks.adapters.ingest.filters import ChunkFilter, create_default_filter
 from feniks.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
 from feniks.store import ensure_collection, upsert_points
-from feniks.observability.metrics import get_metrics_collector
-from feniks.governance.cost_controller import get_cost_controller
+from feniks.infra.metrics import get_metrics_collector
+from feniks.core.policies.cost import get_cost_controller
 
 log = get_logger("core.ingest")
 
