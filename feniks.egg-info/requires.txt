@@ -1,0 +1,14 @@
+pydantic>=2.0
+pydantic-settings>=2.0
+python-dotenv>=0.19
+qdrant-client>=1.7
+sentence-transformers>=2.2
+scikit-learn>=1.0
+numpy>=1.21
+
+[dev]
+pytest>=7.0
+pytest-cov>=4.0
+ruff>=0.1
+black>=23.0
+mypy>=1.0

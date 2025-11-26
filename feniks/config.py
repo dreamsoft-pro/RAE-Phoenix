@@ -1,46 +1,66 @@
-import os
+"""
+Feniks configuration using pydantic BaseSettings.
+Supports environment variables and .env files.
+"""
 from pathlib import Path
-import sys
+from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-try:
-    from dotenv import load_dotenv
-    # Load environment variables from a .env file if it exists
-    load_dotenv()
-except ModuleNotFoundError:
-    print("WARNING: python-dotenv not found. Skipping .env file loading.", file=sys.stderr)
 
-class Settings:
+class Settings(BaseSettings):
     """
     Centralized configuration for the Feniks knowledge base builder.
     Reads settings from environment variables with sensible defaults.
+    Uses pydantic BaseSettings for validation and type safety.
     """
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+
     # The root directory of the project.
-    PROJECT_ROOT: Path = Path(__file__).parent.parent
+    project_root: Path = Path(__file__).parent.parent
 
     # Path to the frontend source code to be indexed.
     # Can be overridden by the FENIKS_FRONTEND_ROOT environment variable.
-    FRONTEND_ROOT: Path = Path(os.getenv(
-        "FENIKS_FRONTEND_ROOT", 
-        PROJECT_ROOT / "frontend-master"
-    ))
+    feniks_frontend_root: Optional[Path] = None
 
     # Directory where all output artifacts will be stored.
     # Can be overridden by the FENIKS_OUTPUT_DIR environment variable.
-    OUTPUT_DIR: Path = Path(os.getenv(
-        "FENIKS_OUTPUT_DIR", 
-        PROJECT_ROOT / "output"
-    ))
-
-    # Path to the Node.js indexer script.
-    NODE_INDEXER_PATH: Path = PROJECT_ROOT / "scripts" / "js_html_indexer.mjs"
+    feniks_output_dir: Optional[Path] = None
 
     # --- Qdrant Settings ---
-    QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "feniks_kb_test")
-    QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
-    QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", 6333))
+    qdrant_collection: str = "feniks_kb_test"
+    qdrant_host: str = "localhost"
+    qdrant_port: int = 6333
 
     # --- Embedding Model Settings ---
-    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+    embedding_model: str = "all-MiniLM-L6-v2"
+
+    # --- Profile (dev/prod) ---
+    feniks_profile: str = "dev"
+
+    @property
+    def frontend_root(self) -> Path:
+        """Returns the frontend root path, with default fallback."""
+        if self.feniks_frontend_root:
+            return self.feniks_frontend_root
+        return self.project_root / "frontend-master"
+
+    @property
+    def output_dir(self) -> Path:
+        """Returns the output directory path, with default fallback."""
+        if self.feniks_output_dir:
+            return self.feniks_output_dir
+        return self.project_root / "output"
+
+    @property
+    def node_indexer_path(self) -> Path:
+        """Returns the path to the Node.js indexer script."""
+        return self.project_root / "scripts" / "js_html_indexer.mjs"
+
 
 # Create a single, importable instance of the settings.
 settings = Settings()
