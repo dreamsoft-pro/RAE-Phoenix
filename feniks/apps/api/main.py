@@ -16,6 +16,7 @@ Feniks API - RESTful interface for the Feniks system.
 """
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import Response
 from typing import Dict, List, Optional
 from pydantic import BaseModel
 
@@ -24,6 +25,7 @@ from feniks.core.models.types import MetaReflection
 from feniks.core.reflection.engine import MetaReflectionEngine
 from feniks.core.policies.manager import PolicyManager
 from feniks.infra.metrics import get_metrics_collector
+from feniks.infra.metrics_prometheus import get_prometheus_collector
 from feniks.infra.logging import get_logger
 from feniks.security.auth import get_auth_manager, User, AuthenticationError, AuthorizationError
 from feniks.security.rbac import RBACManager, Permission
@@ -42,6 +44,7 @@ app = FastAPI(
 reflection_engine = MetaReflectionEngine()
 policy_manager = PolicyManager()
 metrics = get_metrics_collector()
+prometheus_metrics = get_prometheus_collector()
 auth_manager = get_auth_manager(jwt_secret=settings.jwt_secret)
 rbac_manager = RBACManager()
 
@@ -189,6 +192,15 @@ async def get_metrics(user: User = Depends(require_permission(Permission.VIEW_ME
     Requires: VIEW_METRICS permission
     """
     return metrics.get_metrics()
+
+@app.get("/metrics/prometheus")
+async def prometheus_metrics_endpoint():
+    """
+    Prometheus metrics endpoint (text/plain format).
+    Public endpoint - no authentication required for scraping.
+    """
+    metrics_data = prometheus_metrics.export_prometheus()
+    return Response(content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8")
 
 @app.get("/health")
 async def health_check():
