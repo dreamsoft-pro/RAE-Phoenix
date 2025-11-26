@@ -76,6 +76,26 @@ class Settings(BaseSettings):
     cost_control_enabled: bool = False
     default_project_budget: float = 1000.0  # Default budget in cost units
 
+    # --- Behavior Policy Settings (Phase 2 - Legacy Behavior Guard) ---
+    # MaxBehaviorRiskPolicy thresholds
+    behavior_max_risk_threshold: float = 0.5  # Maximum acceptable risk score (0.0-1.0)
+    behavior_critical_threshold: float = 0.7  # Critical risk threshold
+
+    # ZeroRegressionPolicy settings
+    behavior_zero_regression_enabled: bool = False  # Strict no-regression enforcement
+
+    # MinimumCoverageBehaviorPolicy thresholds
+    behavior_min_coverage_scenarios: int = 5  # Minimum required scenarios
+    behavior_min_coverage_checks: int = 3     # Minimum checks per scenario
+
+    # Contract generation settings
+    behavior_contract_min_snapshots: int = 3  # Minimum snapshots for contract generation
+    behavior_contract_confidence_threshold: float = 0.8  # Pattern inclusion threshold
+    behavior_contract_percentile: int = 95    # Duration percentile (p95)
+
+    # Comparison engine settings
+    behavior_comparison_strict_mode: bool = False  # Strict comparison mode
+
     @property
     def frontend_root(self) -> Path:
         """Returns the frontend root path, with default fallback."""

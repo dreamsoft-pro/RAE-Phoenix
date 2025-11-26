@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 
 from feniks.core.models.domain import FeniksReport
 from feniks.core.models.types import MetaReflection, ReflectionImpact
+from feniks.config.settings import settings
 
 
 class PolicyEvaluationResult(BaseModel):
@@ -298,3 +299,57 @@ class ZeroRegressionPolicy:
             passed=True,
             reason=f"Zero regression policy satisfied. All {summary.total_scenarios_checked} scenario(s) passed."
         )
+
+
+# ============================================================================
+# Factory Functions (Settings Integration)
+# ============================================================================
+
+def create_max_behavior_risk_policy(
+    max_risk_score: Optional[float] = None,
+    max_failed_scenarios: Optional[int] = None,
+    require_checks: Optional[bool] = None
+) -> MaxBehaviorRiskPolicy:
+    """
+    Create MaxBehaviorRiskPolicy using settings defaults.
+
+    Args:
+        max_risk_score: Override settings.behavior_max_risk_threshold
+        max_failed_scenarios: Override default (0)
+        require_checks: Override default (True)
+
+    Returns:
+        MaxBehaviorRiskPolicy instance
+    """
+    return MaxBehaviorRiskPolicy(
+        max_risk_score=max_risk_score if max_risk_score is not None else settings.behavior_max_risk_threshold,
+        max_failed_scenarios=max_failed_scenarios if max_failed_scenarios is not None else 0,
+        require_checks=require_checks if require_checks is not None else True
+    )
+
+
+def create_minimum_coverage_policy(
+    min_scenarios: Optional[int] = None
+) -> MinimumCoverageBehaviorPolicy:
+    """
+    Create MinimumCoverageBehaviorPolicy using settings defaults.
+
+    Args:
+        min_scenarios: Override settings.behavior_min_coverage_scenarios
+
+    Returns:
+        MinimumCoverageBehaviorPolicy instance
+    """
+    return MinimumCoverageBehaviorPolicy(
+        min_scenarios=min_scenarios if min_scenarios is not None else settings.behavior_min_coverage_scenarios
+    )
+
+
+def create_zero_regression_policy() -> ZeroRegressionPolicy:
+    """
+    Create ZeroRegressionPolicy.
+
+    Returns:
+        ZeroRegressionPolicy instance
+    """
+    return ZeroRegressionPolicy()
