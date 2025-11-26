@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # --- Profile (dev/prod) ---
     feniks_profile: str = "dev"
 
+    # --- RAE Integration Settings (Iteration 5) ---
+    rae_enabled: bool = False
+    rae_base_url: Optional[str] = None
+    rae_api_key: Optional[str] = None
+    rae_timeout: int = 30  # seconds
+
     @property
     def frontend_root(self) -> Path:
         """Returns the frontend root path, with default fallback."""
