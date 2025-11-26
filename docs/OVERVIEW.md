@@ -164,4 +164,4 @@ RAE-Feniks is built on three core principles:
 
 ## License
 
-MIT
+Apache-2.0

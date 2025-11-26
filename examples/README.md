@@ -350,7 +350,7 @@ After exploring these examples:
 ## Support
 
 - **Documentation**: [docs/](../docs/)
-- **Issues**: https://github.com/your-org/feniks/issues
+- **Issues**: https://github.com/dreamsoft-pro/RAE-Feniks/issues
 - **Getting Started**: [docs/GETTING_STARTED.md](../docs/GETTING_STARTED.md)
 
 Happy refactoring! 🚀

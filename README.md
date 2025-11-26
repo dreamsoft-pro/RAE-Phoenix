@@ -1,6 +1,6 @@
 # RAE-Feniks
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
 **Enterprise-grade code analysis, meta-reflection, and refactoring engine**
@@ -47,8 +47,8 @@ RAE-Feniks goes beyond traditional static analysis by:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/feniks.git
-cd feniks
+git clone https://github.com/dreamsoft-pro/RAE-Feniks.git
+cd RAE-Feniks
 
 # Create virtual environment
 python3 -m venv .venv
@@ -250,11 +250,11 @@ We welcome contributions! See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidel
 
 - **Documentation**: [docs/](docs/)
 - **Examples**: [examples/](examples/)
-- **Issues**: https://github.com/your-org/feniks/issues
+- **Issues**: https://github.com/dreamsoft-pro/RAE-Feniks/issues
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) file for details.
 
 ## Citation
 
@@ -263,9 +263,9 @@ If you use RAE-Feniks in your research or project, please cite:
 ```bibtex
 @software{rae_feniks,
   title = {RAE-Feniks: Enterprise Code Analysis and Refactoring Engine},
-  author = {RAE-Feniks Team},
+  author = {DreamSoft Pro},
   year = {2025},
-  url = {https://github.com/your-org/feniks}
+  url = {https://github.com/dreamsoft-pro/RAE-Feniks}
 }
 ```
 
@@ -279,6 +279,6 @@ RAE-Feniks is built on three core principles:
 
 ---
 
-**Built with ❤️ by the RAE-Feniks Team**
+**Built with ❤️ by DreamSoft Pro**
 
-For questions, feedback, or collaboration: [GitHub Issues](https://github.com/your-org/feniks/issues)
+For questions, feedback, or collaboration: [GitHub Issues](https://github.com/dreamsoft-pro/RAE-Feniks/issues)
