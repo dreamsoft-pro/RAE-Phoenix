@@ -398,17 +398,92 @@ async def prometheus_metrics_endpoint():
 @app.get(
     "/health",
     tags=["health"],
-    summary="Health check",
+    summary="Health check with dependency status",
     responses={
-        200: {"description": "Service is healthy"}
+        200: {"description": "Service is healthy"},
+        503: {"description": "Service is degraded (one or more dependencies unhealthy)"}
     }
 )
 async def health_check():
     """
-    Basic health check endpoint.
+    Health check endpoint with dependency status.
 
-    Returns service status and version. Always returns 200 if service is running.
+    Checks health of:
+    - Qdrant vector database
+    - RAE (Reflective Agent Engine) if enabled
+
+    Returns 200 if all dependencies are healthy, 503 if degraded.
 
     **Public endpoint** - No authentication required.
     """
-    return {"status": "ok", "version": "0.1.0"}
+    health_status = {
+        "status": "ok",
+        "version": "0.1.0",
+        "dependencies": {}
+    }
+
+    # Check Qdrant
+    try:
+        from qdrant_client import QdrantClient
+        client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
+        collections = client.get_collections()
+        health_status["dependencies"]["qdrant"] = {
+            "status": "healthy",
+            "host": settings.qdrant_host,
+            "port": settings.qdrant_port,
+            "collections": len(collections.collections)
+        }
+        log.debug(f"Qdrant health check: OK ({len(collections.collections)} collections)")
+    except Exception as e:
+        health_status["dependencies"]["qdrant"] = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+        log.warning(f"Qdrant health check failed: {e}")
+
+    # Check RAE if enabled
+    if settings.rae_enabled:
+        try:
+            from feniks.adapters.rae_client import create_rae_client
+            rae = create_rae_client()
+            if rae:
+                rae_health = rae.health_check()
+                health_status["dependencies"]["rae"] = {
+                    "status": "healthy",
+                    "base_url": settings.rae_base_url,
+                    "response": rae_health.get("status", "ok")
+                }
+                log.debug("RAE health check: OK")
+            else:
+                health_status["dependencies"]["rae"] = {
+                    "status": "disabled",
+                    "message": "RAE client not initialized"
+                }
+        except Exception as e:
+            health_status["dependencies"]["rae"] = {
+                "status": "unhealthy",
+                "error": str(e)
+            }
+            log.warning(f"RAE health check failed: {e}")
+    else:
+        health_status["dependencies"]["rae"] = {
+            "status": "disabled"
+        }
+
+    # Determine overall status
+    unhealthy_deps = [
+        dep for dep, info in health_status["dependencies"].items()
+        if info.get("status") == "unhealthy"
+    ]
+
+    if unhealthy_deps:
+        health_status["status"] = "degraded"
+        health_status["unhealthy_dependencies"] = unhealthy_deps
+        log.warning(f"Service degraded: {unhealthy_deps}")
+        return Response(
+            content=str(health_status),
+            status_code=503,
+            media_type="application/json"
+        )
+
+    return health_status
