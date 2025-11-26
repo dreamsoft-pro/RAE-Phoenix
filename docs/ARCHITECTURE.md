@@ -53,10 +53,13 @@ Feniks to system zaprojektowany w oparciu o zasady **Clean Architecture** (Archi
 ### 2.1. Core (`feniks/core`)
 Serce systemu. Tutaj znajdują się reguły biznesowe, które nie zależą od żadnych zewnętrznych bibliotek (poza standardowymi).
 
-*   **Models (`core/models`)**: Definicje obiektów domeny (`SessionSummary`, `FeniksReport`, `ReasoningTrace`). Są to czyste klasy danych (Pydantic), używane do komunikacji między warstwami.
+*   **Models (`core/models`)**: Definicje obiektów domeny:
+    *   `SessionSummary`, `FeniksReport`, `ReasoningTrace` - modele analizy kodu
+    *   `BehaviorScenario`, `BehaviorSnapshot`, `BehaviorContract`, `BehaviorCheckResult` - modele Legacy Behavior Guard
+    *   Są to czyste klasy danych (Pydantic), używane do komunikacji między warstwami.
 *   **Reflection (`core/reflection`)**: Silnik meta-refleksji. Zawiera logikę analizy post-mortem, longitudinal i self-model. To tutaj zapadają decyzje o jakości kodu.
 *   **Evaluation (`core/evaluation`)**: Pipeline przetwarzania danych. Koordynuje pobieranie danych, analizę i generowanie raportów.
-*   **Policies (`core/policies`)**: Strażnicy systemu (Guardrails). Moduł ten zawiera reguły kosztowe i jakościowe, które są egzekwowane na każdym etapie analizy.
+*   **Policies (`core/policies`)**: Strażnicy systemu (Guardrails). Moduł ten zawiera reguły kosztowe i jakościowe, które są egzekwowane na każdym etapie analizy. Zawiera także polityki behavior risk (MaxBehaviorRiskPolicy, ZeroRegressionPolicy).
 
 ### 2.2. Adapters (`feniks/adapters`)
 Warstwa odpowiedzialna za komunikację ze światem zewnętrznym. Implementuje interfejsy wymagane przez Core.
@@ -69,6 +72,8 @@ Warstwa odpowiedzialna za komunikację ze światem zewnętrznym. Implementuje in
 Punkty wejścia do aplikacji. Te moduły "sklejają" system w całość, inicjalizując odpowiednie adaptery i przekazując je do Core.
 
 *   **CLI (`apps/cli`)**: Interfejs wiersza poleceń.
+    *   `main.py` - główne komendy (ingest, analyze, refactor, metrics)
+    *   `behavior.py` - komendy Legacy Behavior Guard (record, build-contracts, check)
 *   **API (`apps/api`)**: Serwer FastAPI udostępniający funkcjonalności przez HTTP.
 
 ### 2.4. Infra (`feniks/infra`)
@@ -94,6 +99,38 @@ Wspólne narzędzia infrastrukturalne (Cross-cutting concerns).
     *   Zapisywane w raporcie.
     *   Wysyłane do **RAE** (przez RAE Client) w celu "nauczenia" agenta na przyszłość.
 6.  Raport końcowy (`FeniksReport`) jest zwracany do użytkownika.
+
+### Scenariusz: Legacy Behavior Guard
+
+1.  **CLI** otrzymuje żądanie nagrania zachowania scenariusza (`behavior record`).
+2.  **Scenario Runner** wykonuje scenariusz:
+    *   UI: Playwright/Puppeteer (navigacja, kliknięcia, formularz)
+    *   API: HTTP client (request → response)
+    *   CLI: subprocess wrapper (komenda → output + logi)
+3.  **BehaviorSnapshot** jest tworzony z obserwacji:
+    *   ObservedHTTP (status, headers, body)
+    *   ObservedDOM (selektory, teksty)
+    *   ObservedLogs (linie logów, matched patterns)
+4.  Snapshoty są zapisywane do JSONL.
+5.  **CLI** otrzymuje żądanie budowy kontraktów (`behavior build-contracts`).
+6.  **Contract Builder** analizuje wiele snapshotów:
+    *   Wykrywa wspólne cechy (status codes, DOM elements, log patterns)
+    *   Usuwa outliery
+    *   Tworzy **BehaviorContract** z progami tolerancji
+7.  Kontrakty są zapisywane do JSONL.
+8.  **CLI** otrzymuje żądanie sprawdzenia zachowania (`behavior check`).
+9.  **Behavior Checker** porównuje nowe snapshoty (candidate) z kontraktami:
+    *   Tworzy **BehaviorCheckResult** dla każdego scenariusza
+    *   Wykrywa **BehaviorViolation** (HTTP status mismatch, DOM element missing, log pattern forbidden)
+    *   Oblicza **risk_score** (0.0-1.0)
+10. **MaxBehaviorRiskPolicy** ocenia ryzyko:
+    *   Pass: risk < 0.5, failed scenarios = 0
+    *   Fail: risk ≥ 0.5 lub failed scenarios > 0
+11. **BehaviorChecksSummary** jest dodawany do **FeniksReport**.
+12. Raport końcowy zawiera:
+    *   behavior_checks_summary (pass/fail counts, max risk)
+    *   behavior_violations (lista naruszeń kontraktów)
+    *   recommendations (merge / fix / rollback)
 
 ---
 
