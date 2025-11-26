@@ -32,6 +32,9 @@ dependencies = [
     "scikit-learn>=1.0",
     "numpy>=1.21",
     "PyJWT>=2.8",
+    "requests>=2.28",
+    "fastapi>=0.104",
+    "uvicorn>=0.24",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +44,18 @@ dev = [
     "ruff>=0.1",
     "black>=23.0",
     "mypy>=1.0",
+    "isort>=5.12",
+    "bandit>=1.7",
+]
+observability = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-jaeger>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "prometheus-client>=0.18.0",
+]
+security = [
+    "passlib[bcrypt]>=1.7.4",
 ]
 
 [project.scripts]
