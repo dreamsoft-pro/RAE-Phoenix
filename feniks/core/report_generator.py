@@ -6,7 +6,7 @@ from typing import List, Optional
 from pathlib import Path
 
 from feniks.logger import get_logger
-from feniks.types import SystemModel, Module, ModuleDependency, Capability
+from feniks.types import SystemModel, Module, ModuleDependency, Capability, MetaReflection
 
 log = get_logger("core.report_generator")
 
@@ -14,14 +14,16 @@ log = get_logger("core.report_generator")
 class ReportGenerator:
     """Generates reports from system model."""
 
-    def __init__(self, system_model: SystemModel):
+    def __init__(self, system_model: SystemModel, meta_reflections: Optional[List[MetaReflection]] = None):
         """
         Initialize the report generator.
 
         Args:
             system_model: The system model to report on
+            meta_reflections: Optional list of meta-reflections
         """
         self.system_model = system_model
+        self.meta_reflections = meta_reflections or []
 
     def generate_summary(self) -> str:
         """
@@ -232,6 +234,56 @@ class ReportGenerator:
 
         return "\n".join(lines)
 
+    def generate_meta_reflections_report(self) -> str:
+        """
+        Generate meta-reflections report section.
+
+        Returns:
+            str: Text report of meta-reflections
+        """
+        if not self.meta_reflections:
+            return ""
+
+        lines = []
+        lines.append("## Meta-Reflections")
+        lines.append("")
+        lines.append(f"Generated {len(self.meta_reflections)} meta-reflections about code quality and architecture.")
+        lines.append("")
+
+        # Group by impact
+        by_impact = {}
+        for r in self.meta_reflections:
+            impact_name = r.impact.value
+            if impact_name not in by_impact:
+                by_impact[impact_name] = []
+            by_impact[impact_name].append(r)
+
+        # Display critical and refactor-recommended
+        impact_order = ["critical", "refactor-recommended", "monitor"]
+        for impact in impact_order:
+            if impact in by_impact:
+                reflections_list = by_impact[impact]
+                icon = "🔴" if impact == "critical" else "⚠️" if impact == "refactor-recommended" else "📊"
+                lines.append(f"### {icon} {impact.upper().replace('-', ' ')} ({len(reflections_list)})")
+                lines.append("")
+
+                for r in reflections_list[:5]:  # Show top 5 per category
+                    lines.append(f"**{r.title}**")
+                    lines.append(f"  Level: {r.level.name} | Scope: {r.scope.value}")
+                    lines.append(f"  {r.content[:200]}..." if len(r.content) > 200 else f"  {r.content}")
+                    lines.append("")
+
+                    if r.recommendations:
+                        lines.append("  Recommendations:")
+                        for rec in r.recommendations[:3]:
+                            lines.append(f"    - {rec}")
+                        lines.append("")
+
+        lines.append(f"_Full meta-reflections available in JSONL output_")
+        lines.append("")
+
+        return "\n".join(lines)
+
     def generate_full_report(self) -> str:
         """
         Generate complete system report.
@@ -243,8 +295,12 @@ class ReportGenerator:
             self.generate_summary(),
             self.generate_module_analysis(),
             self.generate_capability_report(),
+            self.generate_meta_reflections_report(),
             self.generate_recommendations()
         ]
+
+        # Filter out empty sections
+        sections = [s for s in sections if s.strip()]
 
         report = "\n".join(sections)
         report += "=" * 80 + "\n"
@@ -269,18 +325,23 @@ class ReportGenerator:
         log.info(f"Report saved to {output_path}")
 
 
-def generate_report(system_model: SystemModel, output_path: Optional[Path] = None) -> str:
+def generate_report(
+    system_model: SystemModel,
+    output_path: Optional[Path] = None,
+    meta_reflections: Optional[List[MetaReflection]] = None
+) -> str:
     """
     Convenience function to generate a system model report.
 
     Args:
         system_model: The system model
         output_path: Optional path to save report
+        meta_reflections: Optional list of meta-reflections
 
     Returns:
         str: The generated report
     """
-    generator = ReportGenerator(system_model)
+    generator = ReportGenerator(system_model, meta_reflections=meta_reflections)
     report = generator.generate_full_report()
 
     if output_path:
