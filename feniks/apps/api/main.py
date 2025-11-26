@@ -14,11 +14,14 @@
 """
 Feniks API - RESTful interface for the Feniks system.
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import Response
 from typing import Dict, List, Optional
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from feniks.core.models.domain import SessionSummary, FeniksReport
 from feniks.core.models.types import MetaReflection
@@ -33,6 +36,9 @@ from feniks.config.settings import settings
 
 log = get_logger("apps.api")
 security = HTTPBearer(auto_error=False)
+
+# Rate limiting setup
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 app = FastAPI(
     title="Feniks API",
@@ -126,6 +132,10 @@ curl https://api.feniks.io/metrics/prometheus
     }
 )
 
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # --- Dependencies ---
 reflection_engine = MetaReflectionEngine()
 policy_manager = PolicyManager()
@@ -212,10 +222,13 @@ class AnalyzeSessionResponse(BaseModel):
         200: {"description": "Analysis completed successfully"},
         401: {"description": "Authentication required"},
         403: {"description": "Insufficient permissions"},
+        429: {"description": "Rate limit exceeded"},
         500: {"description": "Analysis failed"}
     }
 )
+@limiter.limit("10/minute")  # Stricter limit for compute-intensive operation
 async def analyze_session(
+    req: Request,
     request: AnalyzeSessionRequest,
     background_tasks: BackgroundTasks,
     user: User = Depends(require_permission(Permission.ANALYZE_CODE))
