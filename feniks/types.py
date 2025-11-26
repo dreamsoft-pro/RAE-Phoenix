@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from typing import List, Optional
+from typing import List, Dict, Any, Optional, Set
+from enum import Enum
 
 @dataclass
 class GitInfo:
@@ -73,3 +73,105 @@ class Chunk:
     invariants: List[str] = field(default_factory=list)
     io_contract: Dict[str, Any] = field(default_factory=dict)
     api_contract_ref: Optional[str] = None
+
+
+# --- System Model Types (Iteration 3) ---
+
+class ModuleType(Enum):
+    """Type of module in the system."""
+    FRONTEND = "frontend"
+    BACKEND = "backend"
+    CORE = "core"
+    LIBRARY = "library"
+    UTILITY = "utility"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class ModuleDependency:
+    """Represents a dependency relationship between modules."""
+    source: str  # Source module name
+    target: str  # Target module name
+    dependency_type: str  # injection, import, call, etc.
+    count: int = 1  # Number of times this dependency appears
+    chunks: List[str] = field(default_factory=list)  # Chunk IDs where dependency appears
+
+
+@dataclass
+class Module:
+    """Represents a module/component in the system."""
+    name: str
+    module_type: ModuleType
+    file_paths: List[str] = field(default_factory=list)
+    chunks: List[str] = field(default_factory=list)  # Chunk IDs
+
+    # Dependencies
+    dependencies_in: List[str] = field(default_factory=list)  # Modules that depend on this
+    dependencies_out: List[str] = field(default_factory=list)  # Modules this depends on
+
+    # Metrics
+    total_lines: int = 0
+    total_complexity: int = 0
+    avg_complexity: float = 0.0
+    chunk_count: int = 0
+
+    # Classification
+    business_tags: Set[str] = field(default_factory=set)
+    capabilities: Set[str] = field(default_factory=set)
+
+    # Graph metrics (computed by system model builder)
+    in_degree: int = 0
+    out_degree: int = 0
+    centrality: float = 0.0
+    is_central: bool = False
+    is_boundary: bool = False
+    is_hotspot: bool = False
+
+
+@dataclass
+class Capability:
+    """Represents a system capability detected from code analysis."""
+    name: str
+    description: str
+    capability_type: str  # feature, integration, pattern, etc.
+    confidence: float = 1.0
+
+    # Evidence
+    modules: List[str] = field(default_factory=list)
+    chunks: List[str] = field(default_factory=list)
+    patterns: List[str] = field(default_factory=list)
+
+    # Context
+    business_domain: Optional[str] = None
+    complexity_score: float = 0.0
+
+
+@dataclass
+class SystemModel:
+    """Complete model of the analyzed system."""
+    project_id: str
+    timestamp: str
+
+    # Core components
+    modules: Dict[str, Module] = field(default_factory=dict)
+    dependencies: List[ModuleDependency] = field(default_factory=list)
+    capabilities: List[Capability] = field(default_factory=list)
+
+    # API/Routes
+    api_endpoints: List[ApiEndpoint] = field(default_factory=list)
+    ui_routes: List[str] = field(default_factory=list)
+
+    # Statistics
+    total_chunks: int = 0
+    total_modules: int = 0
+    total_files: int = 0
+    avg_module_complexity: float = 0.0
+
+    # Analysis results
+    central_modules: List[str] = field(default_factory=list)
+    boundary_modules: List[str] = field(default_factory=list)
+    hotspot_modules: List[str] = field(default_factory=list)
+    god_modules: List[str] = field(default_factory=list)
+
+    # Metadata
+    metadata: Dict[str, Any] = field(default_factory=dict)

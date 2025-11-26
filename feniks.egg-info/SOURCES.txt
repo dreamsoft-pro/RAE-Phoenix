@@ -14,8 +14,12 @@ feniks.egg-info/entry_points.txt
 feniks.egg-info/requires.txt
 feniks.egg-info/top_level.txt
 feniks/core/__init__.py
+feniks/core/analysis_pipeline.py
+feniks/core/capability_detector.py
 feniks/core/cli.py
 feniks/core/ingest_pipeline.py
+feniks/core/report_generator.py
+feniks/core/system_model_builder.py
 feniks/embedding/__init__.py
 feniks/embedding/embed.py
 feniks/ingest/__init__.py

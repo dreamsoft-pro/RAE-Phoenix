@@ -11,6 +11,7 @@ from feniks.logger import get_logger
 from feniks.config import settings
 from feniks.exceptions import FeniksError
 from feniks.core.ingest_pipeline import run_ingest
+from feniks.core.analysis_pipeline import run_analysis
 
 log = get_logger("cli")
 
@@ -57,9 +58,29 @@ def handle_ingest(args):
 
 
 def handle_analyze(args):
-    """Handle the analyze command (to be implemented in Iteration 4)."""
-    log.info("Analyze command will be implemented in Iteration 4")
+    """Handle the analyze command."""
+    log.info("=== Feniks Analysis Pipeline ===")
     log.info(f"Project ID: {args.project_id}")
+    log.info(f"Collection: {args.collection}")
+
+    # Parse output path
+    output_path = Path(args.output) if args.output else None
+
+    # Run analysis
+    system_model = run_analysis(
+        project_id=args.project_id,
+        collection_name=args.collection,
+        output_path=output_path,
+        limit=args.limit
+    )
+
+    # Print summary
+    log.info("=== Analysis Complete ===")
+    log.info(f"Modules: {system_model.total_modules}")
+    log.info(f"Dependencies: {len(system_model.dependencies)}")
+    log.info(f"Capabilities: {len(system_model.capabilities)}")
+    log.info(f"Central modules: {len(system_model.central_modules)}")
+    log.info(f"Hotspot modules: {len(system_model.hotspot_modules)}")
 
 
 def handle_refactor(args):
@@ -123,10 +144,10 @@ def main():
     )
     ingest_parser.set_defaults(func=handle_ingest)
 
-    # Analyze command (Iteration 4)
+    # Analyze command (Iteration 3)
     analyze_parser = subparsers.add_parser(
         "analyze",
-        help="Analyze code and generate meta-reflections"
+        help="Analyze code and generate system model"
     )
     analyze_parser.add_argument(
         "--project-id",
@@ -135,9 +156,20 @@ def main():
         help="Project identifier"
     )
     analyze_parser.add_argument(
+        "--collection",
+        type=str,
+        default="code_chunks",
+        help="Qdrant collection name (default: code_chunks)"
+    )
+    analyze_parser.add_argument(
         "--output",
         type=str,
-        help="Output path for meta-reflections"
+        help="Output path for report (e.g., report.txt)"
+    )
+    analyze_parser.add_argument(
+        "--limit",
+        type=int,
+        help="Limit number of chunks to analyze (for testing)"
     )
     analyze_parser.set_defaults(func=handle_analyze)
 
