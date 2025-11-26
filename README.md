@@ -263,7 +263,7 @@ If you use RAE-Feniks in your research or project, please cite:
 ```bibtex
 @software{rae_feniks,
   title = {RAE-Feniks: Enterprise Code Analysis and Refactoring Engine},
-  author = {DreamSoft Pro},
+  author = {Grzegorz Leśniowski},
   year = {2025},
   url = {https://github.com/dreamsoft-pro/RAE-Feniks}
 }
@@ -279,6 +279,6 @@ RAE-Feniks is built on three core principles:
 
 ---
 
-**Built with ❤️ by DreamSoft Pro**
+**Built with ❤️ by Grzegorz Leśniowski**
 
 For questions, feedback, or collaboration: [GitHub Issues](https://github.com/dreamsoft-pro/RAE-Feniks/issues)
