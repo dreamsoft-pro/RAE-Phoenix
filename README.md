@@ -210,6 +210,83 @@ Feniks natively supports structured logging (JSON) and business metrics.
 
 ---
 
+## 📋 Implementation Status
+
+Clear overview of what's **implemented and working** vs what's **planned** for future releases:
+
+### Core Features
+
+| Feature | Status | Implementation | Notes |
+|---------|--------|----------------|-------|
+| **Knowledge Base (Qdrant)** | ✅ **Implemented** | 100% | Fully operational vector storage |
+| **Ingest Pipeline** | ✅ **Implemented** | 100% | JSONL loading, embeddings, TF-IDF |
+| **Analysis Pipeline** | ✅ **Implemented** | 100% | System model, capabilities, dependencies |
+| **Meta-Reflection Engine** | ✅ **Implemented** | 90% | Post-mortem analysis, trend detection |
+| **Cost Controller** | ✅ **Implemented** | 100% | Token budgets, spend tracking |
+| **Quality Policies** | ✅ **Implemented** | 100% | Policy enforcement, violations |
+| **CLI Interface** | ✅ **Implemented** | 100% | Full CLI with all commands |
+| **REST API (FastAPI)** | ✅ **Implemented** | 100% | Production-ready API |
+| **Metrics & Observability** | ✅ **Implemented** | 100% | OpenTelemetry, Prometheus, Grafana |
+| **Auth & RBAC** | ✅ **Implemented** | 100% | JWT, role-based access control |
+
+### Legacy Behavior Guard
+
+| Feature | Status | Implementation | Notes |
+|---------|--------|----------------|-------|
+| **Core Framework** | ✅ **Implemented** | 100% | Scenario, Contract, Snapshot models |
+| **API Runner** | ✅ **Implemented** | 100% | HTTP/REST API testing |
+| **CLI Runner** | ✅ **Implemented** | 100% | Command-line testing |
+| **UI Runner (Playwright)** | ✅ **Implemented** | 100% | Browser automation |
+| **Storage Abstraction** | ✅ **Implemented** | 100% | Pluggable backend system |
+| **Postgres Backend** | ✅ **Implemented** | 100% | Relational storage + versioning |
+| **Qdrant Backend** | ✅ **Implemented** | 100% | Semantic search for scenarios |
+| **Shared Library** | ✅ **Implemented** | 100% | Cross-project scenario sharing |
+| **Grafana Dashboards** | ✅ **Implemented** | 100% | 9 panels, metrics visualization |
+| **CLI Commands** | ✅ **Implemented** | 100% | `feniks behavior` commands |
+
+### AngularJS Migration
+
+| Feature | Status | Implementation | Notes |
+|---------|--------|----------------|-------|
+| **Controller to Component** | ✅ **Implemented** | 90% | See Known Limitations |
+| **Directive to Component** | ✅ **Implemented** | 90% | Smart strategy selection |
+| **Template to JSX** | ✅ **Implemented** | 75% | Basic directives automated |
+| **Routing to App Router** | ✅ **Implemented** | 85% | $routeProvider & ui-router |
+| **Scope to Hooks** | ⚠️ **Partial** | 40% | **Analysis only** - generates infrastructure |
+| **Behavior Guard Integration** | ✅ **Implemented** | 100% | Test scenario generation |
+| **CLI Migration Command** | ✅ **Implemented** | 100% | `feniks angular migrate` |
+| **End-to-End Demo** | ✅ **Implemented** | 100% | Complete working example |
+
+### Refactoring Recipes
+
+| Feature | Status | Implementation | Notes |
+|---------|--------|----------------|-------|
+| **Reduce Complexity** | ✅ **Implemented** | 100% | Cyclomatic complexity reduction |
+| **Extract Function** | ✅ **Implemented** | 100% | Long method refactoring |
+| **Modernize Syntax** | ✅ **Implemented** | 100% | Python 3.10+ features |
+| **AngularJS Recipes** | ✅ **Implemented** | 70-75% | See AngularJS Migration above |
+| **React Recipes** | 📅 **Planned** | 0% | Q1 2026 |
+| **Vue.js Recipes** | 📅 **Planned** | 0% | Q2 2026 |
+
+### External Integrations
+
+| Feature | Status | Implementation | Notes |
+|---------|--------|----------------|-------|
+| **RAE Integration** | ⚠️ **Partial** | 30% | Config ready, E2E example needed |
+| **GitHub Actions** | ✅ **Implemented** | 100% | CI/CD pipeline |
+| **Lighthouse CI** | 📅 **Planned** | 0% | Architecture designed |
+| **ng-migration-assistant** | 📅 **Planned** | 0% | Architecture designed |
+| **Rector (PHP)** | 📅 **Planned** | 0% | Architecture designed |
+| **PHPStan** | 📅 **Planned** | 0% | Architecture designed |
+
+### Legend
+
+- ✅ **Implemented** - Feature is complete and production-ready
+- ⚠️ **Partial** - Feature is partially implemented, see notes
+- 📅 **Planned** - Feature is designed but not yet implemented
+
+---
+
 ## 🌟 Use Cases
 
 ### 1. AngularJS to Next.js Migration
