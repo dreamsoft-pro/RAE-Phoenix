@@ -5,35 +5,35 @@
 [![Architecture](https://img.shields.io/badge/architecture-hexagonal-orange)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
 
-**Feniks** to system klasy Enterprise do statycznej analizy kodu, wzbogacony o unikalną warstwę **Meta-Refleksji**. W przeciwieństwie do tradycyjnych linterów, Feniks nie tylko znajduje błędy składniowe, ale analizuje *sens* i *jakość* procesu deweloperskiego (reasoning), wykrywa długoterminowe trendy w kodzie i pilnuje budżetów operacyjnych AI.
+**Feniks** is an Enterprise-grade static code analysis system, enhanced with a unique **Meta-Reflection** layer. Unlike traditional linters, Feniks not only finds syntax errors but analyzes the *meaning* and *quality* of the development reasoning process, detects long-term code trends, and manages AI operational budgets.
 
-Został zaprojektowany jako warstwa analityczna nad silnikiem **RAE (Reflective Agent Engine)**.
+It was designed as an analytical layer over the **RAE (Reflective Agent Engine)**.
 
 ---
 
-## 🚀 Kluczowe Funkcjonalności
+## 🚀 Key Features
 
-### 1. Architektura Wiedzy (Knowledge Base)
-*   **Ingest Pipeline**: Inteligentne parsowanie kodu (JS/TS, Python, HTML) do postaci wektorowej (Qdrant).
-*   **Semantic Understanding**: Wykorzystuje modele embeddingów do zrozumienia intencji kodu, a nie tylko jego struktury.
+### 1. Knowledge Architecture (Knowledge Base)
+*   **Ingest Pipeline**: Intelligent code parsing (JS/TS, Python, HTML) into vector form (Qdrant).
+*   **Semantic Understanding**: Uses embedding models to understand code intent, not just structure.
 
-### 2. Silnik Meta-Refleksji (The Brain)
-*   **Post-Mortem Loop**: Analiza pojedynczych sesji agentów pod kątem błędów w rozumowaniu, pętli decyzyjnych i kosztów.
-*   **Longitudinal Loop**: Wykrywanie trendów w czasie (np. "Jakość kodu w module Auth spada od 3 tygodni").
-*   **Self-Model Loop**: System monitoruje własną wydajność i ryzyko "zmęczenia alertami" (Alert Fatigue).
+### 2. Meta-Reflection Engine (The Brain)
+*   **Post-Mortem Loop**: Analysis of individual agent sessions for reasoning errors, decision loops, and costs.
+*   **Longitudinal Loop**: Detection of trends over time (e.g., "Code quality in Auth module has been declining for 3 weeks").
+*   **Self-Model Loop**: System monitors its own performance and risk of "Alert Fatigue".
 
 ### 3. Governance & Guardrails
-*   **Cost Controller**: Ścisła kontrola budżetów tokenów na poziomie projektu i sesji.
-*   **Quality Policies**: Egzekwowanie standardów rozumowania (np. "Zakaz pustych myśli przed podjęciem akcji").
-*   **Behavior Risk Policies**: MaxBehaviorRiskPolicy, ZeroRegressionPolicy dla legacy systems.
+*   **Cost Controller**: Strict control of token budgets at project and session levels.
+*   **Quality Policies**: Enforcement of reasoning standards (e.g., "No empty thoughts before action").
+*   **Behavior Risk Policies**: MaxBehaviorRiskPolicy, ZeroRegressionPolicy for legacy systems.
 
 ### 4. Legacy Behavior Guard 🆕
-*   **Behavior Contracts**: Zastępuje testy regresyjne dla systemów bez testów.
-*   **Snapshot Comparison**: Porównuje zachowanie before/after refactoringu.
-*   **Risk Scoring**: Automatyczna ocena ryzyka regresji (0.0-1.0).
+*   **Behavior Contracts**: Replaces regression tests for systems without tests.
+*   **Snapshot Comparison**: Compares behavior before/after refactoring.
+*   **Risk Scoring**: Automatic regression risk assessment (0.0-1.0).
 *   **Multi-layer Validation**: HTTP status, DOM elements, log patterns.
-*   **CI/CD Integration**: Blokuj merge przy wysokim ryzyku.
-*   Szczegóły w [docs/LEGACY_BEHAVIOR_GUARD.md](docs/LEGACY_BEHAVIOR_GUARD.md)
+*   **CI/CD Integration**: Block merge on high risk.
+*   Details in [docs/LEGACY_BEHAVIOR_GUARD.md](docs/LEGACY_BEHAVIOR_GUARD.md)
 
 ### 5. AngularJS Migration Recipes 🆕
 *   **Automated Migration**: 5 specialized recipes for AngularJS → Next.js migration
@@ -42,135 +42,147 @@ Został zaprojektowany jako warstwa analityczna nad silnikiem **RAE (Reflective 
 *   **Routing Migration**: $routeProvider/ui-router → Next.js App Router
 *   **Scope to Hooks**: $scope/$rootScope → useState/Context API
 *   **Behavior Guard Integration**: Validate migrations with automated testing
-*   Szczegóły w [docs/ANGULARJS_MIGRATION.md](docs/ANGULARJS_MIGRATION.md)
+*   Details in [docs/ANGULARJS_MIGRATION.md](docs/ANGULARJS_MIGRATION.md)
 
-### 6. Dostępność
-*   **CLI**: Potężne narzędzie wiersza poleceń do integracji z CI/CD.
-*   **REST API**: Nowoczesne API (FastAPI) do integracji z dashboardami i zewnętrznymi narzędziami.
-*   **Behavior CLI**: Dedykowane komendy dla Legacy Behavior Guard (`feniks behavior`).
+### 6. Availability
+*   **CLI**: Powerful command-line tool for CI/CD integration.
+*   **REST API**: Modern API (FastAPI) for integration with dashboards and external tools.
+*   **Behavior CLI**: Dedicated commands for Legacy Behavior Guard (`feniks behavior`).
 
 ---
 
 ## ⚡ Quick Start
 
-### Wymagania
+### Requirements
 *   Python 3.10+
-*   Qdrant (uruchomiony lokalnie lub w chmurze)
-*   Zmienne środowiskowe (skopiuj `.env.example` do `.env`)
+*   Qdrant (running locally or in cloud)
+*   Environment variables (copy `.env.example` to `.env`)
 
-### Instalacja
+### Installation
 
 ```bash
-# 1. Klonowanie repozytorium
+# 1. Clone repository
 git clone https://github.com/your-org/feniks.git
 cd feniks
 
-# 2. Utworzenie wirtualnego środowiska
+# 2. Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 3. Instalacja w trybie developerskim
+# 3. Install in development mode
 pip install -e .
 ```
 
-### Użycie CLI
+### CLI Usage
 
-**1. Ingest (Zasilenie bazy wiedzy):**
+**1. Ingest (Feed knowledge base):**
 ```bash
 feniks ingest --jsonl-path ./data/source_code.jsonl --collection my_project_v1 --reset
 ```
 
-**2. Analiza (Uruchomienie pipeline'u):**
+**2. Analysis (Run pipeline):**
 ```bash
 feniks analyze --project-id my_project --collection my_project_v1 --output report.md
 ```
 
-**3. Uruchomienie API:**
+**3. Start API:**
 ```bash
 feniks serve-api --port 8000
 ```
 
-**4. Legacy Behavior Guard (testowanie bez testów):**
+**4. Legacy Behavior Guard (testing without tests):**
 ```bash
-# Nagranie zachowania legacy system
+# Record legacy system behavior
 feniks behavior record --project-id my_app --scenario-id login --environment legacy --output legacy_snapshots.jsonl
 
-# Budowa kontraktów
+# Build contracts
 feniks behavior build-contracts --project-id my_app --input legacy_snapshots.jsonl --output contracts.jsonl
 
-# Sprawdzenie refactored system
+# Check refactored system
 feniks behavior check --project-id my_app --contracts contracts.jsonl --snapshots candidate_snapshots.jsonl --output results.jsonl --fail-on-violations
 ```
 
+**5. AngularJS Migration:**
+```python
+from feniks.core.refactor.recipes.angularjs import (
+    ControllerToComponentRecipe,
+    TemplateToJsxRecipe,
+    RoutingToAppRouterRecipe
+)
+
+# Migrate controllers to Next.js components
+controller_recipe = ControllerToComponentRecipe()
+plan = controller_recipe.analyze(system_model)
+result = controller_recipe.execute(plan, chunks, dry_run=False)
+```
+
 ---
 
-## 🏛️ Przegląd Architektury
+## 🏛️ Architecture Overview
 
-Feniks stosuje czystą architekturę (Clean Architecture / Hexagonal), separując logikę biznesową od infrastruktury.
+Feniks follows Clean Architecture / Hexagonal principles, separating business logic from infrastructure.
 
 ```
 feniks/
-├── apps/           # Punkty wejścia (CLI, API, Workers)
-├── core/           # Logika biznesowa (Reflection, Evaluation, Policies)
-├── adapters/       # Integracje (Qdrant, RAE, LLM)
-├── infra/          # Infrastruktura techniczna (Logging, Tracing, Metrics)
-└── config/         # Konfiguracja (Pydantic Settings)
+├── apps/           # Entry points (CLI, API, Workers)
+├── core/           # Business logic (Reflection, Evaluation, Policies)
+├── adapters/       # Integrations (Qdrant, RAE, LLM)
+├── infra/          # Technical infrastructure (Logging, Tracing, Metrics)
+└── config/         # Configuration (Pydantic Settings)
 ```
 
-Szczegóły w [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## 📊 Metryki i Obserwowalność
+## 📊 Metrics and Observability
 
-Feniks natywnie wspiera ustrukturyzowane logowanie (JSON) i metryki biznesowe.
+Feniks natively supports structured logging (JSON) and business metrics.
 
-*   **Trace ID**: Każda operacja posiada unikalny identyfikator śledzenia.
-*   **Metryki**:
-    *   `feniks_quality_score`: Bieżąca ocena jakości projektu.
-    *   `feniks_cost_total`: Łączny koszt operacyjny.
-    *   `feniks_recommendations_count`: Liczba wygenerowanych sugestii naprawczych.
+*   **Trace ID**: Each operation has a unique trace identifier.
+*   **Metrics**:
+    *   `feniks_quality_score`: Current project quality score.
+    *   `feniks_cost_total`: Total operational cost.
+    *   `feniks_recommendations_count`: Number of generated remediation suggestions.
 
 ---
 
-## 📚 Dokumentacja
+## 📚 Documentation
 
-### Architektura i Mechanizmy
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Architektura systemu, data flow, komponenty
-- **[ANALYSIS_MECHANISMS.md](docs/ANALYSIS_MECHANISMS.md)** - 🆕 Szczegółowy opis mechanizmów analizy (Post-Mortem, Rules Engine, Policies)
-- **[REFLECTION_LOOPS.md](docs/REFLECTION_LOOPS.md)** - Pętle refleksji: Post-Mortem, Longitudinal, Self-Model
+### Architecture and Mechanisms
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture, data flow, components
+- **[ANALYSIS_MECHANISMS.md](docs/ANALYSIS_MECHANISMS.md)** - 🆕 Detailed description of analysis mechanisms (Post-Mortem, Rules Engine, Policies)
+- **[OVERVIEW.md](docs/OVERVIEW.md)** - High-level system overview
 
 ### Legacy Behavior Guard
-- **[LEGACY_BEHAVIOR_GUARD.md](docs/LEGACY_BEHAVIOR_GUARD.md)** - 🆕 Kompletny przewodnik po Legacy Behavior Guard
-- **[BEHAVIOR_CONTRACT_MODELS.md](docs/BEHAVIOR_CONTRACT_MODELS.md)** - 🆕 Specyfikacja modeli Behavior
-- **[examples/](docs/examples/)** - 🆕 Przykładowe scenariusze YAML (UI, API, CLI)
+- **[LEGACY_BEHAVIOR_GUARD.md](docs/LEGACY_BEHAVIOR_GUARD.md)** - 🆕 Complete guide to Legacy Behavior Guard
+- **[BEHAVIOR_CONTRACT_MODELS.md](docs/BEHAVIOR_CONTRACT_MODELS.md)** - 🆕 Behavior models specification
+- **[examples/](docs/examples/)** - 🆕 Example YAML scenarios (UI, API, CLI)
 
 ### AngularJS Migration
-- **[ANGULARJS_MIGRATION.md](docs/ANGULARJS_MIGRATION.md)** - 🆕 Kompletny przewodnik po migracji AngularJS → Next.js
-- **[Feniks–Recipe_Pack_AngularJS_1-3.md](docs/Feniks–Recipe_Pack_AngularJS_1-3.md)** - Specyfikacja Recipe Pack dla AngularJS
+- **[ANGULARJS_MIGRATION.md](docs/ANGULARJS_MIGRATION.md)** - 🆕 Complete guide to AngularJS → Next.js migration
+- **[Feniks–Recipe_Pack_AngularJS_1-3.md](docs/Feniks–Recipe_Pack_AngularJS_1-3.md)** - AngularJS Recipe Pack specification
 
-### Historia i Postęp
-- **[CHANGELOG.md](CHANGELOG.md)** - 🆕 Historia zmian i postęp prac w czasie
-- **[IMPLEMENTACJA_PLANU_NAPRAWY_PODSUMOWANIE.md](docs/IMPLEMENTACJA_PLANU_NAPRAWY_PODSUMOWANIE.md)** - Podsumowanie upgrade do Enterprise-Grade
+### Refactoring and Recipes
+- **[PYTHON_REFACTORING_PIPELINE.md](docs/PYTHON_REFACTORING_PIPELINE.md)** - Python refactoring pipeline documentation
+- **[JAVASCRIPT__TYPESCRIPT-AngularJS-React-Next.md](docs/JAVASCRIPT__TYPESCRIPT-AngularJS-React-Next.md)** - JavaScript/TypeScript migration guide
 
-### Dla Deweloperów
-- **[AGENT_PLAYBOOK.md](docs/AGENT_PLAYBOOK.md)** - Playbook dla AI agentów
-- **[RAE_INTEGRATION.md](docs/RAE_INTEGRATION.md)** - Integracja z RAE
-- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Guidelines dla kontrybutorów
+### For Developers
+- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guidelines
 
 ---
 
-## 🎯 Status Projektu
+## 🎯 Project Status
 
-- **Wersja:** 0.4.0 (AngularJS Migration Ready)
+- **Version:** 0.4.0 (AngularJS Migration Ready)
 - **Status:** ⭐⭐⭐⭐⭐ Production Ready
 - **Test Coverage:** 80%+
-- **Commity:** 75+
-- **Linie kodu:** ~27,000+
-- **Ostatnia aktualizacja:** 2025-11-27
+- **Commits:** 80+
+- **Lines of Code:** ~27,000+
+- **Last Update:** 2025-11-27
 
-### Najnowsze Dodatki (2025-11-27)
-- ✅ **AngularJS Migration Recipes** - Complete Migration Pack (5 recipes, ~6,000 linii)
+### Latest Additions (2025-11-27)
+- ✅ **AngularJS Migration Recipes** - Complete Migration Pack (5 recipes, ~6,000 lines)
   - Controller to Component recipe (automatic conversion)
   - Directive to Component/Hook recipe (smart strategy selection)
   - Template to JSX recipe (full directive support)
@@ -180,8 +192,8 @@ Feniks natywnie wspiera ustrukturyzowane logowanie (JSON) i metryki biznesowe.
   - Comprehensive test suite (15+ tests)
   - Full documentation and examples
 
-### Poprzednie Dodatki (2025-11-26)
-- ✅ **Legacy Behavior Guard - Phase 3** - Enterprise Ready Complete (8 commitów, 3,500 linii)
+### Previous Additions (2025-11-26)
+- ✅ **Legacy Behavior Guard - Phase 3** - Enterprise Ready Complete (8 commits, 3,500 lines)
   - UI runner with Playwright (browser automation)
   - Storage abstraction layer (pluggable backends)
   - Postgres storage backend (relational + versioning)
@@ -189,28 +201,62 @@ Feniks natywnie wspiera ustrukturyzowane logowanie (JSON) i metryki biznesowe.
   - Shared scenario library (cross-project sharing)
   - Grafana dashboards (9 panels, metrics visualization)
   - Comprehensive test suite (15+ tests)
-- ✅ **Legacy Behavior Guard - Phase 2** - Deep Integration Complete (9 commitów, 2,500 linii)
-- ✅ **Legacy Behavior Guard - Phase 1** - Complete (6 commitów, 2,700 linii)
-- ✅ **Enterprise Upgrade** - 14 zadań, 80%+ coverage (14 commitów, 1,868 linii)
+- ✅ **Legacy Behavior Guard - Phase 2** - Deep Integration Complete (9 commits, 2,500 lines)
+- ✅ **Legacy Behavior Guard - Phase 1** - Complete (6 commits, 2,700 lines)
+- ✅ **Enterprise Upgrade** - 14 tasks, 80%+ coverage (14 commits, 1,868 lines)
 - ✅ **CI/CD Pipeline** - GitHub Actions multi-version testing
 - ✅ **OpenTelemetry + Prometheus** - Full observability
 - ✅ **Auth + RBAC** - JWT authentication, role-based access
 
 ---
 
-## 🤝 Contributing
+## 🌟 Use Cases
 
-Jesteśmy otwarci na kontrybucje! Zapoznaj się z [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) przed zgłoszeniem PR.
+### 1. AngularJS to Next.js Migration
+Modernize legacy AngularJS applications with automated code transformation:
+- Automatic controller → component conversion
+- Template → JSX transformation with full ng-directive support
+- Routing migration to Next.js App Router
+- State management migration ($scope → React hooks)
+- Behavior validation with automated regression testing
+
+### 2. Legacy System Refactoring
+Refactor systems without breaking functionality:
+- Record behavior contracts before refactoring
+- Apply automated or manual refactorings
+- Validate behavior preservation
+- Risk assessment and reporting
+
+### 3. Code Quality Analysis
+Continuous code quality monitoring:
+- Meta-reflection on development processes
+- Trend detection over time
+- Cost tracking and optimization
+- Automated recommendations
 
 ---
 
-## 📄 Licencja
+## 🤝 Contributing
 
-Apache License 2.0 - Zobacz [LICENSE](LICENSE) dla szczegółów.
+We welcome contributions! Please review [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) before submitting a PR.
+
+---
+
+## 📄 License
+
+Apache License 2.0 - See [LICENSE](LICENSE) for details.
+
+---
+
+## 🔗 Links
+
+- **Documentation**: [docs/](docs/)
+- **Examples**: [docs/examples/](docs/examples/)
+- **Issues**: [GitHub Issues](https://github.com/your-org/feniks/issues)
 
 ---
 
 **Feniks Team** - Grzegorz Leśniowski
 *Bringing consciousness to code analysis.*
 
-🦅 **Feniks nie tylko analizuje kod - rozumie jego sens i ewolucję.**
+🦅 **Feniks doesn't just analyze code - it understands its meaning and evolution.**
