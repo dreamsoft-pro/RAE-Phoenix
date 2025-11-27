@@ -1,0 +1,65 @@
+<div class="todo-detail-container">
+    <div class="detail-header">
+        <button ng-click="vm.goBack()" class="btn btn-secondary">
+            ← Back to List
+        </button>
+        <h1>Todo Details</h1>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-message" ng-if="vm.error">
+        {{ vm.error }}
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading" ng-if="vm.loading">
+        <p>Loading todo details...</p>
+    </div>
+
+    <!-- Todo Details -->
+    <div class="todo-detail-content" ng-if="!vm.loading && vm.todo">
+        <div class="detail-card">
+            <div class="detail-row">
+                <label>ID:</label>
+                <span>{{ vm.todo.id }}</span>
+            </div>
+
+            <div class="detail-row">
+                <label>Title:</label>
+                <span class="todo-title" ng-class="{'completed': vm.todo.completed}">
+                    {{ vm.todo.title }}
+                </span>
+            </div>
+
+            <div class="detail-row">
+                <label>Status:</label>
+                <span>{{ vm.todo | todoStatus }}</span>
+            </div>
+
+            <div class="detail-row">
+                <label>Priority:</label>
+                <span>{{ vm.todo.priority | priorityLabel }}</span>
+            </div>
+
+            <div class="detail-row">
+                <label>Created:</label>
+                <span>{{ vm.todo.createdAt | dateFormat }}</span>
+            </div>
+
+            <div class="detail-actions">
+                <button
+                    ng-click="vm.toggleComplete()"
+                    class="btn btn-primary">
+                    <span ng-if="!vm.todo.completed">Mark as Completed</span>
+                    <span ng-if="vm.todo.completed">Mark as Active</span>
+                </button>
+
+                <button
+                    ng-click="vm.deleteTodo()"
+                    class="btn btn-danger">
+                    Delete Todo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
