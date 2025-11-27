@@ -33,6 +33,7 @@ from feniks.adapters.ingest.jsonl_loader import load_jsonl_chunks
 from feniks.adapters.storage.qdrant import upsert_points, ensure_collection
 from feniks.adapters.llm.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
 from feniks.apps.cli.behavior import register_behavior_commands
+from feniks.apps.cli.angular import register_angular_commands
 
 log = get_logger("cli")
 
@@ -520,6 +521,9 @@ def main():
 
     # Behavior commands (Legacy Behavior Guard)
     register_behavior_commands(subparsers)
+
+    # Angular commands (AngularJS Migration)
+    register_angular_commands(subparsers)
 
     # Parse arguments
     args = parser.parse_args()
