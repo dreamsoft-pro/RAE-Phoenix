@@ -62,7 +62,7 @@ It was designed as an analytical layer over the **RAE (Reflective Agent Engine)*
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-org/feniks.git
+git clone https://github.com/glesniowski/feniks.git
 cd feniks
 
 # 2. Create virtual environment
@@ -331,7 +331,7 @@ Apache License 2.0 - See [LICENSE](LICENSE) for details.
 
 - **Documentation**: [docs/](docs/)
 - **Examples**: [docs/examples/](docs/examples/)
-- **Issues**: [GitHub Issues](https://github.com/your-org/feniks/issues)
+- **Issues**: [GitHub Issues](https://github.com/glesniowski/feniks/issues)
 
 ---
 

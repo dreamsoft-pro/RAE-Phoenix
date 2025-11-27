@@ -672,8 +672,8 @@ See the `/docs/examples/` directory for:
 
 - **Documentation**: [docs/](../docs/)
 - **Code vs Docs Audit**: [AUDIT_CODE_VS_DOCS.md](./AUDIT_CODE_VS_DOCS.md)
-- **Issues**: [GitHub Issues](https://github.com/your-org/feniks/issues)
-- **Community**: [Discussions](https://github.com/your-org/feniks/discussions)
+- **Issues**: [GitHub Issues](https://github.com/glesniowski/feniks/issues)
+- **Community**: [Discussions](https://github.com/glesniowski/feniks/discussions)
 
 ---
 
