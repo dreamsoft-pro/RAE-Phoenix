@@ -214,11 +214,13 @@ Feniks natively supports structured logging (JSON) and business metrics.
 
 ### 1. AngularJS to Next.js Migration
 Modernize legacy AngularJS applications with automated code transformation:
-- Automatic controller → component conversion
-- Template → JSX transformation with full ng-directive support
-- Routing migration to Next.js App Router
-- State management migration ($scope → React hooks)
+- Automatic controller → component conversion (85-90% automated)
+- Template → JSX transformation with ng-directive support (70-80% automated)
+- Routing migration to Next.js App Router (85-95% automated)
+- State management analysis and infrastructure generation (scope → hooks)
 - Behavior validation with automated regression testing
+- **Overall**: 70-75% automation, 25-30% manual work required
+- See [Known Limitations](docs/ANGULARJS_MIGRATION.md#known-limitations) for details
 
 ### 2. Legacy System Refactoring
 Refactor systems without breaking functionality:

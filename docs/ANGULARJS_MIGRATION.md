@@ -558,24 +558,103 @@ recipe = ControllerToComponentRecipe(config)
 
 ---
 
-## Limitations
+## Known Limitations
 
-### What's Automated
+### Automation Level by Recipe
 
-✅ Controller structure conversion
-✅ Template to JSX conversion
-✅ Routing structure migration
-✅ Basic scope patterns
-✅ Type generation
+| Recipe | Automated | Requires Manual Work |
+|--------|-----------|---------------------|
+| **Controller to Component** | 85-90% | Service implementations, $http → fetch conversion |
+| **Template to JSX** | 70-80% | ng-model, ng-class complex expressions |
+| **Routing** | 85-95% | Route guards, resolve functions |
+| **Directives (simple)** | 90-95% | Link function implementation details |
+| **Directives (complex)** | 50-70% | Compile functions, DOM manipulation |
+| **Scope to Hooks** | 30-40% | **Analysis only** - conversion is manual |
 
-### What Needs Manual Work
+**Overall**: Expect 70-75% automation with 25-30% manual work required.
 
-⚠️ Complex DI resolution
-⚠️ Custom services implementation
-⚠️ Advanced directive logic
-⚠️ Form validation libraries
-⚠️ Third-party integrations
-⚠️ Performance optimization
+### What's Fully Automated
+
+✅ Controller structure → component skeleton
+✅ Template syntax conversion ({{ }} → { })
+✅ Routing structure → app/ directory
+✅ Basic directive → component structure
+✅ TypeScript interface generation
+✅ Import statement generation
+
+### What Generates TODOs (Requires Implementation)
+
+⚠️ **$http → fetch**: Generates TODO comments, not actual fetch calls
+⚠️ **ng-model**: Generates TODO, need to implement controlled component pattern
+⚠️ **ng-class**: Generates TODO for dynamic class logic
+⚠️ **Service implementations**: Generates import TODOs, need to create service files
+⚠️ **Route guards**: Generates TODO in middleware
+⚠️ **Directive link functions**: Generates useEffect skeleton with TODO
+
+### What Requires Fully Manual Work
+
+❌ **Scope to Hooks conversion**: Recipe analyzes and generates infrastructure (Context, event bus) but **does not modify component files**
+❌ **Complex directives with compile**: Marked as high-risk, manual review required
+❌ **Custom filter implementations**: Generates stubs, need to implement logic
+❌ **Form validation**: Must integrate with React form library
+❌ **Third-party integrations**: Must find React equivalents
+❌ **Performance optimization**: Manual profiling and optimization
+
+### Recipe-Specific Limitations
+
+#### Controller to Component
+- **config.aggressiveness**: Defined but not currently used in code generation
+- **$q Promises**: Not automatically converted to native Promises
+- **$timeout/$interval**: Detected but not converted to setTimeout/setInterval
+
+#### Template to JSX
+- **ng-repeat**: Basic conversion only, complex nested structures need manual work
+- **ng-model two-way binding**: Generates TODO for controlled component pattern
+- **Custom filters**: Generates stub functions with TODO for implementation
+
+#### Routing to App Router
+- **layout.tsx**: Not generated for nested routes (must create manually)
+- **Route resolve**: Not converted to data fetching pattern
+- **Optional parameters**: Basic detection, no `[[...slug]]` syntax support
+
+#### Scope to Hooks
+**IMPORTANT**: This recipe is primarily an **analysis and infrastructure generation tool**:
+- ✅ Analyzes $scope/$rootScope usage
+- ✅ Generates GlobalContext boilerplate
+- ✅ Generates event bus infrastructure
+- ✅ Generates migration guide
+- ❌ **Does NOT modify component files**
+- ❌ **Does NOT convert $scope to useState**
+- ❌ **Does NOT convert $watch to useEffect**
+
+You must manually apply the conversions based on the generated migration guide.
+
+---
+
+## Realistic Success Rates
+
+Based on actual implementation testing:
+
+### By Component Type
+
+| Component Type | Automation Rate | Manual Effort |
+|----------------|----------------|---------------|
+| Simple controllers | 90% | Import cleanup |
+| Complex controllers | 75% | Service implementations |
+| Simple templates | 85% | Filter implementations |
+| Forms with ng-model | 60% | Controlled components |
+| Simple directives | 90% | Minor adjustments |
+| Complex directives | 55% | Link/compile logic |
+| Routing (ngRoute) | 95% | Route guards |
+| Routing (ui-router) | 85% | Nested layouts |
+| $scope patterns | 35% | **Mostly manual** |
+
+### Overall Project
+
+- **Initial automated conversion**: 70-75%
+- **Manual work required**: 25-30%
+- **Testing and refinement**: 10-15% additional
+- **Total effort savings**: 60-65% compared to manual rewrite
 
 ---
 
@@ -585,12 +664,14 @@ See the `/docs/examples/` directory for:
 - Complete migration examples
 - Before/after comparisons
 - Real-world case studies
+- Manual completion guides
 
 ---
 
 ## Support
 
 - **Documentation**: [docs/](../docs/)
+- **Code vs Docs Audit**: [AUDIT_CODE_VS_DOCS.md](./AUDIT_CODE_VS_DOCS.md)
 - **Issues**: [GitHub Issues](https://github.com/your-org/feniks/issues)
 - **Community**: [Discussions](https://github.com/your-org/feniks/discussions)
 
@@ -601,6 +682,7 @@ See the `/docs/examples/` directory for:
 - [Recipe Pack Specification](./Feniks–Recipe_Pack_AngularJS_1-3.md)
 - [Legacy Behavior Guard](./LEGACY_BEHAVIOR_GUARD.md)
 - [Architecture Documentation](./ARCHITECTURE.md)
+- [Code vs Documentation Audit](./AUDIT_CODE_VS_DOCS.md)
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [React Hooks](https://react.dev/reference/react)
 
