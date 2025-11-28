@@ -161,8 +161,9 @@ class AngularHTMLParser(HTMLParser):
                 jsx_attrs.append(f'{{/* TODO: ng-class="{value}" - convert to className logic */}}')
 
             elif directive == 'ng-model':
-                # ng-model="vm.name" → value={vm.name} onChange={(e) => setName(e.target.value)}
-                jsx_attrs.append(f'{{/* TODO: ng-model="{value}" - use controlled component pattern */}}')
+                # ng-model="vm.name" → value={vm.name} onChange={(e) => handleModelChange('vm.name', e.target.value)}
+                jsx_attrs.append(f'value={{{value}}}')
+                jsx_attrs.append(f"onChange={{(e) => handleModelChange('{value}', e.target.value)}}")
 
             elif directive == 'ng-disabled':
                 jsx_attrs.append(f'disabled={{{value}}}')
@@ -400,7 +401,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                     continue
 
                 # Convert to JSX
-                jsx_code = self._convert_template_to_jsx(template_chunk.content, template_data)
+                jsx_code = self._convert_template_to_jsx(template_chunk.text, template_data)
 
                 # Determine output path
                 output_path = self._get_jsx_path(template_chunk.file_path)
@@ -408,7 +409,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                 # Create file change
                 file_change = FileChange(
                     file_path=output_path,
-                    original_content=template_chunk.content,
+                    original_content=template_chunk.text,
                     modified_content=jsx_code,
                     change_type="create"
                 )
@@ -487,13 +488,13 @@ class TemplateToJsxRecipe(RefactorRecipe):
         """Extract metadata from a template."""
         try:
             # Find interpolations
-            interpolations = re.findall(r'\{\{(.+?)\}\}', chunk.content)
+            interpolations = re.findall(r'\{\{(.+?)\}\}', chunk.text)
 
             # Find directives
             directives = {}
             for directive in ['ng-repeat', 'ng-if', 'ng-show', 'ng-hide', 'ng-click',
                               'ng-model', 'ng-class', 'ng-style', 'ng-bind']:
-                matches = re.findall(rf'{directive}="([^"]*)"', chunk.content)
+                matches = re.findall(rf'{directive}="([^"]*)"', chunk.text)
                 if matches:
                     directives[directive] = matches
 
@@ -506,11 +507,11 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
             # Detect controller reference (vm, $ctrl, $scope)
             controller_ref = None
-            if 'vm.' in chunk.content:
+            if 'vm.' in chunk.text:
                 controller_ref = 'vm'
-            elif '$ctrl.' in chunk.content:
+            elif '$ctrl.' in chunk.text:
                 controller_ref = '$ctrl'
-            elif '$scope.' in chunk.content:
+            elif '$scope.' in chunk.text:
                 controller_ref = '$scope'
 
             # Calculate complexity
@@ -522,7 +523,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
             return TemplateMetadata(
                 file_path=chunk.file_path,
-                raw_html=chunk.content,
+                raw_html=chunk.text,
                 interpolations=interpolations,
                 directives=directives,
                 filters=list(set(filters)),
