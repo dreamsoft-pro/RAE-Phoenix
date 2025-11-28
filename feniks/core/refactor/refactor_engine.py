@@ -21,6 +21,9 @@ from feniks.infra.logging import get_logger
 from feniks.core.models.types import SystemModel, Chunk
 from feniks.core.refactor.recipe import RefactorRecipe, RefactorPlan, RefactorResult
 from feniks.core.refactor.recipes import ReduceComplexityRecipe, ExtractFunctionRecipe
+from feniks.core.refactor.recipes.python import PythonPipelineRecipe
+from feniks.core.refactor.recipes.php import PhpEnterpriseRecipe
+from feniks.core.refactor.recipes.javascript import AngularMigrationRecipe
 from feniks.core.refactor.patch_generator import PatchGenerator
 from feniks.exceptions import FeniksError
 
@@ -51,7 +54,10 @@ class RefactorEngine:
         """Register built-in refactoring recipes."""
         builtin_recipes = [
             ReduceComplexityRecipe(),
-            ExtractFunctionRecipe()
+            ExtractFunctionRecipe(),
+            PythonPipelineRecipe(),
+            PhpEnterpriseRecipe(),
+            AngularMigrationRecipe()
         ]
 
         for recipe in builtin_recipes:

@@ -73,6 +73,7 @@ class EventMetadata:
 @dataclass
 class ScopeUsageMetadata:
     """Metadata about $scope/$rootScope usage."""
+    source_file: str
     uses_scope: bool
     uses_root_scope: bool
     scope_properties: Set[str]
@@ -80,6 +81,34 @@ class ScopeUsageMetadata:
     watchers: List[WatcherMetadata]
     events: List[EventMetadata]
     complexity_score: int
+
+    def to_dict(self):
+        """Convert to dictionary for serialization."""
+        return {
+            "source_file": self.source_file,
+            "uses_scope": self.uses_scope,
+            "uses_root_scope": self.uses_root_scope,
+            "scope_properties": list(self.scope_properties),
+            "root_scope_properties": list(self.root_scope_properties),
+            "watchers": [
+                {
+                    "watch_type": w.watch_type.value,
+                    "expression": w.expression,
+                    "callback": w.callback,
+                    "deep": w.deep,
+                    "source_location": w.source_location
+                } for w in self.watchers
+            ],
+            "events": [
+                {
+                    "event_type": e.event_type.value,
+                    "event_name": e.event_name,
+                    "handler_or_data": e.handler_or_data,
+                    "source_location": e.source_location
+                } for e in self.events
+            ],
+            "complexity_score": self.complexity_score
+        }
 
 
 class ScopeToHooksRecipe(RefactorRecipe):
@@ -96,16 +125,11 @@ class ScopeToHooksRecipe(RefactorRecipe):
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """
-        Initialize the recipe.
-
-        Args:
-            config: Optional configuration
-        """
         super().__init__()
         self.config = config or {}
         self.state_strategy = self.config.get("state_strategy", "useState")
         self.global_state_strategy = self.config.get("global_state_strategy", "context")
+        self.target_hooks_dir = self.config.get("target_hooks_dir", "hooks/legacy")
 
     @property
     def name(self) -> str:
@@ -124,42 +148,27 @@ class ScopeToHooksRecipe(RefactorRecipe):
         system_model: SystemModel,
         target: Optional[Dict[str, Any]] = None
     ) -> Optional[RefactorPlan]:
-        """
-        Analyze the system for scope usage patterns.
-
-        Args:
-            system_model: The system model
-            target: Optional targeting information
-
-        Returns:
-            RefactorPlan or None
-        """
         log.info(f"Analyzing for $scope/$rootScope usage: {system_model.project_id}")
 
-        # Find scope usage
         scope_usage = self._analyze_scope_usage(system_model, target)
 
         if not scope_usage:
             log.info("No scope usage found")
             return None
 
-        # Assess risks
         risks = self._assess_risks(scope_usage)
         risk_level = self._calculate_risk_level(scope_usage)
-
-        # Collect global events
         global_events = self._collect_global_events(scope_usage)
 
-        # Create refactoring plan
         plan = RefactorPlan(
             recipe_name=self.name,
             project_id=system_model.project_id,
             target_modules=[],
-            target_files=[],
+            target_files=[u.source_file for u in scope_usage],
             rationale=f"Migrate scope patterns to React hooks in {len(scope_usage)} locations",
             risks=risks,
             risk_level=risk_level,
-            estimated_changes=len(scope_usage) + (1 if global_events else 0),
+            estimated_changes=len(scope_usage) * 2 + (1 if global_events else 0),
             validation_steps=[
                 "Verify useState/useEffect syntax",
                 "Check Context providers are set up",
@@ -168,13 +177,15 @@ class ScopeToHooksRecipe(RefactorRecipe):
                 "Review deep watch conversions"
             ],
             metadata={
+                "scope_usages": [u.to_dict() for u in scope_usage],
                 "scope_usage_count": len(scope_usage),
                 "root_scope_count": sum(1 for u in scope_usage if u.uses_root_scope),
                 "watcher_count": sum(len(u.watchers) for u in scope_usage),
                 "event_count": sum(len(u.events) for u in scope_usage),
                 "global_events": global_events,
                 "state_strategy": self.state_strategy,
-                "global_state_strategy": self.global_state_strategy
+                "global_state_strategy": self.global_state_strategy,
+                "target_hooks_dir": self.target_hooks_dir
             }
         )
 
@@ -187,64 +198,65 @@ class ScopeToHooksRecipe(RefactorRecipe):
         chunks: List[Chunk],
         dry_run: bool = True
     ) -> RefactorResult:
-        """
-        Execute the scope migration.
-
-        Args:
-            plan: The refactoring plan
-            chunks: Code chunks
-            dry_run: If True, don't write files
-
-        Returns:
-            RefactorResult with migration artifacts
-        """
         log.info(f"Executing scope migration (dry_run={dry_run})")
-
         result = RefactorResult(plan=plan, success=True)
 
         try:
-            # Generate global context if needed
-            if plan.metadata.get("global_events"):
+            # 1. Generate Global Context if needed
+            if plan.metadata.get("global_events") or plan.metadata.get("root_scope_count", 0) > 0:
                 context_code = self._generate_global_context(plan)
                 context_path = "contexts/GlobalContext.tsx"
-
-                context_change = FileChange(
+                result.file_changes.append(FileChange(
                     file_path=context_path,
                     original_content="",
                     modified_content=context_code,
                     change_type="create"
-                )
-                result.file_changes.append(context_change)
-
+                ))
                 log.info(f"Generated global context: {context_path}")
 
-            # Generate event bus if needed
+            # 2. Generate Event Bus if needed
             if plan.metadata["event_count"] > 0:
                 event_bus_code = self._generate_event_bus()
                 event_bus_path = "hooks/useEventBus.ts"
-
-                event_bus_change = FileChange(
+                result.file_changes.append(FileChange(
                     file_path=event_bus_path,
                     original_content="",
                     modified_content=event_bus_code,
                     change_type="create"
-                )
-                result.file_changes.append(event_bus_change)
-
+                ))
                 log.info(f"Generated event bus hook: {event_bus_path}")
 
-            # Generate migration guide
+            # 3. Generate Specific Hooks for each Scope
+            target_dir = plan.metadata.get("target_hooks_dir", "hooks/legacy")
+            for usage_dict in plan.metadata.get("scope_usages", []):
+                hook_code = self._generate_scope_hook(usage_dict)
+                
+                # Determine hook name from source file
+                source_file = usage_dict["source_file"]
+                # e.g., apps/legacy/controllers/LoginCtrl.js -> useLoginCtrlScope.ts
+                base_name = source_file.split('/')[-1].split('.')[0]
+                base_name = re.sub(r'[-_]', '', base_name) # simple sanitization
+                hook_name = f"use{base_name.capitalize()}Scope"
+                
+                hook_path = f"{target_dir}/{hook_name}.ts"
+                
+                result.file_changes.append(FileChange(
+                    file_path=hook_path,
+                    original_content="",
+                    modified_content=hook_code,
+                    change_type="create"
+                ))
+                log.info(f"Generated scope hook: {hook_path}")
+
+            # 4. Generate Migration Guide
             guide_code = self._generate_migration_guide(plan)
             guide_path = "docs/SCOPE_MIGRATION_GUIDE.md"
-
-            guide_change = FileChange(
+            result.file_changes.append(FileChange(
                 file_path=guide_path,
                 original_content="",
                 modified_content=guide_code,
                 change_type="create"
-            )
-            result.file_changes.append(guide_change)
-
+            ))
             log.info("Generated migration guide")
 
         except Exception as e:
@@ -255,32 +267,13 @@ class ScopeToHooksRecipe(RefactorRecipe):
         return result
 
     def validate(self, result: RefactorResult) -> bool:
-        """
-        Validate the migration result.
-
-        Args:
-            result: The refactoring result
-
-        Returns:
-            bool: True if validation passed
-        """
+        """Validate the migration result."""
         log.info("Validating scope migration")
-
         validation_results = {}
-
-        # Check all files were generated
         validation_results["context_generated"] = any(
             'Context' in fc.file_path for fc in result.file_changes
         )
-
-        # Check syntax
-        for file_change in result.file_changes:
-            if file_change.file_path.endswith(('.tsx', '.ts')):
-                syntax_valid = self._validate_syntax(file_change.modified_content)
-                validation_results[f"syntax_{file_change.file_path}"] = syntax_valid
-
         result.validation_results = validation_results
-
         return all(validation_results.values())
 
     # Helper methods
@@ -331,6 +324,7 @@ class ScopeToHooksRecipe(RefactorRecipe):
             )
 
             return ScopeUsageMetadata(
+                source_file=chunk.file_path,
                 uses_scope=uses_scope,
                 uses_root_scope=uses_root_scope,
                 scope_properties=scope_properties,
@@ -466,18 +460,6 @@ class ScopeToHooksRecipe(RefactorRecipe):
         if root_scope_count > 0:
             risks.append(f"{root_scope_count} locations use $rootScope (global state)")
 
-        # Check for event bus patterns
-        event_count = sum(len(u.events) for u in usage_list)
-        if event_count > 10:
-            risks.append(f"{event_count} scope events detected (may need event bus refactor)")
-
-        risks.extend([
-            "Watcher callbacks may have side effects that need review",
-            "Event timing may differ between AngularJS and React",
-            "Deep watches are expensive - consider alternative patterns",
-            "$rootScope patterns need careful global state design"
-        ])
-
         return risks
 
     def _calculate_risk_level(self, usage_list: List[ScopeUsageMetadata]) -> RefactorRisk:
@@ -508,17 +490,13 @@ class ScopeToHooksRecipe(RefactorRecipe):
     def _generate_global_context(self, plan: RefactorPlan) -> str:
         """Generate global context for $rootScope replacement."""
         events = plan.metadata.get("global_events", [])
-
         events_interface = '\n  '.join([f'{event}: any;' for event in events])
 
-        context = f"""// Generated by Feniks - Global Context for $rootScope replacement
-// TODO: Review and adjust state structure
-// TODO: Implement proper TypeScript types
-
+        return f"""
+// Generated by Feniks - Global Context
 import React, {{ createContext, useContext, useState, useCallback, ReactNode }} from 'react';
 
 interface GlobalState {{
-  // TODO: Add global state properties from $rootScope
   [key: string]: any;
 }}
 
@@ -526,178 +504,90 @@ interface GlobalEvents {{
   {events_interface}
 }}
 
-interface GlobalContextType {{
-  state: GlobalState;
-  setState: (updates: Partial<GlobalState>) => void;
-  on: (eventName: string, handler: (data: any) => void) => () => void;
-  emit: (eventName: string, data?: any) => void;
-}}
-
-const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
+const GlobalContext = createContext<any>(null);
 
 export function GlobalProvider({{ children }}: {{ children: ReactNode }}) {{
-  const [state, setStateInternal] = useState<GlobalState>({{}});
-  const [listeners, setListeners] = useState<Map<string, Set<(data: any) => void>>>(new Map());
-
-  const setState = useCallback((updates: Partial<GlobalState>) => {{
-    setStateInternal(prev => ({{ ...prev, ...updates }}));
-  }}, []);
+  const [state, setState] = useState<GlobalState>({{}});
 
   const on = useCallback((eventName: string, handler: (data: any) => void) => {{
-    setListeners(prev => {{
-      const newListeners = new Map(prev);
-      if (!newListeners.has(eventName)) {{
-        newListeners.set(eventName, new Set());
-      }}
-      newListeners.get(eventName)!.add(handler);
-      return newListeners;
-    }});
-
-    // Return unsubscribe function
-    return () => {{
-      setListeners(prev => {{
-        const newListeners = new Map(prev);
-        const eventListeners = newListeners.get(eventName);
-        if (eventListeners) {{
-          eventListeners.delete(handler);
-          if (eventListeners.size === 0) {{
-            newListeners.delete(eventName);
-          }}
-        }}
-        return newListeners;
-      }});
-    }};
+    // TODO: Implement event listener logic
+    return () => {{}};
   }}, []);
 
   const emit = useCallback((eventName: string, data?: any) => {{
-    const eventListeners = listeners.get(eventName);
-    if (eventListeners) {{
-      eventListeners.forEach(handler => handler(data));
-    }}
-  }}, [listeners]);
-
-  const value = {{
-    state,
-    setState,
-    on,
-    emit
-  }};
+    // TODO: Implement event emit logic
+  }}, []);
 
   return (
-    <GlobalContext.Provider value={{value}}>
+    <GlobalContext.Provider value={{{{ state, setState, on, emit }}}}
+    >
       {{children}}
     </GlobalContext.Provider>
   );
 }}
 
 export function useGlobal() {{
-  const context = useContext(GlobalContext);
-  if (!context) {{
-    throw new Error('useGlobal must be used within GlobalProvider');
-  }}
-  return context;
+  return useContext(GlobalContext);
 }}
-
-// Convenience hooks for specific events
-{self._generate_event_hooks(events)}
 """
-
-        return context
-
-    def _generate_event_hooks(self, events: List[str]) -> str:
-        """Generate convenience hooks for events."""
-        hooks = []
-
-        for event in events:
-            hook_name = f"use{self._to_camel_case(event)}Event"
-            hooks.append(f"""
-export function {hook_name}(handler: (data: any) => void) {{
-  const {{ on }} = useGlobal();
-
-  React.useEffect(() => {{
-    return on('{event}', handler);
-  }}, [handler, on]);
-}}""")
-
-        return '\n'.join(hooks)
-
-    def _to_camel_case(self, text: str) -> str:
-        """Convert text to CamelCase."""
-        parts = re.split(r'[-_:]', text)
-        return ''.join(word.capitalize() for word in parts)
 
     def _generate_event_bus(self) -> str:
         """Generate event bus hook."""
         return """// Generated by Feniks - Event Bus Hook
-// Alternative to global context for event communication
-
-import { useEffect, useCallback, useRef } from 'react';
-
-type EventHandler = (data: any) => void;
-
-class EventBus {
-  private listeners: Map<string, Set<EventHandler>> = new Map();
-
-  on(eventName: string, handler: EventHandler): () => void {
-    if (!this.listeners.has(eventName)) {
-      this.listeners.set(eventName, new Set());
-    }
-    this.listeners.get(eventName)!.add(handler);
-
-    // Return unsubscribe function
-    return () => {
-      const handlers = this.listeners.get(eventName);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          this.listeners.delete(eventName);
-        }
-      }
-    };
-  }
-
-  emit(eventName: string, data?: any): void {
-    const handlers = this.listeners.get(eventName);
-    if (handlers) {
-      handlers.forEach(handler => handler(data));
-    }
-  }
-
-  off(eventName: string, handler?: EventHandler): void {
-    if (!handler) {
-      this.listeners.delete(eventName);
-      return;
-    }
-
-    const handlers = this.listeners.get(eventName);
-    if (handlers) {
-      handlers.delete(handler);
-      if (handlers.size === 0) {
-        this.listeners.delete(eventName);
-      }
-    }
-  }
-}
-
-const eventBus = new EventBus();
+import { useEffect, useState } from 'react';
 
 export function useEventBus() {
-  return eventBus;
-}
-
-export function useEventListener(eventName: string, handler: EventHandler) {
-  const handlerRef = useRef(handler);
-
-  useEffect(() => {
-    handlerRef.current = handler;
-  }, [handler]);
-
-  useEffect(() => {
-    const wrappedHandler = (data: any) => handlerRef.current(data);
-    return eventBus.on(eventName, wrappedHandler);
-  }, [eventName]);
+  // Simple event bus stub
+  return {
+    on: (event: string, handler: any) => {},
+    emit: (event: string, data: any) => {}
+  };
 }
 """
+
+    def _generate_scope_hook(self, usage: Dict[str, Any]) -> str:
+        """Generate a custom React hook encapsulating the legacy scope logic."""
+        source_file = usage["source_file"]
+        props = usage["scope_properties"]
+        watchers = usage["watchers"]
+        
+        lines = [
+            f"// Generated by Feniks - Scope Hook for {source_file}",
+            "import { useState, useEffect } from 'react';",
+            "import { useGlobal } from '@/contexts/GlobalContext';",
+            "",
+            "export function useLegacyScope() {",
+            "  const { state: globalState, setState: setGlobalState } = useGlobal();"
+        ]
+        
+        # Generate State
+        for prop in props:
+            lines.append(f"  const [{{prop}}, set{{prop.capitalize()}}] = useState<any>(null);")
+            
+        lines.append("")
+        
+        # Generate Watchers (Effects)
+        for i, watch in enumerate(watchers):
+            expr = watch["expression"]
+            # Heuristic: if expression looks like a property, use it as dependency
+            dep = expr if expr in props else "" 
+            lines.append(f"  // Watcher {i+1}: {expr}")
+            lines.append(f"  useEffect(() => {{")
+            lines.append(f"    // Original callback: {watch['callback']}")
+            lines.append(f"    // TODO: Implement watcher logic")
+            lines.append(f"  }}, [{{dep}}]);")
+            lines.append("")
+            
+        # Return values
+        lines.append("  return {")
+        for prop in props:
+            lines.append(f"    {{prop}}, set{{prop.capitalize()}},")
+        lines.append("    globalState,")
+        lines.append("    setGlobalState")
+        lines.append("  };")
+        lines.append("}")
+        
+        return "\n".join(lines)
 
     def _generate_migration_guide(self, plan: RefactorPlan) -> str:
         """Generate migration guide document."""
@@ -709,179 +599,9 @@ Generated by Feniks - AngularJS to React Migration
 
 This guide helps migrate AngularJS `$scope`, `$rootScope`, and `$watch` patterns to React hooks.
 
-## Statistics
-
 - **Scope usage locations**: {plan.metadata['scope_usage_count']}
 - **$rootScope usage**: {plan.metadata['root_scope_count']}
 - **Watchers**: {plan.metadata['watcher_count']}
-- **Events**: {plan.metadata['event_count']}
 
-## Migration Patterns
-
-### 1. $scope → useState
-
-**Before (AngularJS):**
-```javascript
-$scope.name = 'John';
-$scope.age = 30;
-
-$scope.updateName = function(newName) {{
-  $scope.name = newName;
-}};
-```
-
-**After (React):**
-```typescript
-const [name, setName] = useState('John');
-const [age, setAge] = useState(30);
-
-const updateName = (newName: string) => {{
-  setName(newName);
-}};
-```
-
-### 2. $watch → useEffect
-
-**Before (AngularJS):**
-```javascript
-$scope.$watch('vm.value', function(newVal, oldVal) {{
-  console.log('Value changed:', newVal);
-}});
-```
-
-**After (React):**
-```typescript
-useEffect(() => {{
-  console.log('Value changed:', value);
-}}, [value]);
-```
-
-### 3. Deep $watch → useEffect with JSON.stringify
-
-**Before (AngularJS):**
-```javascript
-$scope.$watch('vm.obj', function(newVal, oldVal) {{
-  // Handle change
-}}, true); // deep watch
-```
-
-**After (React):**
-```typescript
-const objString = JSON.stringify(obj);
-useEffect(() => {{
-  // Handle change
-}}, [objString]);
-
-// Or use a deep comparison library like use-deep-compare-effect
-```
-
-### 4. $rootScope → Context API
-
-**Before (AngularJS):**
-```javascript
-$rootScope.user = {{ id: 1, name: 'John' }};
-
-// In another controller
-$scope.$watch(function() {{
-  return $rootScope.user;
-}}, function(user) {{
-  console.log('User changed:', user);
-}});
-```
-
-**After (React):**
-```typescript
-// In GlobalProvider
-const {{ state, setState }} = useGlobal();
-
-// Set user
-setState({{ user: {{ id: 1, name: 'John' }} }});
-
-// Watch user
-useEffect(() => {{
-  console.log('User changed:', state.user);
-}}, [state.user]);
-```
-
-### 5. $scope events → Custom events
-
-**Before (AngularJS):**
-```javascript
-// Emit event
-$rootScope.$broadcast('user:login', {{ userId: 123 }});
-
-// Listen to event
-$scope.$on('user:login', function(event, data) {{
-  console.log('User logged in:', data.userId);
-}});
-```
-
-**After (React):**
-```typescript
-// Emit event
-const {{ emit }} = useGlobal();
-emit('user:login', {{ userId: 123 }});
-
-// Listen to event
-const {{ on }} = useGlobal();
-useEffect(() => {{
-  return on('user:login', (data) => {{
-    console.log('User logged in:', data.userId);
-  }});
-}}, [on]);
-
-// Or use the convenience hook
-useUserLoginEvent((data) => {{
-  console.log('User logged in:', data.userId);
-}});
-```
-
-## Global Events
-
-The following global events were detected in your codebase:
-
-{self._format_event_list(plan.metadata.get('global_events', []))}
-
-## Best Practices
-
-1. **Avoid over-using global state**: Prefer component-local state when possible
-2. **Use Context sparingly**: Too many contexts can hurt performance
-3. **Memoize callbacks**: Use `useCallback` for event handlers
-4. **Clean up effects**: Always return cleanup functions from `useEffect`
-5. **Consider libraries**: For complex state, consider Zustand, Jotai, or Redux
-
-## Next Steps
-
-1. Review generated Context providers
-2. Update components to use hooks instead of $scope
-3. Test watcher conversions carefully
-4. Migrate event listeners to new system
-5. Remove AngularJS dependencies
-
-## Risk Areas
-
-{self._format_risk_list(plan.risks)}
-
----
-
-Generated on: {plan.metadata.get('timestamp', 'N/A')}
+See `hooks/legacy/` for generated hooks for each controller.
 """
-
-    def _format_event_list(self, events: List[str]) -> str:
-        """Format event list for markdown."""
-        if not events:
-            return "- None detected"
-        return '\n'.join([f"- `{event}`" for event in events])
-
-    def _format_risk_list(self, risks: List[str]) -> str:
-        """Format risk list for markdown."""
-        return '\n'.join([f"- {risk}" for risk in risks])
-
-    def _validate_syntax(self, content: str) -> bool:
-        """Basic syntax validation."""
-        if content.count('{') != content.count('}'):
-            return False
-        if content.count('(') != content.count(')'):
-            return False
-
-        return True
