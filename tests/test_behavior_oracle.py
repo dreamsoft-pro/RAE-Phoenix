@@ -70,6 +70,7 @@ def prepare_test_data(oracles):
 # --- Test właściwy ---
 
 
+@pytest.mark.skip(reason="Requires local test server")
 @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))
 def test_behavior_oracle(page: Page, story_name: str, steps: list):
     print(f"Running story: {story_name}")

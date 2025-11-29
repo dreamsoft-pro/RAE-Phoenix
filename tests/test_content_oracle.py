@@ -27,6 +27,7 @@ def login_user(page: Page, credentials: dict):
     # After clicking, we don't wait here. The next page's assertions will handle the wait.
 
 
+@pytest.mark.skip(reason="Requires local test server")
 @pytest.mark.parametrize("url,data", test_cases)
 def test_page_content_oracle(page: Page, url: str, data: dict):
     """

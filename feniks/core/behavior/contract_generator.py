@@ -114,9 +114,9 @@ class ContractGenerator:
             project_id=project_id,
             version=version,
             success_criteria=success_criteria,
-            max_duration_ms=max_duration_ms,
+            max_duration_ms_p95=max_duration_ms,
             created_at=datetime.now(),
-            created_from_snapshots=len(snapshots),
+            derived_from_snapshot_ids=[s.id for s in snapshots],
             confidence_score=self._calculate_confidence_score(snapshots),
         )
 

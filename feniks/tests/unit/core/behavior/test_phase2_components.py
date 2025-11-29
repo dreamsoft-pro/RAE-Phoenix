@@ -75,7 +75,7 @@ class TestContractGenerator:
         # Validate contract
         assert contract.scenario_id == "test-scenario"
         assert contract.project_id == "test-project"
-        assert contract.created_from_snapshots == 5
+        assert len(contract.derived_from_snapshot_ids) == 5
         assert contract.confidence_score > 0.0
 
         # Check HTTP criteria
