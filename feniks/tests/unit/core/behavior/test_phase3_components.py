@@ -65,6 +65,7 @@ class TestScenarioLibrary:
             name="Test Scenario",
             category="api",
             description="Test scenario description",
+            environment="legacy",
             input=ScenarioInput(api_request={"method": "GET", "url": "/api/test"}),
             success_criteria=SuccessCriteria(),
             created_at=datetime.now(),
@@ -97,6 +98,7 @@ class TestScenarioLibrary:
             name="CLI Scenario",
             category="cli",
             description="CLI test",
+            environment="legacy",
             input=ScenarioInput(cli_command="echo test"),
             success_criteria=SuccessCriteria(),
             created_at=datetime.now(),
@@ -219,6 +221,8 @@ class TestStorageAbstraction:
                 project_id="test",
                 name="Test",
                 category="api",
+                description="Test desc",
+                environment="legacy",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
                 created_at=datetime.now(),
@@ -280,22 +284,23 @@ class TestStorageAbstraction:
             all_snapshots = backend.load_snapshots("scenario-1")
             assert len(all_snapshots) == 5
 
-    def test_contract_version_filtering(self):
-        """Test contract loading with version filtering."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            backend = create_storage_backend("file", storage_dir=tmpdir)
-
-            # Create scenario
-            scenario = BehaviorScenario(
-                id="scenario-1",
-                project_id="test",
-                name="Test",
-                category="api",
-                input=ScenarioInput(),
-                success_criteria=SuccessCriteria(),
-                created_at=datetime.now(),
-            )
-            backend.save_scenario(scenario)
+            def test_contract_version_filtering(self):
+                """Test contract loading with version filtering."""
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    backend = create_storage_backend("file", storage_dir=tmpdir)
+    
+                    # Create scenario
+                    scenario = BehaviorScenario(
+                        id="scenario-1",
+                        project_id="test",
+                        name="Test",
+                        category="api",
+                        description="Test desc",
+                        environment="legacy",
+                        input=ScenarioInput(),
+                        success_criteria=SuccessCriteria(),
+                        created_at=datetime.now(),
+                    )            backend.save_scenario(scenario)
 
             # Create multiple contract versions
             for version in ["1.0.0", "1.1.0", "2.0.0"]:
@@ -342,6 +347,8 @@ class TestPhase3Integration:
                 project_id="test",
                 name="Test",
                 category="api",
+                description="Test desc",
+                environment="legacy",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
                 created_at=datetime.now(),

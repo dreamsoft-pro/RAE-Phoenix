@@ -155,12 +155,19 @@ class MaxBehaviorRiskPolicy:
                 impact = ReflectionImpact.WARNING
 
             # Create meta-reflection for policy violation
+            from datetime import datetime
+            import uuid
+            from feniks.core.models.types import ReflectionLevel, ReflectionScope
+
             reflection = MetaReflection(
+                id=str(uuid.uuid4()),
+                timestamp=datetime.now().isoformat(),
+                project_id=report.project_id,
+                level=ReflectionLevel.META_REFLECTION,
+                scope=ReflectionScope.SYSTEM,
                 title="Behavior Risk Policy Violation",
-                description=result.reason,
-                category="policy",
+                content=result.reason,
                 impact=impact,
-                source_location="MaxBehaviorRiskPolicy",
                 metadata={
                     "policy": "MaxBehaviorRiskPolicy",
                     "max_risk_score": self.max_risk_score,

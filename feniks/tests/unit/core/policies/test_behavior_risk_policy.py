@@ -110,7 +110,7 @@ def test_max_behavior_risk_policy_exact_threshold(base_report):
         max_risk_score=0.5,  # Exactly at threshold
     )
 
-    policy = MaxBehaviorRiskPolicy(max_risk_score=0.5)
+    policy = MaxBehaviorRiskPolicy(max_risk_score=0.5, max_failed_scenarios=2)
     result = policy.evaluate(base_report)
 
     # Should pass - threshold is inclusive (not exceeded)
@@ -187,7 +187,7 @@ def test_max_behavior_risk_policy_check_violations_integration(base_report):
     reflection = reflections[0]
     assert reflection.title == "Behavior Risk Policy Violation"
     assert reflection.impact.value == "critical"
-    assert "0.9" in reflection.description.lower() or "0.90" in reflection.description.lower()
+    assert "0.9" in reflection.content.lower() or "0.90" in reflection.content.lower()
     assert len(reflection.recommendations) > 0
 
 
