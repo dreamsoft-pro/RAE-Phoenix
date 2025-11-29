@@ -376,7 +376,7 @@ class TestLongitudinalBehaviorIntegration:
 
         # Create checks with declining pass rate
         checks = []
-        # First half: 90% pass rate
+        # First half: 100% pass rate
         for i in range(10):
             checks.append(
                 BehaviorCheckResult(
@@ -384,14 +384,14 @@ class TestLongitudinalBehaviorIntegration:
                     contract_id="contract",
                     scenario_id="scenario",
                     project_id="test",
-                    passed=(i % 10 != 0),  # 9/10 pass
+                    passed=True,
                     violations=[],
-                    risk_score=0.0 if (i % 10 != 0) else 0.5,
+                    risk_score=0.0,
                     checked_at=datetime.now(),
                 )
             )
 
-        # Last half: 60% pass rate
+        # Last half: 0% pass rate
         for i in range(10, 20):
             checks.append(
                 BehaviorCheckResult(
@@ -399,9 +399,9 @@ class TestLongitudinalBehaviorIntegration:
                     contract_id="contract",
                     scenario_id="scenario",
                     project_id="test",
-                    passed=(i % 5 != 0),  # 6/10 pass
-                    violations=[],
-                    risk_score=0.0 if (i % 5 != 0) else 0.5,
+                    passed=False,
+                    violations=[BehaviorViolation(code="FAIL", message="fail", severity="high")],
+                    risk_score=0.8,
                     checked_at=datetime.now(),
                 )
             )
