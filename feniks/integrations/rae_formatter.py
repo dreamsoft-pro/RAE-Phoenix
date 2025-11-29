@@ -15,11 +15,9 @@
 RAE Formatter - Converts Feniks data structures to RAE memory format.
 Handles formatting of meta-reflections, system models, and capabilities for RAE storage.
 """
-from datetime import datetime
 from typing import Any, Dict, List
 
-from feniks.core.models.types import (Capability, MetaReflection, Module,
-                                      SystemModel)
+from feniks.core.models.types import MetaReflection, SystemModel
 from feniks.infra.logging import get_logger
 
 log = get_logger("integrations.rae_formatter")

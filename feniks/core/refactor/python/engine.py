@@ -1,9 +1,8 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from feniks.core.models.types import SystemModel
-from feniks.core.refactor.python.tools import (LibCSTWrapper, MyPyWrapper,
-                                               RuffWrapper)
+from feniks.core.refactor.python.tools import LibCSTWrapper, MyPyWrapper, RuffWrapper
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.python.engine")

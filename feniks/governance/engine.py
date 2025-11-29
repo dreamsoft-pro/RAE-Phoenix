@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from feniks.core.models.types import SystemModel
 from feniks.infra.logging import get_logger

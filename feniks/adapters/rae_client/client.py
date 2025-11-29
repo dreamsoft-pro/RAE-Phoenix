@@ -250,7 +250,7 @@ class RAEClient:
             try:
                 error_data = e.response.json()
                 error_msg += f" - {error_data.get('error', error_data)}"
-            except:
+            except Exception:
                 error_msg += f" - {e.response.text}"
             raise RAEError(error_msg) from e
         except requests.exceptions.RequestException as e:

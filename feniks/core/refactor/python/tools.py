@@ -2,7 +2,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from feniks.infra.logging import get_logger
 
@@ -92,10 +92,10 @@ class LibCSTWrapper(PythonToolWrapper):
                     self.functions = []
                     self.classes = []
 
-                def visit_FunctionDef(self, node: cst.FunctionDef) -> None:
+                def visit_FunctionDef(self, node: cst.FunctionDef) -> None:  # noqa: N802
                     self.functions.append(node.name.value)
 
-                def visit_ClassDef(self, node: cst.ClassDef) -> None:
+                def visit_ClassDef(self, node: cst.ClassDef) -> None:  # noqa: N802
                     self.classes.append(node.name.value)
 
             path = self.work_dir / file_path

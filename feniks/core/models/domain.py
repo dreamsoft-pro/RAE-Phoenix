@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from feniks.core.models.behavior import (BehaviorChecksSummary,
-                                             BehaviorViolation)
+    from feniks.core.models.behavior import BehaviorChecksSummary, BehaviorViolation
 
 
 class ReasoningTrace(BaseModel):

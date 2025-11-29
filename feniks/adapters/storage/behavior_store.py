@@ -21,10 +21,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from feniks.adapters.storage.base import (BehaviorStorageBackend,
-                                          register_storage_backend)
-from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
-                                         BehaviorScenario, BehaviorSnapshot)
+from feniks.adapters.storage.base import BehaviorStorageBackend, register_storage_backend
+from feniks.core.models.behavior import BehaviorCheckResult, BehaviorContract, BehaviorScenario, BehaviorSnapshot
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 

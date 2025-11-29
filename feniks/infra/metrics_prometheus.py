@@ -18,8 +18,7 @@ import time
 from typing import Optional
 
 try:
-    from prometheus_client import (REGISTRY, CollectorRegistry, Counter, Gauge,
-                                   Histogram, generate_latest)
+    from prometheus_client import REGISTRY, CollectorRegistry, Counter, Gauge, Histogram, generate_latest
 
     PROMETHEUS_AVAILABLE = True
 except ImportError:

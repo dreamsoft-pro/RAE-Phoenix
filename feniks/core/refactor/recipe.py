@@ -21,7 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.models.types import Chunk, SystemModel
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipe")

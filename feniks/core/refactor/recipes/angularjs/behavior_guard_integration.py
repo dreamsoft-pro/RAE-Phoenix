@@ -19,7 +19,7 @@ to enable automated testing of migrations.
 """
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from feniks.core.refactor.recipe import RefactorPlan, RefactorResult
 from feniks.infra.logging import get_logger

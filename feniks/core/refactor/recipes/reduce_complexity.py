@@ -16,10 +16,8 @@ Reduce Complexity Recipe - Reduces cyclomatic complexity in modules.
 """
 from typing import Any, Dict, List, Optional
 
-from feniks.core.models.types import Chunk, Module, SystemModel
-from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
-                                         RefactorRecipe, RefactorResult,
-                                         RefactorRisk)
+from feniks.core.models.types import Chunk, SystemModel
+from feniks.core.refactor.recipe import FileChange, RefactorPlan, RefactorRecipe, RefactorResult, RefactorRisk
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.reduce_complexity")

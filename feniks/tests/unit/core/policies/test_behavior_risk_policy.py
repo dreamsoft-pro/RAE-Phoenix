@@ -18,12 +18,14 @@ from datetime import datetime
 
 import pytest
 
-from feniks.core.models.behavior import (BehaviorChecksSummary,
-                                         BehaviorViolation)
+from feniks.core.models.behavior import BehaviorChecksSummary
 from feniks.core.models.domain import FeniksReport, SessionSummary
 from feniks.core.policies.behavior_risk_policy import (
-    MaxBehaviorRiskPolicy, MinimumCoverageBehaviorPolicy,
-    PolicyEvaluationResult, ZeroRegressionPolicy)
+    MaxBehaviorRiskPolicy,
+    MinimumCoverageBehaviorPolicy,
+    PolicyEvaluationResult,
+    ZeroRegressionPolicy,
+)
 
 
 @pytest.fixture

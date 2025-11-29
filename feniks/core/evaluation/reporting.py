@@ -18,8 +18,7 @@ Creates text reports with module analysis, dependency graphs, and recommendation
 from pathlib import Path
 from typing import List, Optional
 
-from feniks.core.models.types import (Capability, MetaReflection, Module,
-                                      ModuleDependency, SystemModel)
+from feniks.core.models.types import MetaReflection, SystemModel
 from feniks.infra.logging import get_logger
 
 log = get_logger("core.report_generator")
@@ -318,7 +317,7 @@ class ReportGenerator:
                             lines.append(f"    - {rec}")
                         lines.append("")
 
-        lines.append(f"_Full meta-reflections available in JSONL output_")
+        lines.append("_Full meta-reflections available in JSONL output_")
         lines.append("")
 
         return "\n".join(lines)

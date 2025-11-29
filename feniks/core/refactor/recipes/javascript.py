@@ -2,8 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from feniks.core.models.types import Chunk, SystemModel
 from feniks.core.refactor.javascript.engine import JSRefactorEngine
-from feniks.core.refactor.recipe import (RefactorPlan, RefactorRecipe,
-                                         RefactorResult, RefactorRisk)
+from feniks.core.refactor.recipe import RefactorPlan, RefactorRecipe, RefactorResult, RefactorRisk
 
 
 class AngularMigrationRecipe(RefactorRecipe):

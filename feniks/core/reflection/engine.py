@@ -16,13 +16,11 @@ Meta-Reflection Engine - generates meta-reflections about code quality and archi
 Analyzes system model and generates insights, recommendations, and meta-observations.
 """
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from feniks.core.models.domain import SessionSummary
-from feniks.core.models.types import (MetaReflection, ReflectionLevel,
-                                      SystemModel)
+from feniks.core.models.types import MetaReflection, ReflectionLevel, SystemModel
 from feniks.core.policies.manager import PolicyManager
 from feniks.core.reflection.longitudinal import LongitudinalAnalyzer
 from feniks.core.reflection.post_mortem import PostMortemAnalyzer
@@ -160,9 +158,7 @@ class MetaReflectionEngine:
         Returns:
             List[MetaReflection]: Loaded reflections
         """
-        from feniks.core.models.types import (ReflectionEvidence,
-                                              ReflectionImpact,
-                                              ReflectionLevel, ReflectionScope)
+        from feniks.core.models.types import ReflectionEvidence, ReflectionImpact, ReflectionScope
 
         log.info(f"Loading reflections from {input_path}")
 

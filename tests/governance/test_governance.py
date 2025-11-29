@@ -1,7 +1,5 @@
 from datetime import datetime
 
-import pytest
-
 from feniks.core.models.types import SystemModel
 from feniks.governance.engine import GovernanceEngine
 

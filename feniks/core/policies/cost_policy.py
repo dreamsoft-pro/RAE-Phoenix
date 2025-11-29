@@ -21,9 +21,13 @@ from datetime import datetime
 from typing import List, Optional
 
 from feniks.core.models.domain import SessionSummary
-from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
-                                      ReflectionImpact, ReflectionLevel,
-                                      ReflectionScope)
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionEvidence,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+)
 from feniks.core.policies.cost import get_cost_controller
 from feniks.infra.logging import get_logger
 

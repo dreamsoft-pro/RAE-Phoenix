@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from feniks.core.refactor.php.runner import PhpToolRunner
 

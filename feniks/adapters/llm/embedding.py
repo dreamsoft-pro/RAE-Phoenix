@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -32,8 +32,8 @@ def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
         min_df=int(os.getenv("FENIKS_TEST_MIN_DF", 2)),
         max_features=50000,
     )
-    X = vec.fit_transform(corpus)  # csr_matrix
-    return vec, X
+    X_matrix = vec.fit_transform(corpus)  # csr_matrix
+    return vec, X_matrix
 
 
 def get_embedding_model(name: str) -> SentenceTransformer:

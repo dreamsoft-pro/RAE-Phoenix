@@ -25,12 +25,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from feniks.adapters.storage.base import (BehaviorStorageBackend,
-                                          SemanticSearchMixin,
-                                          VersionedStorageMixin,
-                                          register_storage_backend)
-from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
-                                         BehaviorScenario, BehaviorSnapshot)
+from feniks.adapters.storage.base import (
+    BehaviorStorageBackend,
+    SemanticSearchMixin,
+    VersionedStorageMixin,
+    register_storage_backend,
+)
+from feniks.core.models.behavior import BehaviorCheckResult, BehaviorContract, BehaviorScenario, BehaviorSnapshot
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 
@@ -39,8 +40,7 @@ log = get_logger("adapters.storage.qdrant")
 # Qdrant import with graceful fallback
 try:
     from qdrant_client import QdrantClient
-    from qdrant_client.models import (Distance, FieldCondition, Filter,
-                                      MatchValue, PointStruct, VectorParams)
+    from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PointStruct, VectorParams
 
     QDRANT_AVAILABLE = True
 except ImportError:

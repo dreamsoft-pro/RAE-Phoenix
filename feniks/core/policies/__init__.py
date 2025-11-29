@@ -17,8 +17,11 @@ Feniks Core Policies.
 Export all policy modules for easy import.
 """
 from feniks.core.policies.behavior_risk_policy import (
-    MaxBehaviorRiskPolicy, MinimumCoverageBehaviorPolicy,
-    PolicyEvaluationResult, ZeroRegressionPolicy)
+    MaxBehaviorRiskPolicy,
+    MinimumCoverageBehaviorPolicy,
+    PolicyEvaluationResult,
+    ZeroRegressionPolicy,
+)
 
 __all__ = [
     "MaxBehaviorRiskPolicy",

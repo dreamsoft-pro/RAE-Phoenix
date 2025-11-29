@@ -23,9 +23,7 @@ from pathlib import Path
 import uvicorn
 
 from feniks.adapters.ingest.jsonl_loader import load_jsonl_chunks
-from feniks.adapters.llm.embedding import (build_tfidf,
-                                           create_dense_embeddings,
-                                           get_embedding_model)
+from feniks.adapters.llm.embedding import build_tfidf, create_dense_embeddings, get_embedding_model
 from feniks.adapters.storage.qdrant import ensure_collection, upsert_points
 from feniks.apps.cli.angular import register_angular_commands
 from feniks.apps.cli.behavior import register_behavior_commands
@@ -36,7 +34,7 @@ from feniks.core.refactor.refactor_engine import RefactorEngine
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 from feniks.infra.metrics import get_metrics_collector
-from feniks.infra.tracing import span, trace
+from feniks.infra.tracing import trace
 
 log = get_logger("cli")
 

@@ -1,8 +1,7 @@
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from feniks.core.models.types import Capability, Chunk, SystemModel
+from feniks.core.models.types import Chunk, SystemModel
 from feniks.core.reflection.capabilities import CapabilityDetector
 
 

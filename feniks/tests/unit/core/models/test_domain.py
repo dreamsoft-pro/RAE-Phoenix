@@ -2,8 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from feniks.core.models.domain import (CostProfile, FeniksReport,
-                                       ReasoningTrace, SessionSummary)
+from feniks.core.models.domain import CostProfile, FeniksReport, ReasoningTrace, SessionSummary
 
 
 def test_cost_profile_creation():

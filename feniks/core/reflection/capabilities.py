@@ -17,9 +17,9 @@ Analyzes chunks, modules, and dependencies to infer what the system can do.
 """
 import re
 from collections import defaultdict
-from typing import Dict, List, Set
+from typing import Dict, List
 
-from feniks.core.models.types import Capability, Chunk, Module, SystemModel
+from feniks.core.models.types import Capability, Chunk, SystemModel
 from feniks.infra.logging import get_logger
 
 log = get_logger("core.capability_detector")

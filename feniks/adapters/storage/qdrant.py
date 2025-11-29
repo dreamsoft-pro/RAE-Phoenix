@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from typing import Dict, List
 
 import numpy as np
-from pydantic import ValidationError as PydanticValidationError
 from qdrant_client import QdrantClient
-from qdrant_client.models import (Distance, HnswConfigDiff,
-                                  OptimizersConfigDiff, PointStruct,
-                                  SparseVector, SparseVectorParams,
-                                  VectorParams)
+from qdrant_client.models import (
+    Distance,
+    HnswConfigDiff,
+    OptimizersConfigDiff,
+    PointStruct,
+    SparseVector,
+    SparseVectorParams,
+    VectorParams,
+)
 
 from feniks.core.models.types import Chunk
 
@@ -54,7 +57,7 @@ def upsert_points(
     collection: str,
     chunks: List[Chunk],
     dense: np.ndarray,
-    X_tfidf,
+    tfidf_matrix,
     vocab: Dict[str, int],
     batch: int = 512,
 ) -> None:
@@ -68,10 +71,10 @@ def upsert_points(
         vecs_dense = [dense[k].tolist() for k in batch_ids]
 
         # Prepare sparse slice (tf-idf)
-        Xb = X_tfidf[batch_ids]
+        batch_tfidf = tfidf_matrix[batch_ids]
         sv: List[SparseVector] = []
-        for row in range(Xb.shape[0]):
-            coo = Xb[row].tocoo()
+        for row in range(batch_tfidf.shape[0]):
+            coo = batch_tfidf[row].tocoo()
             sv.append(SparseVector(indices=coo.col.tolist(), values=[float(x) for x in coo.data.tolist()]))
 
         payloads = []

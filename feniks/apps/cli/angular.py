@@ -19,13 +19,16 @@ Feniks migration recipes.
 """
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 from feniks.core.models.types import Chunk, Module, SystemModel
 from feniks.core.refactor.recipes.angularjs import (
-    BehaviorGuardIntegration, ControllerToComponentRecipe,
-    DirectiveToComponentRecipe, RoutingToAppRouterRecipe, ScopeToHooksRecipe,
-    TemplateToJsxRecipe)
+    BehaviorGuardIntegration,
+    ControllerToComponentRecipe,
+    RoutingToAppRouterRecipe,
+    ScopeToHooksRecipe,
+    TemplateToJsxRecipe,
+)
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 
@@ -122,7 +125,7 @@ def _write_generated_files(output_dir: Path, file_changes: List) -> None:
             # Typically file_path will be output_dir / relative_path
             try:
                 file_path = output_dir / Path(fc.file_path).name
-            except:
+            except Exception:
                 file_path = Path(fc.file_path)
 
         file_path.parent.mkdir(parents=True, exist_ok=True)

@@ -17,12 +17,9 @@ Builds module graph, dependency graph, and computes metrics.
 """
 from collections import defaultdict
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-from feniks.core.models.types import (ApiEndpoint, Chunk, Module,
-                                      ModuleDependency, ModuleType,
-                                      SystemModel)
+from feniks.core.models.types import ApiEndpoint, Chunk, Module, ModuleDependency, ModuleType, SystemModel
 from feniks.infra.logging import get_logger
 
 log = get_logger("core.system_model_builder")

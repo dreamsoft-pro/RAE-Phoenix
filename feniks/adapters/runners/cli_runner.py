@@ -21,12 +21,8 @@ import subprocess
 import time
 import uuid
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
-from feniks.core.models.behavior import (BehaviorScenario, BehaviorSnapshot,
-                                         BehaviorViolation, ObservedCLI,
-                                         ObservedLogs)
+from feniks.core.models.behavior import BehaviorScenario, BehaviorSnapshot, BehaviorViolation, ObservedCLI, ObservedLogs
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 

@@ -1,11 +1,16 @@
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from feniks.core.evaluation.reporting import ReportGenerator
-from feniks.core.models.types import (Capability, MetaReflection, Module,
-                                      ReflectionImpact, ReflectionLevel,
-                                      ReflectionScope, SystemModel)
+from feniks.core.models.types import (
+    Capability,
+    MetaReflection,
+    Module,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+    SystemModel,
+)
 
 
 @pytest.fixture

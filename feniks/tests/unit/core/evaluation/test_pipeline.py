@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from feniks.core.evaluation.pipeline import AnalysisPipeline
-from feniks.core.models.types import Chunk, SystemModel
+from feniks.core.models.types import SystemModel
 from feniks.exceptions import FeniksStoreError
 
 

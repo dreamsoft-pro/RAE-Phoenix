@@ -25,10 +25,15 @@ import pytest
 
 from feniks.core.behavior.comparison_engine import BehaviorComparisonEngine
 from feniks.core.behavior.contract_generator import ContractGenerator
-from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
-                                         BehaviorSnapshot, BehaviorViolation,
-                                         HTTPSuccessCriteria, ObservedCLI,
-                                         ObservedHTTP)
+from feniks.core.models.behavior import (
+    BehaviorCheckResult,
+    BehaviorContract,
+    BehaviorSnapshot,
+    BehaviorViolation,
+    HTTPSuccessCriteria,
+    ObservedCLI,
+    ObservedHTTP,
+)
 from feniks.core.models.domain import CostProfile, SessionSummary
 from feniks.core.reflection.longitudinal import LongitudinalAnalyzer
 from feniks.core.reflection.post_mortem import PostMortemAnalyzer

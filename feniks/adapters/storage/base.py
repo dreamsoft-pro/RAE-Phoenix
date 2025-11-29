@@ -23,8 +23,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional
 
-from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
-                                         BehaviorScenario, BehaviorSnapshot)
+from feniks.core.models.behavior import BehaviorCheckResult, BehaviorContract, BehaviorScenario, BehaviorSnapshot
 
 
 class BehaviorStorageBackend(ABC):

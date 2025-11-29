@@ -57,8 +57,7 @@ def span(name: str, attributes: Optional[Dict[str, Any]] = None):
     """
     Context manager for a tracing span.
     """
-    from feniks.infra.logging import \
-        get_logger  # Delayed import to avoid circular dep
+    from feniks.infra.logging import get_logger  # Delayed import to avoid circular dep
 
     log = get_logger("infra.tracing")
 

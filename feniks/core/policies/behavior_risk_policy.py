@@ -20,7 +20,7 @@ merge/deployment when behavior regressions exceed thresholds.
 """
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from feniks.config.settings import settings
 from feniks.core.models.domain import FeniksReport

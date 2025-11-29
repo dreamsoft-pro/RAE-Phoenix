@@ -2,9 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from feniks.core.models.types import Chunk, SystemModel
 from feniks.core.refactor.python.engine import PythonRefactorEngine
-from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
-                                         RefactorRecipe, RefactorResult,
-                                         RefactorRisk)
+from feniks.core.refactor.recipe import RefactorPlan, RefactorRecipe, RefactorResult, RefactorRisk
 
 
 class PythonPipelineRecipe(RefactorRecipe):

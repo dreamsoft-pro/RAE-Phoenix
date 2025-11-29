@@ -28,10 +28,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
-from feniks.core.models.types import Chunk, Module, SystemModel
-from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
-                                         RefactorRecipe, RefactorResult,
-                                         RefactorRisk)
+from feniks.core.models.types import Chunk, SystemModel
+from feniks.core.refactor.recipe import FileChange, RefactorPlan, RefactorRecipe, RefactorResult, RefactorRisk
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.scope_to_hooks")
@@ -192,7 +190,7 @@ class ScopeToHooksRecipe(RefactorRecipe):
             },
         )
 
-        log.info(f"Created refactoring plan for scope migration")
+        log.info("Created refactoring plan for scope migration")
         return plan
 
     def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
@@ -557,7 +555,7 @@ export function useEventBus() {
 
         # Generate State
         for prop in props:
-            lines.append(f"  const [{{prop}}, set{{prop.capitalize()}}] = useState<any>(null);")
+            lines.append("  const [{prop}, set{prop.capitalize()}] = useState<any>(null);")
 
         lines.append("")
 
@@ -567,16 +565,16 @@ export function useEventBus() {
             # Heuristic: if expression looks like a property, use it as dependency
             dep = expr if expr in props else ""
             lines.append(f"  // Watcher {i+1}: {expr}")
-            lines.append(f"  useEffect(() => {{")
+            lines.append("  useEffect(() => {")
             lines.append(f"    // Original callback: {watch['callback']}")
-            lines.append(f"    // TODO: Implement watcher logic")
-            lines.append(f"  }}, [{{dep}}]);")
+            lines.append("    // TODO: Implement watcher logic")
+            lines.append("  }, [{dep}]);")
             lines.append("")
 
         # Return values
         lines.append("  return {")
         for prop in props:
-            lines.append(f"    {{prop}}, set{{prop.capitalize()}},")
+            lines.append("    {prop}, set{prop.capitalize()},")
         lines.append("    globalState,")
         lines.append("    setGlobalState")
         lines.append("  };")

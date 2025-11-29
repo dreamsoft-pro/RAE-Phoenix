@@ -19,10 +19,8 @@ from typing import Any, Dict, List, Optional
 
 from feniks.core.models.types import Chunk, SystemModel
 from feniks.core.refactor.patch_generator import PatchGenerator
-from feniks.core.refactor.recipe import (RefactorPlan, RefactorRecipe,
-                                         RefactorResult)
-from feniks.core.refactor.recipes import (ExtractFunctionRecipe,
-                                          ReduceComplexityRecipe)
+from feniks.core.refactor.recipe import RefactorPlan, RefactorRecipe, RefactorResult
+from feniks.core.refactor.recipes import ExtractFunctionRecipe, ReduceComplexityRecipe
 from feniks.core.refactor.recipes.javascript import AngularMigrationRecipe
 from feniks.core.refactor.recipes.php import PhpEnterpriseRecipe
 from feniks.core.refactor.recipes.python import PythonPipelineRecipe
@@ -245,7 +243,7 @@ class RefactorEngine:
         lines.append("## Changes")
         lines.append(f"- **Total changes:** {result.total_changes}")
         lines.append(f"- **Estimated:** {result.plan.estimated_changes}")
-        lines.append(f"- **Changed files:**")
+        lines.append("- **Changed files:**")
         for file_path in result.changed_files:
             lines.append(f"  - {file_path}")
         lines.append("")

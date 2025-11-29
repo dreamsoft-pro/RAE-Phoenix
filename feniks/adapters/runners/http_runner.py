@@ -16,7 +16,6 @@ HTTP Scenario Runner - Executes API behavior scenarios and captures snapshots.
 
 Supports REST APIs with full HTTP method coverage and response validation.
 """
-import re
 import time
 import uuid
 from datetime import datetime
@@ -24,9 +23,13 @@ from typing import Optional
 
 import requests
 
-from feniks.core.models.behavior import (BehaviorScenario, BehaviorSnapshot,
-                                         BehaviorViolation, ObservedHTTP,
-                                         ObservedLogs)
+from feniks.core.models.behavior import (
+    BehaviorScenario,
+    BehaviorSnapshot,
+    BehaviorViolation,
+    ObservedHTTP,
+    ObservedLogs,
+)
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 
@@ -173,7 +176,7 @@ class HTTPRunner:
         """Parse response body as JSON or text."""
         try:
             return response.json()
-        except:
+        except Exception:
             return response.text if response.text else None
 
     def _validate_http_criteria(self, observed: ObservedHTTP, criteria) -> list[BehaviorViolation]:

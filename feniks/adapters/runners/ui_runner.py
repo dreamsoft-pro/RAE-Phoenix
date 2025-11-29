@@ -16,16 +16,20 @@ UI Scenario Runner - Executes browser UI scenarios and captures DOM snapshots.
 
 Supports full browser automation with Playwright for legacy UI testing.
 """
-import json
 import time
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from feniks.core.models.behavior import (BehaviorScenario, BehaviorSnapshot,
-                                         BehaviorViolation, DOMElement,
-                                         ObservedDOM, ObservedLogs)
+from feniks.core.models.behavior import (
+    BehaviorScenario,
+    BehaviorSnapshot,
+    BehaviorViolation,
+    DOMElement,
+    ObservedDOM,
+    ObservedLogs,
+)
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 
@@ -33,9 +37,8 @@ log = get_logger("adapters.runners.ui")
 
 # Playwright import with graceful fallback
 try:
-    from playwright.sync_api import Browser
+    from playwright.sync_api import Browser, Page, sync_playwright
     from playwright.sync_api import Error as PlaywrightError
-    from playwright.sync_api import Page, sync_playwright
 
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:

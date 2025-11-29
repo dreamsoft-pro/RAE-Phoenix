@@ -16,8 +16,7 @@ Feniks API - RESTful interface for the Feniks system.
 """
 from typing import Dict, List, Optional
 
-from fastapi import (BackgroundTasks, Depends, FastAPI, HTTPException, Request,
-                     Security)
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Security
 from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -33,8 +32,7 @@ from feniks.core.reflection.engine import MetaReflectionEngine
 from feniks.infra.logging import get_logger
 from feniks.infra.metrics import get_metrics_collector
 from feniks.infra.metrics_prometheus import get_prometheus_collector
-from feniks.security.auth import (AuthenticationError, AuthorizationError,
-                                  User, get_auth_manager)
+from feniks.security.auth import AuthenticationError, User, get_auth_manager
 from feniks.security.rbac import Permission, RBACManager
 
 log = get_logger("apps.api")

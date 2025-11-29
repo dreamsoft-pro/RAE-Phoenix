@@ -46,8 +46,8 @@ class Evidence:
 class ApiEndpoint:
     url: str
     method: str
-    dataKeys: List[str] = field(default_factory=list)
-    paramKeys: List[str] = field(default_factory=list)
+    data_keys: List[str] = field(default_factory=list)
+    param_keys: List[str] = field(default_factory=list)
 
 
 @dataclass

@@ -18,13 +18,17 @@ import statistics
 import uuid
 from collections import Counter
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from feniks.core.models.behavior import BehaviorCheckResult
 from feniks.core.models.domain import SessionSummary
-from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
-                                      ReflectionImpact, ReflectionLevel,
-                                      ReflectionScope)
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionEvidence,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+)
 from feniks.infra.logging import get_logger
 
 log = get_logger("core.reflection.longitudinal")

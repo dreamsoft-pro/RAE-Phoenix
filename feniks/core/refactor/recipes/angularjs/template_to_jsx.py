@@ -27,12 +27,10 @@ Handles:
 import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from feniks.core.models.types import Chunk, Module, SystemModel
-from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
-                                         RefactorRecipe, RefactorResult,
-                                         RefactorRisk)
+from feniks.core.models.types import Chunk, SystemModel
+from feniks.core.refactor.recipe import FileChange, RefactorPlan, RefactorRecipe, RefactorResult, RefactorRisk
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.template_to_jsx")
@@ -613,7 +611,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                 track_by = repeat_parts[1].split(" track by ")[1].strip()
 
             # Generate key
-            key_expr = track_by if track_by else f"index"
+            key_expr = track_by if track_by else "index"
 
             # Build map syntax
             map_start = f"{{{items_expr}.map(({item_var}, index) => ("

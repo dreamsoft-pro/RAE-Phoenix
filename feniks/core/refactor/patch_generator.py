@@ -68,11 +68,11 @@ class PatchGenerator:
         patch_lines.append(f"# Project: {result.plan.project_id}")
         patch_lines.append(f"# Generated: {datetime.now().isoformat()}")
         patch_lines.append(f"# Risk Level: {result.plan.risk_level.value}")
-        patch_lines.append(f"#")
+        patch_lines.append("#")
         patch_lines.append(f"# Rationale: {result.plan.rationale}")
-        patch_lines.append(f"#")
+        patch_lines.append("#")
         patch_lines.append(f"# Files changed: {len(result.file_changes)}")
-        patch_lines.append(f"#")
+        patch_lines.append("#")
         patch_lines.append("")
 
         # Generate diff for each file
@@ -100,10 +100,10 @@ class PatchGenerator:
             List of diff lines
         """
         if file_change.change_type == "delete":
-            return [f"--- {file_change.file_path}", f"+++ /dev/null", "# File deleted"]
+            return [f"--- {file_change.file_path}", "+++ /dev/null", "# File deleted"]
 
         if file_change.change_type == "create":
-            return [f"--- /dev/null", f"+++ {file_change.file_path}", "# New file created"]
+            return ["--- /dev/null", f"+++ {file_change.file_path}", "# New file created"]
 
         # For modifications, generate suggestions as comments
         diff_lines = []

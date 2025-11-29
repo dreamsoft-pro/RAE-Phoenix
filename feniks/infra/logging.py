@@ -19,7 +19,7 @@ import datetime
 import json
 import logging
 import sys
-from typing import Any, Optional
+from typing import Optional
 
 # Delayed import inside formatting to avoid circular imports if needed,
 # or just import trace functions directly.

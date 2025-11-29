@@ -16,14 +16,28 @@ Unit tests for Behavior Contract Models.
 """
 from datetime import datetime
 
-import pytest
-
 from feniks.core.models.behavior import (  # Input models; Criteria; Scenario; Observations; Violations and Snapshots; Contracts; Check result
-    APIRequest, BehaviorCheckResult, BehaviorChecksSummary, BehaviorContract,
-    BehaviorInput, BehaviorScenario, BehaviorSnapshot, BehaviorSuccessCriteria,
-    BehaviorViolation, CLICommand, DOMContract, DOMCriteria, HTTPContract,
-    HTTPCriteria, LogContract, LogCriteria, ObservedDOM, ObservedHTTP,
-    ObservedLogs, UIAction)
+    APIRequest,
+    BehaviorCheckResult,
+    BehaviorChecksSummary,
+    BehaviorContract,
+    BehaviorInput,
+    BehaviorScenario,
+    BehaviorSnapshot,
+    BehaviorSuccessCriteria,
+    BehaviorViolation,
+    CLICommand,
+    DOMContract,
+    DOMCriteria,
+    HTTPContract,
+    HTTPCriteria,
+    LogContract,
+    LogCriteria,
+    ObservedDOM,
+    ObservedHTTP,
+    ObservedLogs,
+    UIAction,
+)
 
 # ============================================================================
 # Input Models Tests

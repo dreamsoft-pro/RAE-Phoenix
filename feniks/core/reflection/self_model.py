@@ -16,11 +16,15 @@ Self-Model Loop - maintains and updates the system's understanding of its own pe
 """
 import uuid
 from datetime import datetime
-from typing import Dict, List
+from typing import List
 
-from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
-                                      ReflectionImpact, ReflectionLevel,
-                                      ReflectionScope)
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionEvidence,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+)
 from feniks.infra.logging import get_logger
 
 log = get_logger("core.reflection.self_model")

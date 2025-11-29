@@ -21,10 +21,16 @@ import re
 from datetime import datetime
 from typing import List
 
-from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
-                                         BehaviorSnapshot, BehaviorViolation,
-                                         ObservedCLI, ObservedDOM,
-                                         ObservedHTTP, ObservedLogs)
+from feniks.core.models.behavior import (
+    BehaviorCheckResult,
+    BehaviorContract,
+    BehaviorSnapshot,
+    BehaviorViolation,
+    ObservedCLI,
+    ObservedDOM,
+    ObservedHTTP,
+    ObservedLogs,
+)
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 

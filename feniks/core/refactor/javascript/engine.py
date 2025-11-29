@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
-from feniks.core.refactor.javascript.tools import (JSCodeshiftWrapper,
-                                                   NgMigrationAssistantWrapper)
+from feniks.core.refactor.javascript.tools import JSCodeshiftWrapper, NgMigrationAssistantWrapper
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.js.engine")

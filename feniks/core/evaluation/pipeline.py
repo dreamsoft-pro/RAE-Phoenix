@@ -15,25 +15,20 @@
 Analysis Pipeline - orchestrates system model building and analysis.
 Loads chunks from Qdrant, builds system model, detects capabilities, generates reports.
 """
-import json
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from feniks.adapters.rae_client.client import RAEError, create_rae_client
 from feniks.config.settings import settings
-from feniks.core.evaluation.reporting import ReportGenerator, generate_report
-from feniks.core.models.domain import (CostProfile, FeniksReport,
-                                       ReasoningTrace, SessionSummary)
-from feniks.core.models.types import (ApiEndpoint, Chunk, Dependency, GitInfo,
-                                      SystemModel)
+from feniks.core.evaluation.reporting import ReportGenerator
+from feniks.core.models.domain import CostProfile, FeniksReport, SessionSummary
+from feniks.core.models.types import ApiEndpoint, Chunk, Dependency, GitInfo, SystemModel
 from feniks.core.reflection.capabilities import CapabilityDetector
-from feniks.core.reflection.engine import (generate_meta_reflections,
-                                           save_meta_reflections)
+from feniks.core.reflection.engine import generate_meta_reflections, save_meta_reflections
 from feniks.core.reflection.system_model import build_system_model
 from feniks.exceptions import FeniksError, FeniksStoreError
 from feniks.infra.logging import get_logger

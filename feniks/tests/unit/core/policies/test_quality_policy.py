@@ -17,8 +17,7 @@ Tests for Quality Policy enforcement.
 import pytest
 
 from feniks.core.models.domain import ReasoningTrace, SessionSummary
-from feniks.core.policies.quality_policy import (QualityPolicyConfig,
-                                                 QualityPolicyEnforcer)
+from feniks.core.policies.quality_policy import QualityPolicyConfig, QualityPolicyEnforcer
 
 
 @pytest.fixture

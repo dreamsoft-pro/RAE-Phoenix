@@ -17,7 +17,7 @@ Supports include/exclude patterns for files and directories.
 """
 import re
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from feniks.core.models.types import Chunk
 from feniks.infra.logging import get_logger

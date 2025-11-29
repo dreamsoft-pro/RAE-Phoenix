@@ -20,14 +20,9 @@ of legacy systems without traditional tests.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List
 
 import yaml
 
-from feniks.core.models.behavior import (BehaviorCheckResult,
-                                         BehaviorChecksSummary,
-                                         BehaviorContract, BehaviorScenario,
-                                         BehaviorSnapshot)
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 

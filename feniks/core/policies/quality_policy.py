@@ -18,12 +18,16 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
-from feniks.core.models.domain import ReasoningTrace, SessionSummary
-from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
-                                      ReflectionImpact, ReflectionLevel,
-                                      ReflectionScope)
+from feniks.core.models.domain import SessionSummary
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionEvidence,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+)
 from feniks.infra.logging import get_logger
 
 log = get_logger("core.policies.quality_policy")

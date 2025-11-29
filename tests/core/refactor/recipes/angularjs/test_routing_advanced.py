@@ -1,9 +1,8 @@
-import pytest
 
-from feniks.core.models.types import Chunk
 from feniks.core.refactor.recipe import RefactorPlan, RefactorRisk
 from feniks.core.refactor.recipes.angularjs.routing_to_app_router import (
-    RouteDefinition, RouterType, RoutingMetadata, RoutingToAppRouterRecipe)
+    RoutingToAppRouterRecipe,
+)
 
 
 def test_routing_resolve_extraction():

@@ -17,17 +17,20 @@ Contract Generator - Derives behavior contracts from observed snapshots.
 Analyzes legacy system snapshots to automatically generate behavioral contracts
 for regression testing without traditional test suites.
 """
-import statistics
 import uuid
 from collections import Counter
 from datetime import datetime
 from typing import List, Optional, Set
 
-from feniks.core.models.behavior import (BehaviorContract, BehaviorSnapshot,
-                                         CLISuccessCriteria,
-                                         DOMSuccessCriteria,
-                                         HTTPSuccessCriteria,
-                                         LogSuccessCriteria, SuccessCriteria)
+from feniks.core.models.behavior import (
+    BehaviorContract,
+    BehaviorSnapshot,
+    CLISuccessCriteria,
+    DOMSuccessCriteria,
+    HTTPSuccessCriteria,
+    LogSuccessCriteria,
+    SuccessCriteria,
+)
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 

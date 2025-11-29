@@ -1,12 +1,12 @@
-import re
 from unittest.mock import MagicMock
-
-import pytest
 
 from feniks.core.models.types import Chunk
 from feniks.core.refactor.recipe import RefactorPlan, RefactorRisk
 from feniks.core.refactor.recipes.angularjs.template_to_jsx import (
-    AngularHTMLParser, TemplateMetadata, TemplateToJsxRecipe)
+    AngularHTMLParser,
+    TemplateMetadata,
+    TemplateToJsxRecipe,
+)
 
 
 def test_template_parser_ng_model():

@@ -25,13 +25,16 @@ from pathlib import Path
 
 import pytest
 
-from feniks.adapters.storage.base import (create_storage_backend,
-                                          register_storage_backend)
+from feniks.adapters.storage.base import create_storage_backend
 from feniks.adapters.storage.behavior_store import BehaviorStore
 from feniks.core.behavior.scenario_library import ScenarioLibrary
-from feniks.core.models.behavior import (BehaviorContract, BehaviorScenario,
-                                         BehaviorSnapshot, ScenarioInput,
-                                         SuccessCriteria)
+from feniks.core.models.behavior import (
+    BehaviorContract,
+    BehaviorScenario,
+    BehaviorSnapshot,
+    ScenarioInput,
+    SuccessCriteria,
+)
 
 # ============================================================================
 # Scenario Library Tests

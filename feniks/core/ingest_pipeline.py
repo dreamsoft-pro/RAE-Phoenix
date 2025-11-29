@@ -17,18 +17,14 @@ Feniks ingestion pipeline - orchestrates the process of loading code chunks into
 from pathlib import Path
 from typing import List, Optional
 
-import numpy as np
 from qdrant_client import QdrantClient
 
 from feniks.adapters.ingest.filters import ChunkFilter, create_default_filter
 from feniks.adapters.ingest.jsonl_loader import load_jsonl
 from feniks.config.settings import settings
-from feniks.core.models.types import Chunk
 from feniks.core.policies.cost import get_cost_controller
-from feniks.embedding import (build_tfidf, create_dense_embeddings,
-                              get_embedding_model)
-from feniks.exceptions import (FeniksConfigError, FeniksIngestError,
-                               FeniksStoreError)
+from feniks.embedding import build_tfidf, create_dense_embeddings, get_embedding_model
+from feniks.exceptions import FeniksIngestError, FeniksStoreError
 from feniks.infra.logging import get_logger
 from feniks.infra.metrics import get_metrics_collector
 from feniks.store import ensure_collection, upsert_points

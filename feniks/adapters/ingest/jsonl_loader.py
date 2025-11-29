@@ -19,8 +19,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from feniks.core.models.types import (ApiEndpoint, Chunk, Dependency, Evidence,
-                                      GitInfo, MigrationSuggestion)
+from feniks.core.models.types import ApiEndpoint, Chunk, Dependency, Evidence, GitInfo, MigrationSuggestion
 from feniks.exceptions import FeniksIngestError
 from feniks.infra.logging import get_logger
 

@@ -16,12 +16,16 @@ Reflection Rules - rules for generating meta-reflections.
 Defines conditions and templates for different types of reflections.
 """
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List
 
-from feniks.core.models.types import (MetaReflection, Module,
-                                      ReflectionEvidence, ReflectionImpact,
-                                      ReflectionLevel, ReflectionScope,
-                                      SystemModel)
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionEvidence,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+    SystemModel,
+)
 
 
 @dataclass
@@ -307,7 +311,7 @@ class ReflectionRuleSet:
                 type="metric",
                 source="system_model",
                 value={"avg_module_complexity": sm.avg_module_complexity},
-                context=f"Average cyclomatic complexity across all modules",
+                context="Average cyclomatic complexity across all modules",
             )
         ]
 

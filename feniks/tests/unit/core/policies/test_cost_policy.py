@@ -19,8 +19,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from feniks.core.models.domain import CostProfile, SessionSummary
-from feniks.core.policies.cost_policy import (CostPolicyConfig,
-                                              CostPolicyEnforcer)
+from feniks.core.policies.cost_policy import CostPolicyConfig, CostPolicyEnforcer
 
 
 @pytest.fixture

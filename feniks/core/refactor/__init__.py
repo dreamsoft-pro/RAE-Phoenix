@@ -14,8 +14,7 @@
 """
 Feniks Refactoring Module - Enterprise-grade code refactoring workflows.
 """
-from feniks.core.refactor.recipe import (RefactorPlan, RefactorRecipe,
-                                         RefactorResult)
+from feniks.core.refactor.recipe import RefactorPlan, RefactorRecipe, RefactorResult
 from feniks.core.refactor.refactor_engine import RefactorEngine
 
 __all__ = ["RefactorRecipe", "RefactorPlan", "RefactorResult", "RefactorEngine"]

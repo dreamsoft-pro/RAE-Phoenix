@@ -23,13 +23,10 @@ Handles:
 """
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from feniks.core.models.types import Chunk, Module, SystemModel
-from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
-                                         RefactorRecipe, RefactorResult,
-                                         RefactorRisk)
+from feniks.core.models.types import Chunk, SystemModel
+from feniks.core.refactor.recipe import FileChange, RefactorPlan, RefactorRecipe, RefactorResult, RefactorRisk
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.controller_to_component")
@@ -263,7 +260,7 @@ class ControllerToComponentRecipe(RefactorRecipe):
                 uses_scope=uses_scope,
                 lifecycle_hooks=hooks,
             )
-        except Exception as e:
+        except Exception:
             return None
 
     def _extract_dependencies(self, content: str) -> List[str]:
@@ -364,7 +361,7 @@ export default function {component_name}(props: {component_name}Props) {{
         decls = []
         for prop, val in metadata.properties.items():
             type_hint = self._infer_type(val)
-            decls.append(f"  const [{{prop}}, set{{prop.capitalize()}}] = useState<{{type_hint}}>({{val}});")
+            decls.append("  const [{prop}, set{prop.capitalize()}] = useState<{type_hint}>({val});")
         return "\n".join(decls)
 
     def _infer_type(self, value: str) -> str:
@@ -400,7 +397,7 @@ export default function {component_name}(props: {component_name}Props) {{
         return "  useEffect(() => {}, []);"
 
     def _generate_jsx_placeholder(self, metadata: ControllerMetadata) -> str:
-        return f"    <div>{{metadata.name}}</div>"
+        return "    <div>{metadata.name}</div>"
 
     def _get_component_path(self, metadata: ControllerMetadata) -> str:
         name = self._to_component_name(metadata.name)
