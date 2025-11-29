@@ -140,7 +140,7 @@ class TestContractGenerator:
 
     def test_generate_contract_cli_criteria(self):
         """Test contract generation from CLI snapshots."""
-        generator = ContractGenerator(min_snapshots=3, confidence_threshold=0.8)
+        # generator = ContractGenerator(min_snapshots=3, confidence_threshold=0.8)
 
         snapshots = []
         for i in range(4):

@@ -280,13 +280,14 @@ class TestStorageAbstraction:
             snapshots = backend.load_snapshots("scenario-1", limit=3)
             assert len(snapshots) == 3
 
-                        # Load all
-                        all_snapshots = backend.load_snapshots("scenario-1")
-                        assert len(all_snapshots) == 5
-            
-                def test_contract_version_filtering(self):
-                    """Test contract loading with version filtering."""
-                    with tempfile.TemporaryDirectory() as tmpdir:            backend = create_storage_backend("file", storage_dir=tmpdir)
+            # Load all
+            all_snapshots = backend.load_snapshots("scenario-1")
+            assert len(all_snapshots) == 5
+
+    def test_contract_version_filtering(self):
+        """Test contract loading with version filtering."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            backend = create_storage_backend("file", storage_dir=tmpdir)
 
             # Create scenario
             scenario = BehaviorScenario(
