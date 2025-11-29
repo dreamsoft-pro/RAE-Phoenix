@@ -142,8 +142,20 @@ class TestScenarioLibrary:
     def test_get_popular_scenarios(self, library, sample_scenario):
         """Test getting popular scenarios."""
         # Publish scenarios
+        sample_scenario_2 = BehaviorScenario(
+            id="test-scenario-2",
+            project_id="test-project",
+            name="Test Scenario 2",
+            category="cli",
+            description="Test scenario 2 description",
+            environment="legacy",
+            input=ScenarioInput(cli_command=CLICommand(command="echo test")),
+            success_criteria=SuccessCriteria(),
+            created_at=datetime.now(),
+        )
+
         lib_id1 = library.publish_scenario(sample_scenario, tags=["http"])
-        lib_id2 = library.publish_scenario(sample_scenario, tags=["cli"])
+        lib_id2 = library.publish_scenario(sample_scenario_2, tags=["cli"])
 
         # Import multiple times to increase usage
         library.import_scenario(lib_id1, "project1")

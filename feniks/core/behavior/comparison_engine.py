@@ -79,37 +79,32 @@ class BehaviorComparisonEngine:
         violations: List[BehaviorViolation] = []
 
         # Check HTTP behavior
-        if contract.success_criteria.http and snapshot.observed_http:
-            http_violations = self._check_http(snapshot.observed_http, contract.success_criteria.http)
+        if contract.http_contract and snapshot.observed_http:
+            http_violations = self._check_http(snapshot.observed_http, contract.http_contract)
             violations.extend(http_violations)
 
-        # Check CLI behavior
-        if contract.success_criteria.cli and snapshot.observed_cli:
-            cli_violations = self._check_cli(snapshot.observed_cli, contract.success_criteria.cli)
-            violations.extend(cli_violations)
-
         # Check DOM behavior
-        if contract.success_criteria.dom and snapshot.observed_dom:
-            dom_violations = self._check_dom(snapshot.observed_dom, contract.success_criteria.dom)
+        if contract.dom_contract and snapshot.observed_dom:
+            dom_violations = self._check_dom(snapshot.observed_dom, contract.dom_contract)
             violations.extend(dom_violations)
 
         # Check log behavior
-        if contract.success_criteria.logs and snapshot.observed_logs:
-            log_violations = self._check_logs(snapshot.observed_logs, contract.success_criteria.logs)
+        if contract.log_contract and snapshot.observed_logs:
+            log_violations = self._check_logs(snapshot.observed_logs, contract.log_contract)
             violations.extend(log_violations)
 
         # Check duration
-        if contract.max_duration_ms and snapshot.duration_ms:
-            if snapshot.duration_ms > contract.max_duration_ms:
+        if contract.max_duration_ms_p95 and snapshot.duration_ms:
+            if snapshot.duration_ms > contract.max_duration_ms_p95:
                 violations.append(
                     BehaviorViolation(
                         code="DURATION_EXCEEDED",
-                        message=f"Duration {snapshot.duration_ms}ms exceeds threshold {contract.max_duration_ms}ms",
+                        message=f"Duration {snapshot.duration_ms}ms exceeds threshold {contract.max_duration_ms_p95}ms",
                         severity="medium",
                         details={
                             "actual_ms": snapshot.duration_ms,
-                            "max_ms": contract.max_duration_ms,
-                            "overhead_pct": round((snapshot.duration_ms / contract.max_duration_ms - 1) * 100, 1),
+                            "max_ms": contract.max_duration_ms_p95,
+                            "overhead_pct": round((snapshot.duration_ms / contract.max_duration_ms_p95 - 1) * 100, 1),
                         },
                     )
                 )
@@ -122,6 +117,7 @@ class BehaviorComparisonEngine:
             snapshot_id=snapshot.id,
             contract_id=contract.id,
             scenario_id=snapshot.scenario_id,
+            project_id=snapshot.project_id,
             passed=len(violations) == 0,
             violations=violations,
             risk_score=risk_score,
@@ -135,36 +131,36 @@ class BehaviorComparisonEngine:
 
         return result
 
-    def _check_http(self, observed: ObservedHTTP, criteria) -> List[BehaviorViolation]:
-        """Check HTTP behavior against criteria."""
+    def _check_http(self, observed: ObservedHTTP, contract) -> List[BehaviorViolation]:
+        """Check HTTP behavior against contract."""
         violations = []
 
         # Check status codes
-        if criteria.expected_status_codes:
-            if observed.status_code not in criteria.expected_status_codes:
+        if contract.required_status_codes:
+            if observed.status_code not in contract.required_status_codes:
                 violations.append(
                     BehaviorViolation(
                         code="HTTP_STATUS_UNEXPECTED",
-                        message=f"Status {observed.status_code} not in expected: {criteria.expected_status_codes}",
+                        message=f"Status {observed.status_code} not in expected: {contract.required_status_codes}",
                         severity="high",
-                        details={"expected": criteria.expected_status_codes, "actual": observed.status_code},
+                        details={"expected": contract.required_status_codes, "actual": observed.status_code},
                     )
                 )
 
-        if criteria.forbidden_status_codes:
-            if observed.status_code in criteria.forbidden_status_codes:
+        if contract.forbidden_status_codes:
+            if observed.status_code in contract.forbidden_status_codes:
                 violations.append(
                     BehaviorViolation(
                         code="HTTP_STATUS_FORBIDDEN",
                         message=f"Status {observed.status_code} is forbidden",
                         severity="critical",
-                        details={"forbidden": criteria.forbidden_status_codes, "actual": observed.status_code},
+                        details={"forbidden": contract.forbidden_status_codes, "actual": observed.status_code},
                     )
                 )
 
         # Check JSON paths
         if isinstance(observed.body, dict):
-            for json_path in criteria.must_contain_json_paths:
+            for json_path in contract.required_json_paths:
                 if not self._check_json_path(observed.body, json_path):
                     violations.append(
                         BehaviorViolation(
@@ -175,7 +171,7 @@ class BehaviorComparisonEngine:
                         )
                     )
 
-            for json_path in criteria.must_not_contain_json_paths:
+            for json_path in contract.forbidden_json_paths:
                 if self._check_json_path(observed.body, json_path):
                     violations.append(
                         BehaviorViolation(
@@ -186,118 +182,21 @@ class BehaviorComparisonEngine:
                         )
                     )
 
-        # Check header patterns
-        headers_str = str(observed.headers)
-        for pattern in criteria.must_contain_header_patterns:
-            if not self._check_pattern(headers_str, pattern):
-                violations.append(
-                    BehaviorViolation(
-                        code="HEADER_PATTERN_MISSING",
-                        message=f"Required header pattern not found: {pattern}",
-                        severity="low",
-                        details={"pattern": pattern},
-                    )
-                )
-
-        for pattern in criteria.must_not_contain_header_patterns:
-            if self._check_pattern(headers_str, pattern):
-                violations.append(
-                    BehaviorViolation(
-                        code="HEADER_PATTERN_FORBIDDEN",
-                        message=f"Forbidden header pattern found: {pattern}",
-                        severity="low",
-                        details={"pattern": pattern},
-                    )
-                )
-
         return violations
 
     def _check_cli(self, observed: ObservedCLI, criteria) -> List[BehaviorViolation]:
-        """Check CLI behavior against criteria."""
-        violations = []
+        # CLI checks not implemented in BehaviorContract yet
+        return []
 
-        # Check exit codes
-        if criteria.expected_exit_codes:
-            if observed.exit_code not in criteria.expected_exit_codes:
-                violations.append(
-                    BehaviorViolation(
-                        code="CLI_EXIT_CODE_UNEXPECTED",
-                        message=f"Exit code {observed.exit_code} not in expected: {criteria.expected_exit_codes}",
-                        severity="high",
-                        details={"expected": criteria.expected_exit_codes, "actual": observed.exit_code},
-                    )
-                )
-
-        if criteria.forbidden_exit_codes:
-            if observed.exit_code in criteria.forbidden_exit_codes:
-                violations.append(
-                    BehaviorViolation(
-                        code="CLI_EXIT_CODE_FORBIDDEN",
-                        message=f"Exit code {observed.exit_code} is forbidden",
-                        severity="critical",
-                        details={"forbidden": criteria.forbidden_exit_codes, "actual": observed.exit_code},
-                    )
-                )
-
-        # Check stdout patterns
-        stdout = observed.stdout or ""
-        for pattern in criteria.must_contain_stdout_patterns:
-            if not self._check_pattern(stdout, pattern):
-                violations.append(
-                    BehaviorViolation(
-                        code="CLI_STDOUT_PATTERN_MISSING",
-                        message=f"Required stdout pattern not found: {pattern}",
-                        severity="high",
-                        details={"pattern": pattern},
-                    )
-                )
-
-        for pattern in criteria.must_not_contain_stdout_patterns:
-            if self._check_pattern(stdout, pattern):
-                violations.append(
-                    BehaviorViolation(
-                        code="CLI_STDOUT_PATTERN_FORBIDDEN",
-                        message=f"Forbidden stdout pattern found: {pattern}",
-                        severity="medium",
-                        details={"pattern": pattern},
-                    )
-                )
-
-        # Check stderr patterns
-        stderr = observed.stderr or ""
-        for pattern in criteria.must_contain_stderr_patterns:
-            if not self._check_pattern(stderr, pattern):
-                violations.append(
-                    BehaviorViolation(
-                        code="CLI_STDERR_PATTERN_MISSING",
-                        message=f"Required stderr pattern not found: {pattern}",
-                        severity="high",
-                        details={"pattern": pattern},
-                    )
-                )
-
-        for pattern in criteria.must_not_contain_stderr_patterns:
-            if self._check_pattern(stderr, pattern):
-                violations.append(
-                    BehaviorViolation(
-                        code="CLI_STDERR_PATTERN_FORBIDDEN",
-                        message=f"Forbidden stderr pattern found: {pattern}",
-                        severity="medium",
-                        details={"pattern": pattern},
-                    )
-                )
-
-        return violations
-
-    def _check_dom(self, observed: ObservedDOM, criteria) -> List[BehaviorViolation]:
-        """Check DOM behavior against criteria."""
+    def _check_dom(self, observed: ObservedDOM, contract) -> List[BehaviorViolation]:
+        """Check DOM behavior against contract."""
         violations = []
 
         # Get all observed selectors
-        observed_selectors = {e.selector for e in observed.elements if e.selector}
+        observed_selectors = set(observed.present_selectors)
 
         # Check required selectors
-        for selector in criteria.must_exist_selectors:
+        for selector in contract.must_have_selectors:
             if selector not in observed_selectors:
                 violations.append(
                     BehaviorViolation(
@@ -309,7 +208,7 @@ class BehaviorComparisonEngine:
                 )
 
         # Check forbidden selectors
-        for selector in criteria.must_not_exist_selectors:
+        for selector in contract.must_not_have_selectors:
             if selector in observed_selectors:
                 violations.append(
                     BehaviorViolation(
@@ -320,72 +219,30 @@ class BehaviorComparisonEngine:
                     )
                 )
 
-        # Check visibility
-        visible_selectors = {e.selector for e in observed.elements if e.selector and e.is_visible}
-        for selector in criteria.must_be_visible_selectors:
-            if selector not in visible_selectors:
-                if selector in observed_selectors:
-                    violations.append(
-                        BehaviorViolation(
-                            code="DOM_ELEMENT_NOT_VISIBLE",
-                            message=f"Required element not visible: {selector}",
-                            severity="medium",
-                            details={"selector": selector},
-                        )
-                    )
-                else:
-                    violations.append(
-                        BehaviorViolation(
-                            code="DOM_SELECTOR_MISSING",
-                            message=f"Required visible element not found: {selector}",
-                            severity="high",
-                            details={"selector": selector},
-                        )
-                    )
-
-        # Check text patterns
-        for pattern_config in criteria.must_contain_text_patterns:
-            selector = pattern_config.get("selector")
-            pattern = pattern_config.get("pattern")
-
-            if not selector or not pattern:
-                continue
-
-            # Find element with selector
-            matching_elements = [e for e in observed.elements if e.selector == selector]
-            if not matching_elements:
-                violations.append(
+        # Check text snippets
+        observed_text = set(observed.present_text_snippets)
+        for text in contract.must_have_text_snippets:
+            if text not in observed_text:
+                 violations.append(
                     BehaviorViolation(
-                        code="DOM_SELECTOR_MISSING",
-                        message=f"Element for text pattern check not found: {selector}",
-                        severity="high",
-                        details={"selector": selector, "pattern": pattern},
+                        code="DOM_TEXT_MISSING",
+                        message=f"Required text snippet not found: {text}",
+                        severity="medium",
+                        details={"text": text},
                     )
                 )
-            else:
-                element = matching_elements[0]
-                text = element.text_content or ""
-                if not self._check_pattern(text, pattern):
-                    violations.append(
-                        BehaviorViolation(
-                            code="DOM_TEXT_PATTERN_MISSING",
-                            message=f"Required text pattern not found in {selector}: {pattern}",
-                            severity="medium",
-                            details={"selector": selector, "pattern": pattern, "actual_text": text[:100]},
-                        )
-                    )
 
         return violations
 
-    def _check_logs(self, observed: ObservedLogs, criteria) -> List[BehaviorViolation]:
-        """Check log behavior against criteria."""
+    def _check_logs(self, observed: ObservedLogs, contract) -> List[BehaviorViolation]:
+        """Check log behavior against contract."""
         violations = []
 
         # Combine all log lines
         all_logs = "\n".join(observed.lines)
 
         # Check required patterns
-        for pattern in criteria.must_contain_patterns:
+        for pattern in contract.required_patterns:
             if not self._check_pattern(all_logs, pattern):
                 violations.append(
                     BehaviorViolation(
@@ -397,7 +254,7 @@ class BehaviorComparisonEngine:
                 )
 
         # Check forbidden patterns
-        for pattern in criteria.must_not_contain_patterns:
+        for pattern in contract.forbidden_patterns:
             if self._check_pattern(all_logs, pattern):
                 violations.append(
                     BehaviorViolation(
@@ -405,19 +262,6 @@ class BehaviorComparisonEngine:
                         message=f"Forbidden log pattern found: {pattern}",
                         severity="medium",
                         details={"pattern": pattern},
-                    )
-                )
-
-        # Check error count
-        if criteria.max_error_count is not None:
-            error_count = observed.error_count or 0
-            if error_count > criteria.max_error_count:
-                violations.append(
-                    BehaviorViolation(
-                        code="LOG_ERROR_COUNT_EXCEEDED",
-                        message=f"Error count {error_count} exceeds maximum {criteria.max_error_count}",
-                        severity="high",
-                        details={"actual": error_count, "max": criteria.max_error_count},
                     )
                 )
 

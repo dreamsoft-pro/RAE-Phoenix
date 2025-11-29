@@ -198,7 +198,7 @@ class ScenarioLibrary:
             project_id=target_project_id,
             name=customize.get("name") if customize else library_scenario.name,
             category=library_scenario.category,
-            description=customize.get("description") if customize else library_scenario.description,
+            description=(customize.get("description") if customize else None) or library_scenario.description,
             environment=library_scenario.environment,
             input=library_scenario.input,
             success_criteria=library_scenario.success_criteria,
