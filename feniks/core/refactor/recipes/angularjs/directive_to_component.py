@@ -22,16 +22,16 @@ Handles:
 - Link function → useEffect + refs
 - Compile function → Special handling with warnings
 """
-from typing import List, Dict, Any, Optional
 import re
-from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from feniks.core.refactor.recipe import (
-    RefactorRecipe, RefactorPlan, RefactorResult, RefactorRisk, FileChange
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
+                                         RefactorRecipe, RefactorResult,
+                                         RefactorRisk)
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.directive_to_component")
@@ -39,6 +39,7 @@ log = get_logger("refactor.recipes.angularjs.directive_to_component")
 
 class DirectiveType(Enum):
     """Types of directives."""
+
     ELEMENT = "E"  # <my-directive>
     ATTRIBUTE = "A"  # <div my-directive>
     CLASS = "C"  # <div class="my-directive">
@@ -47,6 +48,7 @@ class DirectiveType(Enum):
 
 class DirectiveStrategy(Enum):
     """Migration strategies for directives."""
+
     COMPONENT = "component"  # Element/structural directive → Component
     HOOK = "hook"  # Behavior directive → Custom hook
     UTILITY = "utility"  # Simple logic → Utility function
@@ -55,6 +57,7 @@ class DirectiveStrategy(Enum):
 @dataclass
 class ScopeBinding:
     """Represents a scope binding in a directive."""
+
     name: str
     binding_type: str  # '=' (two-way), '@' (string), '&' (function), '<' (one-way)
     alias: Optional[str] = None
@@ -63,6 +66,7 @@ class ScopeBinding:
 @dataclass
 class DirectiveMetadata:
     """Metadata extracted from an AngularJS directive."""
+
     name: str
     restrict: str  # 'E', 'A', 'EA', etc.
     scope: Dict[str, Any]  # Scope definition
@@ -121,11 +125,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
     def risk_level(self) -> RefactorRisk:
         return RefactorRisk.MEDIUM
 
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         """
         Analyze the system to find AngularJS directives.
 
@@ -178,7 +178,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
                 "Check component/hook exports",
                 "Validate props interfaces",
                 "Test directive behavior",
-                "Review migration strategy for each directive"
+                "Review migration strategy for each directive",
             ],
             metadata={
                 "directives": [
@@ -187,22 +187,17 @@ class DirectiveToComponentRecipe(RefactorRecipe):
                         "strategy": m.migration_strategy.value,
                         "restrict": m.restrict,
                         "has_template": m.template is not None or m.template_url is not None,
-                        "transclude": m.transclude
+                        "transclude": m.transclude,
                     }
                     for m in directive_metadata
                 ]
-            }
+            },
         )
 
         log.info(f"Created refactoring plan for {len(directive_metadata)} directives")
         return plan
 
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         """
         Execute the directive migration.
 
@@ -245,10 +240,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
 
                 # Create file change
                 file_change = FileChange(
-                    file_path=file_path,
-                    original_content="",
-                    modified_content=code,
-                    change_type="create"
+                    file_path=file_path, original_content="", modified_content=code, change_type="create"
                 )
                 result.file_changes.append(file_change)
 
@@ -276,9 +268,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
         validation_results = {}
 
         # Check all files were generated
-        validation_results["all_files_generated"] = len(result.file_changes) == len(
-            result.plan.metadata["directives"]
-        )
+        validation_results["all_files_generated"] = len(result.file_changes) == len(result.plan.metadata["directives"])
 
         # Check TypeScript syntax
         for file_change in result.file_changes:
@@ -291,11 +281,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
 
     # Helper methods
 
-    def _find_directives(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]]
-    ) -> List[Chunk]:
+    def _find_directives(self, system_model: SystemModel, target: Optional[Dict[str, Any]]) -> List[Chunk]:
         """Find AngularJS directive definitions."""
         directives = []
 
@@ -311,10 +297,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
 
     def _is_directive_chunk(self, chunk: Chunk) -> bool:
         """Check if chunk contains a directive definition."""
-        patterns = [
-            r'\.directive\s*\(\s*["\'](\w+)["\']',
-            r'angular\.module\([^)]+\)\.directive'
-        ]
+        patterns = [r'\.directive\s*\(\s*["\'](\w+)["\']', r"angular\.module\([^)]+\)\.directive"]
 
         for pattern in patterns:
             if re.search(pattern, chunk.content):
@@ -337,7 +320,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
             restrict = restrict_match.group(1) if restrict_match else "EA"
 
             # Extract scope
-            scope_isolated = bool(re.search(r'scope\s*:\s*\{', chunk.content))
+            scope_isolated = bool(re.search(r"scope\s*:\s*\{", chunk.content))
             scope_bindings = self._extract_scope_bindings(chunk.content) if scope_isolated else []
 
             # Extract template
@@ -348,22 +331,22 @@ class DirectiveToComponentRecipe(RefactorRecipe):
             template_url = template_url_match.group(1) if template_url_match else None
 
             # Check transclude
-            transclude = bool(re.search(r'transclude\s*:\s*true', chunk.content))
+            transclude = bool(re.search(r"transclude\s*:\s*true", chunk.content))
 
             # Check controller
-            has_controller = bool(re.search(r'controller\s*:', chunk.content))
+            has_controller = bool(re.search(r"controller\s*:", chunk.content))
             controller_as_match = re.search(r'controllerAs\s*:\s*["\'](\w+)["\']', chunk.content)
             controller_as = controller_as_match.group(1) if controller_as_match else None
 
             # Check link and compile
-            has_link = bool(re.search(r'link\s*:\s*function', chunk.content))
-            has_compile = bool(re.search(r'compile\s*:\s*function', chunk.content))
+            has_link = bool(re.search(r"link\s*:\s*function", chunk.content))
+            has_compile = bool(re.search(r"compile\s*:\s*function", chunk.content))
 
             # Extract require
             require = self._extract_require(chunk.content)
 
             # Extract priority
-            priority_match = re.search(r'priority\s*:\s*(\d+)', chunk.content)
+            priority_match = re.search(r"priority\s*:\s*(\d+)", chunk.content)
             priority = int(priority_match.group(1)) if priority_match else 0
 
             # Determine migration strategy
@@ -386,7 +369,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
                 has_compile=has_compile,
                 require=require,
                 priority=priority,
-                migration_strategy=migration_strategy
+                migration_strategy=migration_strategy,
             )
 
         except Exception as e:
@@ -398,7 +381,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
         bindings = []
 
         # Pattern: scope: { propName: '=', otherProp: '@alias' }
-        scope_match = re.search(r'scope\s*:\s*\{([^}]+)\}', content)
+        scope_match = re.search(r"scope\s*:\s*\{([^}]+)\}", content)
         if not scope_match:
             return bindings
 
@@ -411,19 +394,15 @@ class DirectiveToComponentRecipe(RefactorRecipe):
             binding_type = match.group(2)
             alias = match.group(3) if match.group(3) else None
 
-            bindings.append(ScopeBinding(
-                name=prop_name,
-                binding_type=binding_type,
-                alias=alias
-            ))
+            bindings.append(ScopeBinding(name=prop_name, binding_type=binding_type, alias=alias))
 
         return bindings
 
     def _extract_require(self, content: str) -> List[str]:
         """Extract required controllers."""
-        require_match = re.search(r'require\s*:\s*\[([^\]]+)\]', content)
+        require_match = re.search(r"require\s*:\s*\[([^\]]+)\]", content)
         if require_match:
-            requires = [r.strip().strip('"\'') for r in require_match.group(1).split(',')]
+            requires = [r.strip().strip("\"'") for r in require_match.group(1).split(",")]
             return requires
 
         require_match = re.search(r'require\s*:\s*["\']([^"\']+)["\']', content)
@@ -433,12 +412,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
         return []
 
     def _determine_migration_strategy(
-        self,
-        restrict: str,
-        template: Optional[str],
-        template_url: Optional[str],
-        has_link: bool,
-        has_compile: bool
+        self, restrict: str, template: Optional[str], template_url: Optional[str], has_link: bool, has_compile: bool
     ) -> DirectiveStrategy:
         """Determine the best migration strategy."""
         # If has template, it's a component
@@ -446,7 +420,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
             return DirectiveStrategy.COMPONENT
 
         # If element directive, likely a component
-        if 'E' in restrict:
+        if "E" in restrict:
             return DirectiveStrategy.COMPONENT
 
         # If only link (behavior), it's a hook
@@ -474,14 +448,16 @@ class DirectiveToComponentRecipe(RefactorRecipe):
             if directive.priority > 0:
                 risks.append(f"Directive {directive.name} has priority {directive.priority}")
 
-            if 'C' in directive.restrict or 'M' in directive.restrict:
+            if "C" in directive.restrict or "M" in directive.restrict:
                 risks.append(f"Directive {directive.name} uses class/comment restriction")
 
-        risks.extend([
-            "Link functions need careful review for DOM manipulation",
-            "Two-way bindings need state management strategy",
-            "Transclusion maps to children but may need adjustments"
-        ])
+        risks.extend(
+            [
+                "Link functions need careful review for DOM manipulation",
+                "Two-way bindings need state management strategy",
+                "Transclusion maps to children but may need adjustments",
+            ]
+        )
 
         return risks
 
@@ -597,8 +573,8 @@ export function {function_name}() {{
     def _to_component_name(self, directive_name: str) -> str:
         """Convert directive name to component name (PascalCase)."""
         # Convert camelCase or kebab-case to PascalCase
-        parts = re.split(r'[-_]', directive_name)
-        return ''.join(word.capitalize() for word in parts)
+        parts = re.split(r"[-_]", directive_name)
+        return "".join(word.capitalize() for word in parts)
 
     def _to_hook_name(self, directive_name: str) -> str:
         """Convert directive name to hook name (useCamelCase)."""
@@ -626,7 +602,7 @@ export function {function_name}() {{
         if not props:
             props.append("  // TODO: Add props")
 
-        props_str = '\n'.join(props)
+        props_str = "\n".join(props)
 
         return f"""interface {component_name}Props {{
 {props_str}
@@ -634,13 +610,13 @@ export function {function_name}() {{
 
     def _binding_type_to_ts(self, binding_type: str) -> str:
         """Convert AngularJS binding type to TypeScript type."""
-        if binding_type == '=':
+        if binding_type == "=":
             return "any  // Two-way binding - consider using value + onChange"
-        elif binding_type == '@':
+        elif binding_type == "@":
             return "string"
-        elif binding_type == '&':
+        elif binding_type == "&":
             return "() => void"
-        elif binding_type == '<':
+        elif binding_type == "<":
             return "any  // One-way binding"
         else:
             return "any"
@@ -655,16 +631,18 @@ export function {function_name}() {{
 
         # Add effect for link logic
         if metadata.has_link:
-            body_parts.append("""
+            body_parts.append(
+                """
   useEffect(() => {
     // TODO: Implement link function logic
     // Original directive had link function
-  }, []);""")
+  }, []);"""
+            )
 
         if not body_parts:
             body_parts.append("  // No special logic needed")
 
-        return '\n'.join(body_parts)
+        return "\n".join(body_parts)
 
     def _generate_jsx_from_directive(self, metadata: DirectiveMetadata) -> str:
         """Generate JSX placeholder."""
@@ -697,13 +675,13 @@ export function {function_name}() {{
 
     def _validate_syntax(self, content: str) -> bool:
         """Basic syntax validation."""
-        if content.count('{') != content.count('}'):
+        if content.count("{") != content.count("}"):
             return False
-        if content.count('(') != content.count(')'):
+        if content.count("(") != content.count(")"):
             return False
 
         # Check for export
-        if 'export' not in content:
+        if "export" not in content:
             return False
 
         return True

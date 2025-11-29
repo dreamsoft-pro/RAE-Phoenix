@@ -17,14 +17,13 @@ Builds module graph, dependency graph, and computes metrics.
 """
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Dict, Set, Tuple
 from pathlib import Path
+from typing import Dict, List, Set, Tuple
 
+from feniks.core.models.types import (ApiEndpoint, Chunk, Module,
+                                      ModuleDependency, ModuleType,
+                                      SystemModel)
 from feniks.infra.logging import get_logger
-from feniks.core.models.types import (
-    Chunk, Module, ModuleDependency, SystemModel, ModuleType,
-    ApiEndpoint
-)
 
 log = get_logger("core.system_model_builder")
 
@@ -106,7 +105,7 @@ class SystemModelBuilder:
                 total_complexity=total_complexity,
                 avg_complexity=avg_complexity,
                 chunk_count=len(chunks),
-                business_tags=business_tags
+                business_tags=business_tags,
             )
 
             self.modules[module_name] = module
@@ -135,11 +134,7 @@ class SystemModelBuilder:
                     self.dependency_map[key].chunks.append(chunk.id)
                 else:
                     self.dependency_map[key] = ModuleDependency(
-                        source=source_module,
-                        target=target_module,
-                        dependency_type=dep.type,
-                        count=1,
-                        chunks=[chunk.id]
+                        source=source_module, target=target_module, dependency_type=dep.type, count=1, chunks=[chunk.id]
                     )
 
         # Update module dependency lists
@@ -252,8 +247,7 @@ class SystemModelBuilder:
         # Step 5: Compute statistics
         total_files = len(set(c.file_path for c in self.chunks))
         avg_module_complexity = (
-            sum(m.avg_complexity for m in self.modules.values()) / len(self.modules)
-            if self.modules else 0.0
+            sum(m.avg_complexity for m in self.modules.values()) / len(self.modules) if self.modules else 0.0
         )
 
         # Identify special module lists
@@ -280,7 +274,7 @@ class SystemModelBuilder:
             central_modules=central_modules,
             boundary_modules=boundary_modules,
             hotspot_modules=hotspot_modules,
-            god_modules=god_modules
+            god_modules=god_modules,
         )
 
         log.info("System model built successfully")

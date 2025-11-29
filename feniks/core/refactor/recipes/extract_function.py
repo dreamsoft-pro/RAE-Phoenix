@@ -14,12 +14,12 @@
 """
 Extract Function Recipe - Extracts reusable logic into separate functions.
 """
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from feniks.core.refactor.recipe import (
-    RefactorRecipe, RefactorPlan, RefactorResult, RefactorRisk, FileChange
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
+                                         RefactorRecipe, RefactorResult,
+                                         RefactorRisk)
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.extract_function")
@@ -47,11 +47,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
     def risk_level(self) -> RefactorRisk:
         return RefactorRisk.MEDIUM
 
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         """
         Analyze system model to find extraction opportunities.
 
@@ -96,7 +92,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
             risks=[
                 "May break existing function calls if signature changes",
                 "Extracted functions need proper naming and documentation",
-                "May affect module coupling if not done carefully"
+                "May affect module coupling if not done carefully",
             ],
             risk_level=self.risk_level,
             estimated_changes=len(candidate_modules) * 3,  # ~3 extractions per module
@@ -104,23 +100,15 @@ class ExtractFunctionRecipe(RefactorRecipe):
                 "Verify all function calls are updated",
                 "Check that extracted functions have proper parameters",
                 "Ensure no side effects were lost",
-                "Validate tests still pass"
+                "Validate tests still pass",
             ],
-            metadata={
-                "min_lines": min_lines,
-                "candidate_count": len(candidate_modules)
-            }
+            metadata={"min_lines": min_lines, "candidate_count": len(candidate_modules)},
         )
 
         log.info(f"Created extraction plan for {len(candidate_modules)} modules")
         return plan
 
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         """
         Execute function extraction refactoring.
 
@@ -134,14 +122,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
         """
         log.info(f"Executing function extraction (dry_run={dry_run})")
 
-        result = RefactorResult(
-            plan=plan,
-            success=True,
-            file_changes=[],
-            validation_results={},
-            errors=[],
-            warnings=[]
-        )
+        result = RefactorResult(plan=plan, success=True, file_changes=[], validation_results={}, errors=[], warnings=[])
 
         # Group chunks by file
         chunks_by_file = {}
@@ -169,12 +150,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
         log.info(f"Extraction completed: {len(result.file_changes)} files changed")
         return result
 
-    def _process_file(
-        self,
-        file_path: str,
-        chunks: List[Chunk],
-        dry_run: bool
-    ) -> Optional[FileChange]:
+    def _process_file(self, file_path: str, chunks: List[Chunk], dry_run: bool) -> Optional[FileChange]:
         """
         Process a single file for function extraction.
 
@@ -192,10 +168,13 @@ class ExtractFunctionRecipe(RefactorRecipe):
         # - Multiple dependencies (might be doing too much)
 
         extraction_candidates = [
-            chunk for chunk in chunks
-            if (chunk.cyclomatic_complexity > 10 or
-                (chunk.end_line - chunk.start_line) > 50 or
-                len(chunk.dependencies) > 5)
+            chunk
+            for chunk in chunks
+            if (
+                chunk.cyclomatic_complexity > 10
+                or (chunk.end_line - chunk.start_line) > 50
+                or len(chunk.dependencies) > 5
+            )
         ]
 
         if not extraction_candidates:
@@ -223,11 +202,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
 
         # Create file change with suggestions
         file_change = FileChange(
-            file_path=file_path,
-            original_content="",
-            modified_content="",
-            change_type="modify",
-            line_changes=[]
+            file_path=file_path, original_content="", modified_content="", change_type="modify", line_changes=[]
         )
 
         # Store suggestions
@@ -253,7 +228,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
         validations = {
             "has_extractions": len(result.file_changes) > 0,
             "no_errors": len(result.errors) == 0,
-            "reasonable_scope": len(result.file_changes) <= result.plan.estimated_changes * 2
+            "reasonable_scope": len(result.file_changes) <= result.plan.estimated_changes * 2,
         }
 
         result.validation_results = validations

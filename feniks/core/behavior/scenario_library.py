@@ -20,15 +20,16 @@ Provides centralized management of reusable behavior scenarios:
 - Community contributions
 - Cross-project sharing
 """
-from typing import List, Optional, Dict
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional
+
 import yaml
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import BehaviorScenario
 from feniks.adapters.storage.base import BehaviorStorageBackend
+from feniks.core.models.behavior import BehaviorScenario
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("core.behavior.scenario_library")
 
@@ -46,11 +47,7 @@ class ScenarioLibrary:
     - Usage statistics
     """
 
-    def __init__(
-        self,
-        storage: BehaviorStorageBackend,
-        library_project_id: str = "shared_library"
-    ):
+    def __init__(self, storage: BehaviorStorageBackend, library_project_id: str = "shared_library"):
         """
         Initialize scenario library.
 
@@ -67,7 +64,7 @@ class ScenarioLibrary:
         scenario: BehaviorScenario,
         tags: Optional[List[str]] = None,
         description: Optional[str] = None,
-        author: Optional[str] = None
+        author: Optional[str] = None,
     ) -> str:
         """
         Publish scenario to shared library.
@@ -96,9 +93,9 @@ class ScenarioLibrary:
                 "tags": tags or [],
                 "author": author,
                 "published_at": datetime.now().isoformat(),
-                "usage_count": 0
+                "usage_count": 0,
             },
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         self.storage.save_scenario(library_scenario)
@@ -106,10 +103,7 @@ class ScenarioLibrary:
         return library_scenario.id
 
     def list_public_scenarios(
-        self,
-        category: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        limit: int = 50
+        self, category: Optional[str] = None, tags: Optional[List[str]] = None, limit: int = 50
     ) -> List[BehaviorScenario]:
         """
         List public scenarios from library.
@@ -159,9 +153,7 @@ class ScenarioLibrary:
         # Check if semantic search is available
         if hasattr(self.storage, "search_similar_scenarios"):
             scenarios = self.storage.search_similar_scenarios(
-                query=query,
-                limit=limit,
-                project_id=self.library_project_id
+                query=query, limit=limit, project_id=self.library_project_id
             )
             log.info(f"Semantic search found {len(scenarios)} scenarios for: {query}")
             return scenarios
@@ -181,10 +173,7 @@ class ScenarioLibrary:
             return matches[:limit]
 
     def import_scenario(
-        self,
-        library_scenario_id: str,
-        target_project_id: str,
-        customize: Optional[Dict] = None
+        self, library_scenario_id: str, target_project_id: str, customize: Optional[Dict] = None
     ) -> BehaviorScenario:
         """
         Import scenario from library into project.
@@ -214,9 +203,9 @@ class ScenarioLibrary:
             metadata={
                 "imported_from": library_scenario_id,
                 "imported_at": datetime.now().isoformat(),
-                "original_author": library_scenario.metadata.get("author")
+                "original_author": library_scenario.metadata.get("author"),
             },
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         self.storage.save_scenario(imported_scenario)
@@ -248,20 +237,22 @@ class ScenarioLibrary:
             "library_version": "1.0.0",
             "exported_at": datetime.now().isoformat(),
             "total_scenarios": len(scenarios),
-            "scenarios": []
+            "scenarios": [],
         }
 
         for scenario in scenarios:
-            catalog["scenarios"].append({
-                "id": scenario.id,
-                "name": scenario.name,
-                "category": scenario.category,
-                "description": scenario.description,
-                "tags": scenario.metadata.get("tags", []),
-                "author": scenario.metadata.get("author"),
-                "usage_count": scenario.metadata.get("usage_count", 0),
-                "published_at": scenario.metadata.get("published_at")
-            })
+            catalog["scenarios"].append(
+                {
+                    "id": scenario.id,
+                    "name": scenario.name,
+                    "category": scenario.category,
+                    "description": scenario.description,
+                    "tags": scenario.metadata.get("tags", []),
+                    "author": scenario.metadata.get("author"),
+                    "usage_count": scenario.metadata.get("usage_count", 0),
+                    "published_at": scenario.metadata.get("published_at"),
+                }
+            )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w") as f:
@@ -282,11 +273,7 @@ class ScenarioLibrary:
         all_scenarios = self.list_public_scenarios(limit=1000)
 
         # Sort by usage count
-        sorted_scenarios = sorted(
-            all_scenarios,
-            key=lambda s: s.metadata.get("usage_count", 0),
-            reverse=True
-        )
+        sorted_scenarios = sorted(all_scenarios, key=lambda s: s.metadata.get("usage_count", 0), reverse=True)
 
         popular = sorted_scenarios[:limit]
         log.info(f"Retrieved {len(popular)} popular scenarios")
@@ -314,7 +301,7 @@ class ScenarioLibrary:
             "author": scenario.metadata.get("author"),
             "published_at": scenario.metadata.get("published_at"),
             "usage_count": scenario.metadata.get("usage_count", 0),
-            "has_contracts": len(self.storage.load_contracts_for_scenario(scenario.id, None)) > 0
+            "has_contracts": len(self.storage.load_contracts_for_scenario(scenario.id, None)) > 0,
         }
 
         return stats
@@ -342,7 +329,7 @@ DEFAULT_TEMPLATES = {
         "category": "cli",
         "description": "Standard data export CLI scenario",
         "tags": ["cli", "export", "data"],
-    }
+    },
 }
 
 

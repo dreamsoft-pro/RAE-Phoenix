@@ -18,7 +18,9 @@ import time
 from typing import Optional
 
 try:
-    from prometheus_client import Counter, Gauge, Histogram, generate_latest, REGISTRY, CollectorRegistry
+    from prometheus_client import (REGISTRY, CollectorRegistry, Counter, Gauge,
+                                   Histogram, generate_latest)
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -62,49 +64,44 @@ class PrometheusMetricsCollector:
                 "feniks_cost_total",
                 "Total cost in USD for all operations",
                 ["project_id", "operation"],
-                registry=self.registry
+                registry=self.registry,
             )
 
             self.quality_score = Gauge(
                 "feniks_quality_score",
                 "Current quality score of the system (0.0 - 1.0)",
                 ["project_id"],
-                registry=self.registry
+                registry=self.registry,
             )
 
             self.recommendations_count = Counter(
                 "feniks_recommendations_count",
                 "Total number of recommendations generated",
                 ["project_id", "severity"],
-                registry=self.registry
+                registry=self.registry,
             )
 
             self.operations_total = Counter(
                 "feniks_operations_total",
                 "Total number of operations executed",
                 ["operation", "status"],
-                registry=self.registry
+                registry=self.registry,
             )
 
             self.errors_total = Counter(
-                "feniks_errors_total",
-                "Total number of errors encountered",
-                ["error_type"],
-                registry=self.registry
+                "feniks_errors_total", "Total number of errors encountered", ["error_type"], registry=self.registry
             )
 
             self.operation_duration = Histogram(
                 "feniks_operation_duration_seconds",
                 "Duration of operations in seconds",
                 ["operation"],
-                registry=self.registry
+                registry=self.registry,
             )
 
             # Uptime gauge
             self.uptime = Gauge(
-                "feniks_uptime_seconds",
-                "Uptime of the Feniks service in seconds",
-                registry=self.registry
+                "feniks_uptime_seconds", "Uptime of the Feniks service in seconds", registry=self.registry
             )
 
             log.info("PrometheusMetricsCollector initialized successfully")

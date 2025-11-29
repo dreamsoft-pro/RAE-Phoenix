@@ -15,8 +15,10 @@
 Tests for Quality Policy enforcement.
 """
 import pytest
-from feniks.core.policies.quality_policy import QualityPolicyEnforcer, QualityPolicyConfig
-from feniks.core.models.domain import SessionSummary, ReasoningTrace
+
+from feniks.core.models.domain import ReasoningTrace, SessionSummary
+from feniks.core.policies.quality_policy import (QualityPolicyConfig,
+                                                 QualityPolicyEnforcer)
 
 
 @pytest.fixture
@@ -24,12 +26,8 @@ def enforcer():
     """Create a QualityPolicyEnforcer with default config."""
     config = QualityPolicyConfig(
         min_thought_length=10,
-        forbidden_patterns=[
-            r"I don't know what to do",
-            r"just guessing",
-            r"random try"
-        ],
-        require_thought_before_action=True
+        forbidden_patterns=[r"I don't know what to do", r"just guessing", r"random try"],
+        require_thought_before_action=True,
     )
     return QualityPolicyEnforcer(config)
 
@@ -42,12 +40,7 @@ def test_quality_policy_short_thoughts(enforcer):
         ReasoningTrace(step_id="3", thought="yes", action="commit", result="ok", timestamp="ts3"),
     ]
 
-    session = SessionSummary(
-        session_id="short-thoughts",
-        duration=30.0,
-        success=True,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="short-thoughts", duration=30.0, success=True, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -65,23 +58,18 @@ def test_quality_policy_good_thoughts(enforcer):
             thought="I will analyze the code structure before making changes",
             action="analyze",
             result="ok",
-            timestamp="ts1"
+            timestamp="ts1",
         ),
         ReasoningTrace(
             step_id="2",
             thought="Based on the analysis, I will refactor the function to improve readability",
             action="refactor",
             result="ok",
-            timestamp="ts2"
+            timestamp="ts2",
         ),
     ]
 
-    session = SessionSummary(
-        session_id="good-thoughts",
-        duration=60.0,
-        success=True,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="good-thoughts", duration=60.0, success=True, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -98,23 +86,14 @@ def test_quality_policy_forbidden_patterns(enforcer):
             thought="I don't know what to do, so I'll try something random",
             action="random_action",
             result="fail",
-            timestamp="ts1"
+            timestamp="ts1",
         ),
         ReasoningTrace(
-            step_id="2",
-            thought="Just guessing here, hoping it works",
-            action="guess",
-            result="fail",
-            timestamp="ts2"
+            step_id="2", thought="Just guessing here, hoping it works", action="guess", result="fail", timestamp="ts2"
         ),
     ]
 
-    session = SessionSummary(
-        session_id="forbidden-patterns",
-        duration=45.0,
-        success=False,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="forbidden-patterns", duration=45.0, success=False, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -132,12 +111,7 @@ def test_quality_policy_no_traces():
     config = QualityPolicyConfig()
     enforcer = QualityPolicyEnforcer(config)
 
-    session = SessionSummary(
-        session_id="no-traces",
-        duration=10.0,
-        success=True,
-        reasoning_traces=[]
-    )
+    session = SessionSummary(session_id="no-traces", duration=10.0, success=True, reasoning_traces=[])
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -155,16 +129,11 @@ def test_quality_policy_custom_min_length():
             thought="This is a moderate length thought",  # 36 znaków
             action="action",
             result="ok",
-            timestamp="ts1"
+            timestamp="ts1",
         )
     ]
 
-    session = SessionSummary(
-        session_id="custom-threshold",
-        duration=10.0,
-        success=True,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="custom-threshold", duration=10.0, success=True, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -175,10 +144,7 @@ def test_quality_policy_custom_min_length():
 
 def test_quality_policy_case_insensitive_patterns():
     """Test dla wykrywania wzorców niezależnie od wielkości liter."""
-    config = QualityPolicyConfig(
-        min_thought_length=5,
-        forbidden_patterns=[r"don't know"]
-    )
+    config = QualityPolicyConfig(min_thought_length=5, forbidden_patterns=[r"don't know"])
     enforcer = QualityPolicyEnforcer(config)
 
     traces = [
@@ -187,16 +153,11 @@ def test_quality_policy_case_insensitive_patterns():
             thought="I DON'T KNOW what to do here",  # Wielkie litery
             action="confused",
             result="fail",
-            timestamp="ts1"
+            timestamp="ts1",
         )
     ]
 
-    session = SessionSummary(
-        session_id="case-test",
-        duration=10.0,
-        success=False,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="case-test", duration=10.0, success=False, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -216,12 +177,7 @@ def test_quality_policy_empty_and_whitespace_thoughts():
         ReasoningTrace(step_id="3", thought="\t\n", action="action3", result="ok", timestamp="ts3"),
     ]
 
-    session = SessionSummary(
-        session_id="empty-whitespace",
-        duration=15.0,
-        success=True,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="empty-whitespace", duration=15.0, success=True, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 
@@ -239,16 +195,9 @@ def test_quality_policy_recommendations():
     config = QualityPolicyConfig(min_thought_length=20)
     enforcer = QualityPolicyEnforcer(config)
 
-    traces = [
-        ReasoningTrace(step_id="1", thought="short", action="act", result="ok", timestamp="ts1")
-    ]
+    traces = [ReasoningTrace(step_id="1", thought="short", action="act", result="ok", timestamp="ts1")]
 
-    session = SessionSummary(
-        session_id="recs-test",
-        duration=10.0,
-        success=True,
-        reasoning_traces=traces
-    )
+    session = SessionSummary(session_id="recs-test", duration=10.0, success=True, reasoning_traces=traces)
 
     reflections = enforcer.check_trace_quality(session)
 

@@ -15,18 +15,19 @@
 Reflection Rules - rules for generating meta-reflections.
 Defines conditions and templates for different types of reflections.
 """
-from typing import List, Dict, Callable, Optional
 from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional
 
-from feniks.core.models.types import (
-    SystemModel, Module, MetaReflection, ReflectionLevel,
-    ReflectionScope, ReflectionImpact, ReflectionEvidence
-)
+from feniks.core.models.types import (MetaReflection, Module,
+                                      ReflectionEvidence, ReflectionImpact,
+                                      ReflectionLevel, ReflectionScope,
+                                      SystemModel)
 
 
 @dataclass
 class ReflectionRule:
     """Rule for generating a meta-reflection."""
+
     id: str
     name: str
     description: str
@@ -49,108 +50,124 @@ class ReflectionRuleSet:
     def _build_rules(self):
         """Build the set of reflection rules."""
         # Rule 1: God Modules Detection
-        self.rules.append(ReflectionRule(
-            id="god_modules",
-            name="God Modules Detected",
-            description="Modules with excessive dependencies (god object anti-pattern)",
-            level=ReflectionLevel.REFLECTION,
-            scope=ReflectionScope.MODULE,
-            impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-            condition=lambda sm: len(sm.god_modules) > 0,
-            generate=self._generate_god_modules_reflection,
-            tags=["architecture", "dependencies", "anti-pattern"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="god_modules",
+                name="God Modules Detected",
+                description="Modules with excessive dependencies (god object anti-pattern)",
+                level=ReflectionLevel.REFLECTION,
+                scope=ReflectionScope.MODULE,
+                impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                condition=lambda sm: len(sm.god_modules) > 0,
+                generate=self._generate_god_modules_reflection,
+                tags=["architecture", "dependencies", "anti-pattern"],
+            )
+        )
 
         # Rule 2: Hotspot Modules
-        self.rules.append(ReflectionRule(
-            id="hotspot_modules",
-            name="Hotspot Modules Identified",
-            description="Modules with high complexity and high connectivity",
-            level=ReflectionLevel.REFLECTION,
-            scope=ReflectionScope.MODULE,
-            impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-            condition=lambda sm: len(sm.hotspot_modules) > 0,
-            generate=self._generate_hotspot_reflection,
-            tags=["complexity", "maintenance", "risk"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="hotspot_modules",
+                name="Hotspot Modules Identified",
+                description="Modules with high complexity and high connectivity",
+                level=ReflectionLevel.REFLECTION,
+                scope=ReflectionScope.MODULE,
+                impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                condition=lambda sm: len(sm.hotspot_modules) > 0,
+                generate=self._generate_hotspot_reflection,
+                tags=["complexity", "maintenance", "risk"],
+            )
+        )
 
         # Rule 3: High System Complexity
-        self.rules.append(ReflectionRule(
-            id="high_complexity",
-            name="High Overall Complexity",
-            description="System exhibits high cyclomatic complexity",
-            level=ReflectionLevel.REFLECTION,
-            scope=ReflectionScope.CODEBASE,
-            impact=ReflectionImpact.MONITOR,
-            condition=lambda sm: sm.avg_module_complexity > 50,
-            generate=self._generate_complexity_reflection,
-            tags=["complexity", "quality"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="high_complexity",
+                name="High Overall Complexity",
+                description="System exhibits high cyclomatic complexity",
+                level=ReflectionLevel.REFLECTION,
+                scope=ReflectionScope.CODEBASE,
+                impact=ReflectionImpact.MONITOR,
+                condition=lambda sm: sm.avg_module_complexity > 50,
+                generate=self._generate_complexity_reflection,
+                tags=["complexity", "quality"],
+            )
+        )
 
         # Rule 4: Centralization Risk
-        self.rules.append(ReflectionRule(
-            id="centralization_risk",
-            name="Over-Centralized Architecture",
-            description="Too many central modules create single points of failure",
-            level=ReflectionLevel.META_REFLECTION,
-            scope=ReflectionScope.SYSTEM,
-            impact=ReflectionImpact.MONITOR,
-            condition=lambda sm: len(sm.central_modules) > len(sm.modules) * 0.3,
-            generate=self._generate_centralization_reflection,
-            tags=["architecture", "risk", "resilience"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="centralization_risk",
+                name="Over-Centralized Architecture",
+                description="Too many central modules create single points of failure",
+                level=ReflectionLevel.META_REFLECTION,
+                scope=ReflectionScope.SYSTEM,
+                impact=ReflectionImpact.MONITOR,
+                condition=lambda sm: len(sm.central_modules) > len(sm.modules) * 0.3,
+                generate=self._generate_centralization_reflection,
+                tags=["architecture", "risk", "resilience"],
+            )
+        )
 
         # Rule 5: Module Isolation
-        self.rules.append(ReflectionRule(
-            id="poor_isolation",
-            name="Poor Module Isolation",
-            description="High coupling between modules",
-            level=ReflectionLevel.REFLECTION,
-            scope=ReflectionScope.SYSTEM,
-            impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-            condition=lambda sm: self._check_high_coupling(sm),
-            generate=self._generate_coupling_reflection,
-            tags=["coupling", "modularity", "architecture"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="poor_isolation",
+                name="Poor Module Isolation",
+                description="High coupling between modules",
+                level=ReflectionLevel.REFLECTION,
+                scope=ReflectionScope.SYSTEM,
+                impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                condition=lambda sm: self._check_high_coupling(sm),
+                generate=self._generate_coupling_reflection,
+                tags=["coupling", "modularity", "architecture"],
+            )
+        )
 
         # Rule 6: Large Modules
-        self.rules.append(ReflectionRule(
-            id="large_modules",
-            name="Large Modules Detected",
-            description="Some modules are excessively large",
-            level=ReflectionLevel.OBSERVATION,
-            scope=ReflectionScope.MODULE,
-            impact=ReflectionImpact.MONITOR,
-            condition=lambda sm: self._check_large_modules(sm),
-            generate=self._generate_large_modules_reflection,
-            tags=["size", "maintainability"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="large_modules",
+                name="Large Modules Detected",
+                description="Some modules are excessively large",
+                level=ReflectionLevel.OBSERVATION,
+                scope=ReflectionScope.MODULE,
+                impact=ReflectionImpact.MONITOR,
+                condition=lambda sm: self._check_large_modules(sm),
+                generate=self._generate_large_modules_reflection,
+                tags=["size", "maintainability"],
+            )
+        )
 
         # Rule 7: Capability Diversity
-        self.rules.append(ReflectionRule(
-            id="capability_diversity",
-            name="Rich Capability Set",
-            description="System has diverse capabilities",
-            level=ReflectionLevel.OBSERVATION,
-            scope=ReflectionScope.SYSTEM,
-            impact=ReflectionImpact.INFORMATIONAL,
-            condition=lambda sm: len(sm.capabilities) >= 5,
-            generate=self._generate_capability_reflection,
-            tags=["capabilities", "features"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="capability_diversity",
+                name="Rich Capability Set",
+                description="System has diverse capabilities",
+                level=ReflectionLevel.OBSERVATION,
+                scope=ReflectionScope.SYSTEM,
+                impact=ReflectionImpact.INFORMATIONAL,
+                condition=lambda sm: len(sm.capabilities) >= 5,
+                generate=self._generate_capability_reflection,
+                tags=["capabilities", "features"],
+            )
+        )
 
         # Rule 8: Architecture Quality Assessment
-        self.rules.append(ReflectionRule(
-            id="architecture_quality",
-            name="Architecture Quality Assessment",
-            description="Overall architecture quality evaluation",
-            level=ReflectionLevel.META_REFLECTION,
-            scope=ReflectionScope.SYSTEM,
-            impact=ReflectionImpact.INFORMATIONAL,
-            condition=lambda sm: True,  # Always generate
-            generate=self._generate_architecture_quality_reflection,
-            tags=["architecture", "quality", "assessment"]
-        ))
+        self.rules.append(
+            ReflectionRule(
+                id="architecture_quality",
+                name="Architecture Quality Assessment",
+                description="Overall architecture quality evaluation",
+                level=ReflectionLevel.META_REFLECTION,
+                scope=ReflectionScope.SYSTEM,
+                impact=ReflectionImpact.INFORMATIONAL,
+                condition=lambda sm: True,  # Always generate
+                generate=self._generate_architecture_quality_reflection,
+                tags=["architecture", "quality", "assessment"],
+            )
+        )
 
     def _check_high_coupling(self, sm: SystemModel) -> bool:
         """Check if system has high coupling."""
@@ -168,8 +185,8 @@ class ReflectionRuleSet:
 
     def _generate_god_modules_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate reflection about god modules."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         god_mods = sm.god_modules[:5]
         evidence = []
@@ -178,12 +195,14 @@ class ReflectionRuleSet:
         for mod_name in god_mods:
             if mod_name in sm.modules:
                 mod = sm.modules[mod_name]
-                evidence.append(ReflectionEvidence(
-                    type="metric",
-                    source=f"module:{mod_name}",
-                    value={"out_degree": mod.out_degree, "dependencies": len(mod.dependencies_out)},
-                    context=f"Module depends on {mod.out_degree} other modules"
-                ))
+                evidence.append(
+                    ReflectionEvidence(
+                        type="metric",
+                        source=f"module:{mod_name}",
+                        value={"out_degree": mod.out_degree, "dependencies": len(mod.dependencies_out)},
+                        context=f"Module depends on {mod.out_degree} other modules",
+                    )
+                )
                 related_modules.append(mod_name)
 
         content = (
@@ -198,7 +217,7 @@ class ReflectionRuleSet:
             "Break down large modules into smaller, focused components",
             "Extract shared functionality into utility modules",
             "Consider introducing interfaces/facades to reduce direct dependencies",
-            "Review and eliminate unnecessary cross-module dependencies"
+            "Review and eliminate unnecessary cross-module dependencies",
         ]
 
         reflection_id = hashlib.sha256(f"god_modules_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -216,13 +235,13 @@ class ReflectionRuleSet:
             related_modules=related_modules,
             recommendations=recommendations,
             tags=["god-module", "dependencies", "srp-violation"],
-            confidence=0.9
+            confidence=0.9,
         )
 
     def _generate_hotspot_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate reflection about hotspot modules."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         hotspots = sm.hotspot_modules[:5]
         evidence = []
@@ -231,16 +250,18 @@ class ReflectionRuleSet:
         for mod_name in hotspots:
             if mod_name in sm.modules:
                 mod = sm.modules[mod_name]
-                evidence.append(ReflectionEvidence(
-                    type="metric",
-                    source=f"module:{mod_name}",
-                    value={
-                        "complexity": mod.avg_complexity,
-                        "centrality": mod.centrality,
-                        "chunk_count": mod.chunk_count
-                    },
-                    context=f"High complexity ({mod.avg_complexity:.1f}) + high centrality ({mod.centrality:.2f})"
-                ))
+                evidence.append(
+                    ReflectionEvidence(
+                        type="metric",
+                        source=f"module:{mod_name}",
+                        value={
+                            "complexity": mod.avg_complexity,
+                            "centrality": mod.centrality,
+                            "chunk_count": mod.chunk_count,
+                        },
+                        context=f"High complexity ({mod.avg_complexity:.1f}) + high centrality ({mod.centrality:.2f})",
+                    )
+                )
                 related_modules.append(mod_name)
 
         content = (
@@ -255,7 +276,7 @@ class ReflectionRuleSet:
             "Extract complex logic into smaller, testable functions",
             "Consider splitting modules along feature or domain boundaries",
             "Simplify conditional logic using guard clauses and early returns",
-            "Document complex business logic and edge cases"
+            "Document complex business logic and edge cases",
         ]
 
         reflection_id = hashlib.sha256(f"hotspots_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -273,26 +294,26 @@ class ReflectionRuleSet:
             related_modules=related_modules,
             recommendations=recommendations,
             tags=["hotspot", "complexity", "risk"],
-            confidence=0.85
+            confidence=0.85,
         )
 
     def _generate_complexity_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate reflection about overall complexity."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
-        evidence = [ReflectionEvidence(
-            type="metric",
-            source="system_model",
-            value={"avg_module_complexity": sm.avg_module_complexity},
-            context=f"Average cyclomatic complexity across all modules"
-        )]
+        evidence = [
+            ReflectionEvidence(
+                type="metric",
+                source="system_model",
+                value={"avg_module_complexity": sm.avg_module_complexity},
+                context=f"Average cyclomatic complexity across all modules",
+            )
+        ]
 
         # Find modules with highest complexity
         high_complexity_modules = sorted(
-            [(m.name, m.avg_complexity) for m in sm.modules.values()],
-            key=lambda x: x[1],
-            reverse=True
+            [(m.name, m.avg_complexity) for m in sm.modules.values()], key=lambda x: x[1], reverse=True
         )[:5]
 
         content = (
@@ -307,7 +328,7 @@ class ReflectionRuleSet:
             "Simplify conditional logic and reduce nested structures",
             "Apply the Single Responsibility Principle at the function level",
             "Add unit tests to enable safe refactoring",
-            "Set complexity thresholds in CI/CD to prevent further degradation"
+            "Set complexity thresholds in CI/CD to prevent further degradation",
         ]
 
         reflection_id = hashlib.sha256(f"complexity_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -325,26 +346,28 @@ class ReflectionRuleSet:
             related_modules=[name for name, _ in high_complexity_modules],
             recommendations=recommendations,
             tags=["complexity", "maintainability"],
-            confidence=0.95
+            confidence=0.95,
         )
 
     def _generate_centralization_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate meta-reflection about centralization."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         central_ratio = len(sm.central_modules) / len(sm.modules) if sm.modules else 0
 
-        evidence = [ReflectionEvidence(
-            type="analysis",
-            source="system_architecture",
-            value={
-                "central_modules_count": len(sm.central_modules),
-                "total_modules": len(sm.modules),
-                "centralization_ratio": central_ratio
-            },
-            context=f"{central_ratio*100:.1f}% of modules are highly central"
-        )]
+        evidence = [
+            ReflectionEvidence(
+                type="analysis",
+                source="system_architecture",
+                value={
+                    "central_modules_count": len(sm.central_modules),
+                    "total_modules": len(sm.modules),
+                    "centralization_ratio": central_ratio,
+                },
+                context=f"{central_ratio*100:.1f}% of modules are highly central",
+            )
+        ]
 
         content = (
             f"Architecture exhibits high centralization with {len(sm.central_modules)} out of "
@@ -359,7 +382,7 @@ class ReflectionRuleSet:
             "Consider introducing abstraction layers to reduce direct dependencies",
             "Evaluate if some central modules can be split along domain boundaries",
             "Ensure central modules have comprehensive test coverage",
-            "Monitor changes to central modules carefully via code review"
+            "Monitor changes to central modules carefully via code review",
         ]
 
         reflection_id = hashlib.sha256(f"centralization_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -377,25 +400,24 @@ class ReflectionRuleSet:
             related_modules=sm.central_modules[:10],
             recommendations=recommendations,
             tags=["architecture", "centralization", "risk"],
-            confidence=0.8
+            confidence=0.8,
         )
 
     def _generate_coupling_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate reflection about coupling."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         avg_deps = sum(len(m.dependencies_out) for m in sm.modules.values()) / len(sm.modules) if sm.modules else 0
 
-        evidence = [ReflectionEvidence(
-            type="metric",
-            source="dependency_analysis",
-            value={
-                "avg_dependencies_per_module": avg_deps,
-                "total_dependencies": len(sm.dependencies)
-            },
-            context=f"Average {avg_deps:.1f} outgoing dependencies per module"
-        )]
+        evidence = [
+            ReflectionEvidence(
+                type="metric",
+                source="dependency_analysis",
+                value={"avg_dependencies_per_module": avg_deps, "total_dependencies": len(sm.dependencies)},
+                context=f"Average {avg_deps:.1f} outgoing dependencies per module",
+            )
+        ]
 
         content = (
             f"System exhibits high coupling with an average of {avg_deps:.1f} dependencies per module. "
@@ -408,7 +430,7 @@ class ReflectionRuleSet:
             "Introduce interfaces/contracts between modules",
             "Consider event-driven patterns to decouple modules",
             "Extract shared functionality into dedicated utility modules",
-            "Review and eliminate unnecessary cross-module dependencies"
+            "Review and eliminate unnecessary cross-module dependencies",
         ]
 
         reflection_id = hashlib.sha256(f"coupling_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -426,23 +448,26 @@ class ReflectionRuleSet:
             related_modules=[],
             recommendations=recommendations,
             tags=["coupling", "dependencies", "modularity"],
-            confidence=0.85
+            confidence=0.85,
         )
 
     def _generate_large_modules_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate observation about large modules."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         large_modules = [(m.name, m.chunk_count) for m in sm.modules.values() if m.chunk_count > 20]
         large_modules.sort(key=lambda x: x[1], reverse=True)
 
-        evidence = [ReflectionEvidence(
-            type="metric",
-            source=f"module:{name}",
-            value={"chunk_count": count},
-            context=f"Module contains {count} chunks"
-        ) for name, count in large_modules[:5]]
+        evidence = [
+            ReflectionEvidence(
+                type="metric",
+                source=f"module:{name}",
+                value={"chunk_count": count},
+                context=f"Module contains {count} chunks",
+            )
+            for name, count in large_modules[:5]
+        ]
 
         content = (
             f"Observed {len(large_modules)} large module(s) with more than 20 chunks. "
@@ -453,7 +478,7 @@ class ReflectionRuleSet:
         recommendations = [
             "Consider splitting large modules along feature boundaries",
             "Extract reusable components into separate modules",
-            "Review if module has grown beyond its intended responsibility"
+            "Review if module has grown beyond its intended responsibility",
         ]
 
         reflection_id = hashlib.sha256(f"large_modules_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -471,13 +496,13 @@ class ReflectionRuleSet:
             related_modules=[name for name, _ in large_modules[:5]],
             recommendations=recommendations,
             tags=["size", "modularity"],
-            confidence=1.0
+            confidence=1.0,
         )
 
     def _generate_capability_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate observation about capabilities."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         cap_by_type = {}
         for cap in sm.capabilities:
@@ -485,15 +510,17 @@ class ReflectionRuleSet:
                 cap_by_type[cap.capability_type] = []
             cap_by_type[cap.capability_type].append(cap.name)
 
-        evidence = [ReflectionEvidence(
-            type="analysis",
-            source="capability_detection",
-            value={
-                "total_capabilities": len(sm.capabilities),
-                "by_type": {k: len(v) for k, v in cap_by_type.items()}
-            },
-            context="Capabilities detected through pattern matching and analysis"
-        )]
+        evidence = [
+            ReflectionEvidence(
+                type="analysis",
+                source="capability_detection",
+                value={
+                    "total_capabilities": len(sm.capabilities),
+                    "by_type": {k: len(v) for k, v in cap_by_type.items()},
+                },
+                context="Capabilities detected through pattern matching and analysis",
+            )
+        ]
 
         content = (
             f"System demonstrates a rich set of {len(sm.capabilities)} capabilities across "
@@ -505,7 +532,7 @@ class ReflectionRuleSet:
         recommendations = [
             "Document key capabilities for new team members",
             "Ensure each capability has adequate test coverage",
-            "Consider capability mapping for architecture documentation"
+            "Consider capability mapping for architecture documentation",
         ]
 
         reflection_id = hashlib.sha256(f"capabilities_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
@@ -523,35 +550,37 @@ class ReflectionRuleSet:
             related_modules=[],
             recommendations=recommendations,
             tags=["capabilities", "features"],
-            confidence=0.8
+            confidence=0.8,
         )
 
     def _generate_architecture_quality_reflection(self, sm: SystemModel) -> MetaReflection:
         """Generate meta-reflection about overall architecture quality."""
-        from datetime import datetime
         import hashlib
+        from datetime import datetime
 
         # Calculate quality score
         quality_factors = {
             "modularity": 1.0 - (len(sm.god_modules) / max(len(sm.modules), 1)),
             "complexity": max(0, 1.0 - (sm.avg_module_complexity / 100.0)),
-            "hotspot_risk": 1.0 - (len(sm.hotspot_modules) / max(len(sm.modules), 1))
+            "hotspot_risk": 1.0 - (len(sm.hotspot_modules) / max(len(sm.modules), 1)),
         }
         overall_quality = sum(quality_factors.values()) / len(quality_factors)
 
-        evidence = [ReflectionEvidence(
-            type="analysis",
-            source="architecture_assessment",
-            value={
-                "quality_score": overall_quality,
-                "factors": quality_factors,
-                "total_modules": len(sm.modules),
-                "god_modules": len(sm.god_modules),
-                "hotspots": len(sm.hotspot_modules),
-                "avg_complexity": sm.avg_module_complexity
-            },
-            context="Composite quality assessment based on multiple factors"
-        )]
+        evidence = [
+            ReflectionEvidence(
+                type="analysis",
+                source="architecture_assessment",
+                value={
+                    "quality_score": overall_quality,
+                    "factors": quality_factors,
+                    "total_modules": len(sm.modules),
+                    "god_modules": len(sm.god_modules),
+                    "hotspots": len(sm.hotspot_modules),
+                    "avg_complexity": sm.avg_module_complexity,
+                },
+                context="Composite quality assessment based on multiple factors",
+            )
+        ]
 
         if overall_quality >= 0.8:
             assessment = "excellent"
@@ -599,7 +628,7 @@ class ReflectionRuleSet:
             related_modules=[],
             recommendations=recommendations,
             tags=["architecture", "quality", "assessment"],
-            confidence=0.75
+            confidence=0.75,
         )
 
     def evaluate(self, system_model: SystemModel) -> List[MetaReflection]:
@@ -622,6 +651,7 @@ class ReflectionRuleSet:
             except Exception as e:
                 # Log but don't fail
                 from feniks.infra.logging import get_logger
+
                 log = get_logger("reflection_rules")
                 log.warning(f"Rule {rule.id} failed: {e}")
 

@@ -1,11 +1,14 @@
-import pytest
 import json
 from pathlib import Path
+
+import pytest
+
 from feniks.core.models.domain import SessionSummary
 from feniks.core.reflection.engine import MetaReflectionEngine
 
 # Adjust path to point to root tests/fixtures
 GOLDEN_DIR = Path(__file__).parent.parent.parent.parent / "tests" / "fixtures" / "golden"
+
 
 def load_golden_session(name: str) -> SessionSummary:
     path = GOLDEN_DIR / "sessions" / f"{name}.json"
@@ -15,6 +18,7 @@ def load_golden_session(name: str) -> SessionSummary:
         data = json.load(f)
     return SessionSummary(**data)
 
+
 def load_expected_report(name: str) -> list:
     path = GOLDEN_DIR / "reports" / f"{name}.json"
     if not path.exists():
@@ -22,9 +26,11 @@ def load_expected_report(name: str) -> list:
     with path.open() as f:
         return json.load(f)
 
+
 @pytest.fixture
 def engine():
     return MetaReflectionEngine()
+
 
 def test_golden_success_session(engine):
     """
@@ -32,10 +38,11 @@ def test_golden_success_session(engine):
     """
     session = load_golden_session("success")
     reflections = engine.run_post_mortem(session, project_id="golden-test")
-    
+
     # Should be 0 critical alerts
     criticals = [r for r in reflections if r.impact.value == "critical"]
     assert len(criticals) == 0, f"Expected 0 criticals, got {len(criticals)}: {[r.title for r in criticals]}"
+
 
 def test_golden_failure_loop_session(engine):
     """
@@ -60,6 +67,7 @@ def test_golden_failure_loop_session(engine):
     # Check count (approximate, as policies might evolve)
     assert len(reflections) >= len(expected)
 
+
 def test_golden_high_cost_session(engine):
     """
     Verify that a high-cost session triggers cost alert.
@@ -73,6 +81,7 @@ def test_golden_high_cost_session(engine):
 
     # Should have no failure alert (session was successful)
     assert "Session Failure Detected" not in titles
+
 
 def test_golden_warning_quality_session(engine):
     """
@@ -89,6 +98,7 @@ def test_golden_warning_quality_session(engine):
     critical_reflections = [r for r in reflections if r.impact.value == "critical"]
     assert len(critical_reflections) == 0, "Should not have critical reflections for warning-level issues"
 
+
 def test_golden_perfect_session(engine):
     """
     Verify that a perfect session generates no alerts (no false positives).
@@ -97,4 +107,6 @@ def test_golden_perfect_session(engine):
     reflections = engine.run_post_mortem(session, project_id="golden-test")
 
     # Should generate ZERO reflections (perfect quality, good cost, no loops, success)
-    assert len(reflections) == 0, f"Expected 0 reflections for perfect session, got {len(reflections)}: {[r.title for r in reflections]}"
+    assert (
+        len(reflections) == 0
+    ), f"Expected 0 reflections for perfect session, got {len(reflections)}: {[r.title for r in reflections]}"

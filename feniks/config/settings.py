@@ -17,6 +17,7 @@ Supports environment variables and .env files.
 """
 from pathlib import Path
 from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,12 +27,8 @@ class Settings(BaseSettings):
     Reads settings from environment variables with sensible defaults.
     Uses pydantic BaseSettings for validation and type safety.
     """
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
-    )
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore")
 
     # The root directory of the project.
     project_root: Path = Path(__file__).parent.parent.parent
@@ -86,12 +83,12 @@ class Settings(BaseSettings):
 
     # MinimumCoverageBehaviorPolicy thresholds
     behavior_min_coverage_scenarios: int = 5  # Minimum required scenarios
-    behavior_min_coverage_checks: int = 3     # Minimum checks per scenario
+    behavior_min_coverage_checks: int = 3  # Minimum checks per scenario
 
     # Contract generation settings
     behavior_contract_min_snapshots: int = 3  # Minimum snapshots for contract generation
     behavior_contract_confidence_threshold: float = 0.8  # Pattern inclusion threshold
-    behavior_contract_percentile: int = 95    # Duration percentile (p95)
+    behavior_contract_percentile: int = 95  # Duration percentile (p95)
 
     # Comparison engine settings
     behavior_comparison_strict_mode: bool = False  # Strict comparison mode

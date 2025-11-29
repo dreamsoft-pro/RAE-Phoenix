@@ -15,11 +15,12 @@
 Report Generator - generates human-readable reports from system model.
 Creates text reports with module analysis, dependency graphs, and recommendations.
 """
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
+from feniks.core.models.types import (Capability, MetaReflection, Module,
+                                      ModuleDependency, SystemModel)
 from feniks.infra.logging import get_logger
-from feniks.core.models.types import SystemModel, Module, ModuleDependency, Capability, MetaReflection
 
 log = get_logger("core.report_generator")
 
@@ -85,7 +86,9 @@ class ReportGenerator:
                 module = self.system_model.modules.get(module_name)
                 if module:
                     lines.append(f"  - {module.name}")
-                    lines.append(f"    Type: {module.module_type.value if hasattr(module.module_type, 'value') else module.module_type}")
+                    lines.append(
+                        f"    Type: {module.module_type.value if hasattr(module.module_type, 'value') else module.module_type}"
+                    )
                     lines.append(f"    In-degree: {module.in_degree}, Out-degree: {module.out_degree}")
                     lines.append(f"    Centrality: {module.centrality:.3f}")
                     lines.append(f"    Complexity: {module.avg_complexity:.2f}")
@@ -183,48 +186,57 @@ class ReportGenerator:
 
         # Hotspot recommendations
         if self.system_model.hotspot_modules:
-            recommendations.append({
-                "priority": "HIGH",
-                "title": "Refactor Hotspot Modules",
-                "description": f"Found {len(self.system_model.hotspot_modules)} hotspot modules with high complexity and connectivity.",
-                "modules": self.system_model.hotspot_modules[:5],
-                "action": "Consider breaking down these modules into smaller, more focused components."
-            })
+            recommendations.append(
+                {
+                    "priority": "HIGH",
+                    "title": "Refactor Hotspot Modules",
+                    "description": f"Found {len(self.system_model.hotspot_modules)} hotspot modules with high complexity and connectivity.",
+                    "modules": self.system_model.hotspot_modules[:5],
+                    "action": "Consider breaking down these modules into smaller, more focused components.",
+                }
+            )
 
         # God module recommendations
         if self.system_model.god_modules:
-            recommendations.append({
-                "priority": "HIGH",
-                "title": "Reduce God Module Dependencies",
-                "description": f"Found {len(self.system_model.god_modules)} modules with excessive dependencies.",
-                "modules": self.system_model.god_modules[:5],
-                "action": "Apply Dependency Inversion Principle and consider introducing interfaces/abstractions."
-            })
+            recommendations.append(
+                {
+                    "priority": "HIGH",
+                    "title": "Reduce God Module Dependencies",
+                    "description": f"Found {len(self.system_model.god_modules)} modules with excessive dependencies.",
+                    "modules": self.system_model.god_modules[:5],
+                    "action": "Apply Dependency Inversion Principle and consider introducing interfaces/abstractions.",
+                }
+            )
 
         # High complexity modules
         high_complexity = [
-            m.name for m in self.system_model.modules.values()
+            m.name
+            for m in self.system_model.modules.values()
             if m.avg_complexity > self.system_model.avg_module_complexity * 2
         ]
         if high_complexity:
-            recommendations.append({
-                "priority": "MEDIUM",
-                "title": "Reduce Cyclomatic Complexity",
-                "description": f"Found {len(high_complexity)} modules with high cyclomatic complexity.",
-                "modules": high_complexity[:5],
-                "action": "Extract complex logic into separate functions, use guard clauses, and simplify conditionals."
-            })
+            recommendations.append(
+                {
+                    "priority": "MEDIUM",
+                    "title": "Reduce Cyclomatic Complexity",
+                    "description": f"Found {len(high_complexity)} modules with high cyclomatic complexity.",
+                    "modules": high_complexity[:5],
+                    "action": "Extract complex logic into separate functions, use guard clauses, and simplify conditionals.",
+                }
+            )
 
         # Central module recommendations
         if len(self.system_model.central_modules) > 5:
-            recommendations.append({
-                "priority": "MEDIUM",
-                "title": "Review Central Modules",
-                "description": f"Found {len(self.system_model.central_modules)} central modules.",
-                "modules": self.system_model.central_modules[:5],
-                "action": "Ensure these modules are well-tested and documented, as they're critical to system architecture."
-            })
-        
+            recommendations.append(
+                {
+                    "priority": "MEDIUM",
+                    "title": "Review Central Modules",
+                    "description": f"Found {len(self.system_model.central_modules)} central modules.",
+                    "modules": self.system_model.central_modules[:5],
+                    "action": "Ensure these modules are well-tested and documented, as they're critical to system architecture.",
+                }
+            )
+
         return recommendations
 
     def generate_recommendations(self) -> str:
@@ -251,7 +263,7 @@ class ReportGenerator:
             lines.append(f"### {i}. [{rec['priority']}] {rec['title']}")
             lines.append(f"   {rec['description']}")
             lines.append(f"   Modules: {', '.join(rec['modules'])}")
-            if len(rec['modules']) < len(self.system_model.hotspot_modules):
+            if len(rec["modules"]) < len(self.system_model.hotspot_modules):
                 # Note: Logic for "more" count was slightly buggy in original (comparing current modules len to ALL hotspots len).
                 # Fixing it to just verify if list was truncated.
                 # But here I'll keep simple.
@@ -323,7 +335,7 @@ class ReportGenerator:
             self.generate_module_analysis(),
             self.generate_capability_report(),
             self.generate_meta_reflections_report(),
-            self.generate_recommendations()
+            self.generate_recommendations(),
         ]
 
         # Filter out empty sections
@@ -355,7 +367,7 @@ class ReportGenerator:
 def generate_report(
     system_model: SystemModel,
     output_path: Optional[Path] = None,
-    meta_reflections: Optional[List[MetaReflection]] = None
+    meta_reflections: Optional[List[MetaReflection]] = None,
 ) -> str:
     """
     Convenience function to generate a system model report.

@@ -19,26 +19,24 @@ Tests:
 - Storage abstraction and factory
 - Storage backend implementations (file, mock)
 """
-import pytest
+import tempfile
 from datetime import datetime
 from pathlib import Path
-import tempfile
 
-from feniks.core.behavior.scenario_library import ScenarioLibrary
-from feniks.adapters.storage.base import create_storage_backend, register_storage_backend
+import pytest
+
+from feniks.adapters.storage.base import (create_storage_backend,
+                                          register_storage_backend)
 from feniks.adapters.storage.behavior_store import BehaviorStore
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    BehaviorContract,
-    ScenarioInput,
-    SuccessCriteria
-)
-
+from feniks.core.behavior.scenario_library import ScenarioLibrary
+from feniks.core.models.behavior import (BehaviorContract, BehaviorScenario,
+                                         BehaviorSnapshot, ScenarioInput,
+                                         SuccessCriteria)
 
 # ============================================================================
 # Scenario Library Tests
 # ============================================================================
+
 
 class TestScenarioLibrary:
     """Tests for ScenarioLibrary."""
@@ -64,23 +62,15 @@ class TestScenarioLibrary:
             name="Test Scenario",
             category="api",
             description="Test scenario description",
-            input=ScenarioInput(
-                api_request={
-                    "method": "GET",
-                    "url": "/api/test"
-                }
-            ),
+            input=ScenarioInput(api_request={"method": "GET", "url": "/api/test"}),
             success_criteria=SuccessCriteria(),
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
     def test_publish_scenario(self, library, sample_scenario):
         """Test publishing scenario to library."""
         library_id = library.publish_scenario(
-            scenario=sample_scenario,
-            tags=["http", "test"],
-            description="Public test scenario",
-            author="Test Author"
+            scenario=sample_scenario, tags=["http", "test"], description="Public test scenario", author="Test Author"
         )
 
         assert library_id.startswith("lib-")
@@ -106,7 +96,7 @@ class TestScenarioLibrary:
             description="CLI test",
             input=ScenarioInput(cli_command="echo test"),
             success_criteria=SuccessCriteria(),
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
         library.publish_scenario(scenario2, tags=["cli"])
 
@@ -132,7 +122,7 @@ class TestScenarioLibrary:
         imported = library.import_scenario(
             library_scenario_id=library_id,
             target_project_id="target-project",
-            customize={"name": "Imported Test Scenario"}
+            customize={"name": "Imported Test Scenario"},
         )
 
         assert imported.project_id == "target-project"
@@ -163,11 +153,7 @@ class TestScenarioLibrary:
 
     def test_get_scenario_stats(self, library, sample_scenario):
         """Test getting scenario statistics."""
-        library_id = library.publish_scenario(
-            sample_scenario,
-            tags=["http", "test"],
-            author="Test Author"
-        )
+        library_id = library.publish_scenario(sample_scenario, tags=["http", "test"], author="Test Author")
 
         stats = library.get_scenario_stats(library_id)
 
@@ -191,6 +177,7 @@ class TestScenarioLibrary:
 
             # Read and verify
             import yaml
+
             with output_path.open("r") as f:
                 catalog = yaml.safe_load(f)
 
@@ -202,6 +189,7 @@ class TestScenarioLibrary:
 # ============================================================================
 # Storage Abstraction Tests
 # ============================================================================
+
 
 class TestStorageAbstraction:
     """Tests for storage abstraction and factory."""
@@ -230,7 +218,7 @@ class TestStorageAbstraction:
                 category="api",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
 
             # Save
@@ -265,7 +253,7 @@ class TestStorageAbstraction:
                 category="api",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             backend.save_scenario(scenario)
 
@@ -277,7 +265,7 @@ class TestStorageAbstraction:
                     project_id="test",
                     environment="candidate",
                     success=True,
-                    created_at=datetime.now()
+                    created_at=datetime.now(),
                 )
                 backend.save_snapshot(snapshot)
 
@@ -302,7 +290,7 @@ class TestStorageAbstraction:
                 category="api",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             backend.save_scenario(scenario)
 
@@ -314,7 +302,7 @@ class TestStorageAbstraction:
                     scenario_id="scenario-1",
                     project_id="test",
                     success_criteria=SuccessCriteria(),
-                    created_at=datetime.now()
+                    created_at=datetime.now(),
                 )
                 backend.save_contract(contract)
 
@@ -331,6 +319,7 @@ class TestStorageAbstraction:
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestPhase3Integration:
     """Integration tests for Phase 3 components."""
@@ -352,7 +341,7 @@ class TestPhase3Integration:
                 category="api",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
 
             library_id = library.publish_scenario(scenario, tags=["test"])

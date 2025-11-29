@@ -19,8 +19,8 @@ import re
 from pathlib import Path
 from typing import List, Optional, Set
 
-from feniks.infra.logging import get_logger
 from feniks.core.models.types import Chunk
+from feniks.infra.logging import get_logger
 
 log = get_logger("ingest.filters")
 
@@ -36,7 +36,7 @@ class ChunkFilter:
         exclude_patterns: Optional[List[str]] = None,
         exclude_dirs: Optional[List[str]] = None,
         min_complexity: int = 0,
-        max_complexity: Optional[int] = None
+        max_complexity: Optional[int] = None,
     ):
         """
         Initialize chunk filter.
@@ -58,18 +58,20 @@ class ChunkFilter:
         self.include_regexes = [self._glob_to_regex(p) for p in self.include_patterns]
         self.exclude_regexes = [self._glob_to_regex(p) for p in self.exclude_patterns]
 
-        log.info(f"ChunkFilter initialized with {len(self.include_patterns)} include patterns, "
-                 f"{len(self.exclude_patterns)} exclude patterns")
+        log.info(
+            f"ChunkFilter initialized with {len(self.include_patterns)} include patterns, "
+            f"{len(self.exclude_patterns)} exclude patterns"
+        )
 
     @staticmethod
     def _glob_to_regex(pattern: str) -> re.Pattern:
         """Convert a glob pattern to a regex pattern."""
         # Replace glob wildcards with regex equivalents
-        regex_pattern = pattern.replace('.', r'\.')
-        regex_pattern = regex_pattern.replace('*', '[^/]*')
-        regex_pattern = regex_pattern.replace('?', '.')
-        regex_pattern = regex_pattern.replace('/**/', '/(.*/)?')
-        regex_pattern = '^' + regex_pattern + '$'
+        regex_pattern = pattern.replace(".", r"\.")
+        regex_pattern = regex_pattern.replace("*", "[^/]*")
+        regex_pattern = regex_pattern.replace("?", ".")
+        regex_pattern = regex_pattern.replace("/**/", "/(.*/)?")
+        regex_pattern = "^" + regex_pattern + "$"
         return re.compile(regex_pattern)
 
     def _matches_pattern(self, path: str, regexes: List[re.Pattern]) -> bool:
@@ -155,7 +157,7 @@ def create_default_filter() -> ChunkFilter:
             "**/build/**",
             "**/*.test.js",
             "**/*.spec.js",
-            "**/*.min.js"
+            "**/*.min.js",
         ],
-        exclude_dirs=["node_modules", "vendor", ".git", "dist", "build", "__pycache__"]
+        exclude_dirs=["node_modules", "vendor", ".git", "dist", "build", "__pycache__"],
     )

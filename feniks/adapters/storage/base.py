@@ -20,15 +20,11 @@ Provides abstract base classes for pluggable storage implementations:
 - Vector (Qdrant)
 """
 from abc import ABC, abstractmethod
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    BehaviorContract,
-    BehaviorCheckResult
-)
+from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
+                                         BehaviorScenario, BehaviorSnapshot)
 
 
 class BehaviorStorageBackend(ABC):
@@ -74,10 +70,7 @@ class BehaviorStorageBackend(ABC):
 
     @abstractmethod
     def load_snapshots(
-        self,
-        scenario_id: str,
-        environment: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: str, environment: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorSnapshot]:
         """Load snapshots for a scenario, optionally filtered by environment."""
         pass
@@ -107,11 +100,7 @@ class BehaviorStorageBackend(ABC):
         pass
 
     @abstractmethod
-    def load_contracts_for_scenario(
-        self,
-        scenario_id: str,
-        version: Optional[str] = None
-    ) -> List[BehaviorContract]:
+    def load_contracts_for_scenario(self, scenario_id: str, version: Optional[str] = None) -> List[BehaviorContract]:
         """Load all contracts for a scenario, optionally filtered by version."""
         pass
 
@@ -136,9 +125,7 @@ class BehaviorStorageBackend(ABC):
 
     @abstractmethod
     def load_check_results(
-        self,
-        scenario_id: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorCheckResult]:
         """Load check results, optionally filtered by scenario."""
         pass
@@ -163,10 +150,7 @@ class SemanticSearchMixin(ABC):
 
     @abstractmethod
     def search_similar_scenarios(
-        self,
-        query: str,
-        limit: int = 10,
-        project_id: Optional[str] = None
+        self, query: str, limit: int = 10, project_id: Optional[str] = None
     ) -> List[BehaviorScenario]:
         """
         Search for scenarios similar to query text.
@@ -182,11 +166,7 @@ class SemanticSearchMixin(ABC):
         pass
 
     @abstractmethod
-    def search_similar_contracts(
-        self,
-        scenario_id: str,
-        limit: int = 5
-    ) -> List[BehaviorContract]:
+    def search_similar_contracts(self, scenario_id: str, limit: int = 5) -> List[BehaviorContract]:
         """
         Search for contracts similar to a scenario.
 
@@ -210,11 +190,7 @@ class VersionedStorageMixin(ABC):
     """
 
     @abstractmethod
-    def save_contract_version(
-        self,
-        contract: BehaviorContract,
-        version_notes: Optional[str] = None
-    ) -> str:
+    def save_contract_version(self, contract: BehaviorContract, version_notes: Optional[str] = None) -> str:
         """
         Save a new version of a contract.
 
@@ -292,10 +268,7 @@ def create_storage_backend(backend_type: str, **kwargs) -> BehaviorStorageBacken
         ValueError: If backend_type not registered
     """
     if backend_type not in _storage_registry:
-        raise ValueError(
-            f"Unknown storage backend: {backend_type}. "
-            f"Available: {list(_storage_registry.keys())}"
-        )
+        raise ValueError(f"Unknown storage backend: {backend_type}. " f"Available: {list(_storage_registry.keys())}")
 
     backend_class = _storage_registry[backend_type]
     return backend_class(**kwargs)

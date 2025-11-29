@@ -14,14 +14,17 @@
 """
 Self-Model Loop - maintains and updates the system's understanding of its own performance.
 """
-from typing import List, Dict
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Dict, List
 
+from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
+                                      ReflectionImpact, ReflectionLevel,
+                                      ReflectionScope)
 from feniks.infra.logging import get_logger
-from feniks.core.models.types import MetaReflection, ReflectionLevel, ReflectionScope, ReflectionImpact, ReflectionEvidence
 
 log = get_logger("core.reflection.self_model")
+
 
 class SelfModelAnalyzer:
     """
@@ -31,33 +34,33 @@ class SelfModelAnalyzer:
     def update_self_model(self, recent_reflections: List[MetaReflection]) -> List[MetaReflection]:
         """
         Update self-model based on recent meta-reflections.
-        
+
         Args:
             recent_reflections: List of reflections generated in recent cycles.
-            
+
         Returns:
             List[MetaReflection]: New reflections about the system itself.
         """
         log.info("Updating Self-Model...")
         self_reflections = []
-        
+
         # 1. Check for Reflection Fatigue (too many critical alerts)
         critical_count = sum(1 for r in recent_reflections if r.impact == ReflectionImpact.CRITICAL)
         if critical_count > 5:
-             self_reflections.append(MetaReflection(
-                id=f"self-fatigue-{uuid.uuid4()}",
-                timestamp=datetime.now().isoformat(),
-                project_id="self-model",
-                level=ReflectionLevel.META_REFLECTION,
-                scope=ReflectionScope.SYSTEM,
-                impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-                title="High Critical Alert Volume",
-                content=f"Generated {critical_count} critical reflections recently. Danger of alert fatigue.",
-                evidence=[
-                     ReflectionEvidence(type="count", source="meta_reflection_engine", value=critical_count)
-                ],
-                recommendations=["Prioritize fixing root causes", "Tune criticality thresholds"]
-            ))
-            
+            self_reflections.append(
+                MetaReflection(
+                    id=f"self-fatigue-{uuid.uuid4()}",
+                    timestamp=datetime.now().isoformat(),
+                    project_id="self-model",
+                    level=ReflectionLevel.META_REFLECTION,
+                    scope=ReflectionScope.SYSTEM,
+                    impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                    title="High Critical Alert Volume",
+                    content=f"Generated {critical_count} critical reflections recently. Danger of alert fatigue.",
+                    evidence=[ReflectionEvidence(type="count", source="meta_reflection_engine", value=critical_count)],
+                    recommendations=["Prioritize fixing root causes", "Tune criticality thresholds"],
+                )
+            )
+
         log.info(f"Self-Model update complete. Generated {len(self_reflections)} insights.")
         return self_reflections

@@ -15,8 +15,9 @@
 Tests for TemplateToJsxRecipe.
 """
 import pytest
+
+from feniks.core.models.types import Chunk, Module, SystemModel
 from feniks.core.refactor.recipes.angularjs import TemplateToJsxRecipe
-from feniks.core.models.types import SystemModel, Module, Chunk
 
 
 @pytest.fixture
@@ -59,23 +60,14 @@ def system_model_with_template(sample_template):
         content=sample_template,
         start_line=1,
         end_line=27,
-        language="html"
+        language="html",
     )
 
     module = Module(
-        name="views",
-        file_paths=["/src/views/orders.html"],
-        chunks=[chunk],
-        total_lines=27,
-        complexity_score=8.0
+        name="views", file_paths=["/src/views/orders.html"], chunks=[chunk], total_lines=27, complexity_score=8.0
     )
 
-    system_model = SystemModel(
-        project_id="test-project",
-        modules={"views": module},
-        total_lines=27,
-        total_chunks=1
-    )
+    system_model = SystemModel(project_id="test-project", modules={"views": module}, total_lines=27, total_chunks=1)
 
     return system_model
 
@@ -150,7 +142,7 @@ def test_converted_template_has_jsx_syntax(system_model_with_template):
     result = recipe.execute(plan, [chunk], dry_run=True)
 
     # Find the JSX file (not filter stubs)
-    jsx_change = next((fc for fc in result.file_changes if fc.file_path.endswith('.tsx')), None)
+    jsx_change = next((fc for fc in result.file_changes if fc.file_path.endswith(".tsx")), None)
     assert jsx_change is not None
 
     jsx_code = jsx_change.modified_content
@@ -189,12 +181,7 @@ def test_validate_checks_jsx_syntax(system_model_with_template):
 def test_no_templates_returns_none():
     """Test that analyze returns None when no templates found."""
     # Empty system model
-    system_model = SystemModel(
-        project_id="test-project",
-        modules={},
-        total_lines=0,
-        total_chunks=0
-    )
+    system_model = SystemModel(project_id="test-project", modules={}, total_lines=0, total_chunks=0)
 
     recipe = TemplateToJsxRecipe()
     plan = recipe.analyze(system_model)

@@ -14,18 +14,20 @@
 """
 Refactor Engine - Orchestrates refactoring workflows.
 """
-from typing import List, Dict, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.types import SystemModel, Chunk
-from feniks.core.refactor.recipe import RefactorRecipe, RefactorPlan, RefactorResult
-from feniks.core.refactor.recipes import ReduceComplexityRecipe, ExtractFunctionRecipe
-from feniks.core.refactor.recipes.python import PythonPipelineRecipe
-from feniks.core.refactor.recipes.php import PhpEnterpriseRecipe
-from feniks.core.refactor.recipes.javascript import AngularMigrationRecipe
+from feniks.core.models.types import Chunk, SystemModel
 from feniks.core.refactor.patch_generator import PatchGenerator
+from feniks.core.refactor.recipe import (RefactorPlan, RefactorRecipe,
+                                         RefactorResult)
+from feniks.core.refactor.recipes import (ExtractFunctionRecipe,
+                                          ReduceComplexityRecipe)
+from feniks.core.refactor.recipes.javascript import AngularMigrationRecipe
+from feniks.core.refactor.recipes.php import PhpEnterpriseRecipe
+from feniks.core.refactor.recipes.python import PythonPipelineRecipe
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.engine")
 
@@ -57,7 +59,7 @@ class RefactorEngine:
             ExtractFunctionRecipe(),
             PythonPipelineRecipe(),
             PhpEnterpriseRecipe(),
-            AngularMigrationRecipe()
+            AngularMigrationRecipe(),
         ]
 
         for recipe in builtin_recipes:
@@ -81,19 +83,12 @@ class RefactorEngine:
             List of recipe information dicts
         """
         return [
-            {
-                "name": recipe.name,
-                "description": recipe.description,
-                "risk_level": recipe.risk_level.value
-            }
+            {"name": recipe.name, "description": recipe.description, "risk_level": recipe.risk_level.value}
             for recipe in self.recipes.values()
         ]
 
     def analyze(
-        self,
-        recipe_name: str,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
+        self, recipe_name: str, system_model: SystemModel, target: Optional[Dict[str, Any]] = None
     ) -> Optional[RefactorPlan]:
         """
         Analyze system and create refactoring plan.
@@ -128,11 +123,7 @@ class RefactorEngine:
         return plan
 
     def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True,
-        output_dir: Optional[Path] = None
+        self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True, output_dir: Optional[Path] = None
     ) -> RefactorResult:
         """
         Execute refactoring based on plan.
@@ -161,10 +152,7 @@ class RefactorEngine:
         # Generate patch if there are changes
         if result.file_changes and output_dir:
             try:
-                patch_path = self.patch_generator.generate_patch(
-                    result,
-                    output_dir=output_dir
-                )
+                patch_path = self.patch_generator.generate_patch(result, output_dir=output_dir)
                 result.patch_path = patch_path
                 log.info(f"Generated patch: {patch_path}")
             except Exception as e:
@@ -189,7 +177,7 @@ class RefactorEngine:
         chunks: List[Chunk],
         target: Optional[Dict[str, Any]] = None,
         dry_run: bool = True,
-        output_dir: Optional[Path] = None
+        output_dir: Optional[Path] = None,
     ) -> Optional[RefactorResult]:
         """
         Run complete refactoring workflow: analyze → execute → validate.

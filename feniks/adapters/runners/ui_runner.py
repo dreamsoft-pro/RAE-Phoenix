@@ -16,29 +16,27 @@ UI Scenario Runner - Executes browser UI scenarios and captures DOM snapshots.
 
 Supports full browser automation with Playwright for legacy UI testing.
 """
-import uuid
-import time
 import json
+import time
+import uuid
 from datetime import datetime
-from typing import Optional, List
 from pathlib import Path
+from typing import List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    ObservedDOM,
-    DOMElement,
-    ObservedLogs,
-    BehaviorViolation
-)
+from feniks.core.models.behavior import (BehaviorScenario, BehaviorSnapshot,
+                                         BehaviorViolation, DOMElement,
+                                         ObservedDOM, ObservedLogs)
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("adapters.runners.ui")
 
 # Playwright import with graceful fallback
 try:
-    from playwright.sync_api import sync_playwright, Browser, Page, Error as PlaywrightError
+    from playwright.sync_api import Browser
+    from playwright.sync_api import Error as PlaywrightError
+    from playwright.sync_api import Page, sync_playwright
+
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
@@ -64,7 +62,7 @@ class UIRunner:
         browser_type: str = "chromium",
         headless: bool = True,
         timeout: int = 30000,
-        screenshot_on_failure: bool = True
+        screenshot_on_failure: bool = True,
     ):
         """
         Initialize UI runner.
@@ -76,9 +74,7 @@ class UIRunner:
             screenshot_on_failure: Capture screenshot on failure
         """
         if not PLAYWRIGHT_AVAILABLE:
-            raise FeniksError(
-                "Playwright not installed. Install with: pip install playwright && playwright install"
-            )
+            raise FeniksError("Playwright not installed. Install with: pip install playwright && playwright install")
 
         self.browser_type = browser_type
         self.headless = headless
@@ -87,9 +83,7 @@ class UIRunner:
         self.playwright = None
         self.browser = None
 
-        log.info(
-            f"UIRunner initialized (browser={browser_type}, headless={headless}, timeout={timeout}ms)"
-        )
+        log.info(f"UIRunner initialized (browser={browser_type}, headless={headless}, timeout={timeout}ms)")
 
     def __enter__(self):
         """Context manager entry - start browser."""
@@ -116,11 +110,7 @@ class UIRunner:
             self.playwright.stop()
             log.debug("Playwright stopped")
 
-    def execute_scenario(
-        self,
-        scenario: BehaviorScenario,
-        environment: str = "candidate"
-    ) -> BehaviorSnapshot:
+    def execute_scenario(self, scenario: BehaviorScenario, environment: str = "candidate") -> BehaviorSnapshot:
         """
         Execute a UI scenario and capture snapshot.
 
@@ -146,8 +136,7 @@ class UIRunner:
         try:
             # Create browser context and page
             context = self.browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent=scenario.input.context.get("user_agent")
+                viewport={"width": 1920, "height": 1080}, user_agent=scenario.input.context.get("user_agent")
             )
             page = context.new_page()
             page.set_default_timeout(self.timeout)
@@ -169,10 +158,7 @@ class UIRunner:
             success = True
 
             if scenario.success_criteria.dom:
-                dom_violations = self._validate_dom_criteria(
-                    observed_dom,
-                    scenario.success_criteria.dom
-                )
+                dom_violations = self._validate_dom_criteria(observed_dom, scenario.success_criteria.dom)
                 violations.extend(dom_violations)
                 if dom_violations:
                     success = False
@@ -189,7 +175,7 @@ class UIRunner:
                 success=success,
                 violations=violations,
                 created_at=datetime.now(),
-                recorded_by="ui_runner"
+                recorded_by="ui_runner",
             )
 
             # Capture screenshot if available
@@ -211,7 +197,7 @@ class UIRunner:
             log.error(f"Playwright error: {e}")
 
             # Capture screenshot on failure
-            if self.screenshot_on_failure and 'page' in locals():
+            if self.screenshot_on_failure and "page" in locals():
                 screenshot_path = self._capture_screenshot(page, f"error-{scenario.id}")
 
             return self._create_error_snapshot(
@@ -219,7 +205,7 @@ class UIRunner:
                 environment=environment,
                 error_message=f"Playwright error: {str(e)}",
                 duration_ms=int((time.time() - start_time) * 1000),
-                screenshot_path=screenshot_path
+                screenshot_path=screenshot_path,
             )
 
         except Exception as e:
@@ -228,7 +214,7 @@ class UIRunner:
                 scenario=scenario,
                 environment=environment,
                 error_message=f"Unexpected error: {str(e)}",
-                duration_ms=int((time.time() - start_time) * 1000)
+                duration_ms=int((time.time() - start_time) * 1000),
             )
 
     def _execute_action(self, page: Page, action: dict) -> None:
@@ -295,7 +281,9 @@ class UIRunner:
                         tag_name=element_handle.evaluate("el => el.tagName"),
                         text_content=element_handle.text_content() or "",
                         is_visible=element_handle.is_visible(),
-                        attributes=element_handle.evaluate("el => Array.from(el.attributes).reduce((acc, attr) => ({...acc, [attr.name]: attr.value}), {})")
+                        attributes=element_handle.evaluate(
+                            "el => Array.from(el.attributes).reduce((acc, attr) => ({...acc, [attr.name]: attr.value}), {})"
+                        ),
                     )
                     elements.append(element)
             except Exception as e:
@@ -313,36 +301,39 @@ class UIRunner:
         # Check required selectors
         for selector in criteria.must_exist_selectors:
             if selector not in observed_selectors:
-                violations.append(BehaviorViolation(
-                    code="DOM_SELECTOR_MISSING",
-                    message=f"Required DOM selector not found: {selector}",
-                    severity="high",
-                    details={"selector": selector}
-                ))
+                violations.append(
+                    BehaviorViolation(
+                        code="DOM_SELECTOR_MISSING",
+                        message=f"Required DOM selector not found: {selector}",
+                        severity="high",
+                        details={"selector": selector},
+                    )
+                )
 
         # Check forbidden selectors
         for selector in criteria.must_not_exist_selectors:
             if selector in observed_selectors:
-                violations.append(BehaviorViolation(
-                    code="DOM_SELECTOR_FORBIDDEN",
-                    message=f"Forbidden DOM selector found: {selector}",
-                    severity="medium",
-                    details={"selector": selector}
-                ))
+                violations.append(
+                    BehaviorViolation(
+                        code="DOM_SELECTOR_FORBIDDEN",
+                        message=f"Forbidden DOM selector found: {selector}",
+                        severity="medium",
+                        details={"selector": selector},
+                    )
+                )
 
         # Check visibility
-        visible_selectors = {
-            e.selector for e in observed.elements
-            if e.selector and e.is_visible
-        }
+        visible_selectors = {e.selector for e in observed.elements if e.selector and e.is_visible}
         for selector in criteria.must_be_visible_selectors:
             if selector not in visible_selectors:
-                violations.append(BehaviorViolation(
-                    code="DOM_ELEMENT_NOT_VISIBLE",
-                    message=f"Required element not visible: {selector}",
-                    severity="medium",
-                    details={"selector": selector}
-                ))
+                violations.append(
+                    BehaviorViolation(
+                        code="DOM_ELEMENT_NOT_VISIBLE",
+                        message=f"Required element not visible: {selector}",
+                        severity="medium",
+                        details={"selector": selector},
+                    )
+                )
 
         return violations
 
@@ -367,7 +358,7 @@ class UIRunner:
         environment: str,
         error_message: str,
         duration_ms: int,
-        screenshot_path: Optional[str] = None
+        screenshot_path: Optional[str] = None,
     ) -> BehaviorSnapshot:
         """Create snapshot for error scenarios."""
         metadata = {}
@@ -382,16 +373,13 @@ class UIRunner:
             observed_logs=ObservedLogs(lines=[error_message]),
             duration_ms=duration_ms,
             success=False,
-            violations=[BehaviorViolation(
-                code="EXECUTION_ERROR",
-                message=error_message,
-                severity="critical",
-                details={}
-            )],
+            violations=[
+                BehaviorViolation(code="EXECUTION_ERROR", message=error_message, severity="critical", details={})
+            ],
             error_count=1,
             created_at=datetime.now(),
             recorded_by="ui_runner",
-            metadata=metadata
+            metadata=metadata,
         )
 
 
@@ -399,11 +387,9 @@ class UIRunner:
 # Factory Function
 # ============================================================================
 
+
 def create_ui_runner(
-    browser_type: str = "chromium",
-    headless: bool = True,
-    timeout: int = 30000,
-    screenshot_on_failure: bool = True
+    browser_type: str = "chromium", headless: bool = True, timeout: int = 30000, screenshot_on_failure: bool = True
 ) -> UIRunner:
     """
     Create UI runner instance.
@@ -418,8 +404,5 @@ def create_ui_runner(
         UIRunner instance
     """
     return UIRunner(
-        browser_type=browser_type,
-        headless=headless,
-        timeout=timeout,
-        screenshot_on_failure=screenshot_on_failure
+        browser_type=browser_type, headless=headless, timeout=timeout, screenshot_on_failure=screenshot_on_failure
     )

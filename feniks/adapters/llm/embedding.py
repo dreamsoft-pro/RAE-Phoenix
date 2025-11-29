@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from feniks.core.models.types import Chunk
+
 
 def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
     """
@@ -29,16 +30,18 @@ def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
         token_pattern=r"[A-Za-z0-9_#\-$]{2,}",
         ngram_range=(1, 2),
         min_df=int(os.getenv("FENIKS_TEST_MIN_DF", 2)),
-        max_features=50000
+        max_features=50000,
     )
     X = vec.fit_transform(corpus)  # csr_matrix
     return vec, X
+
 
 def get_embedding_model(name: str) -> SentenceTransformer:
     """
     Loads and returns a SentenceTransformer model.
     """
     return SentenceTransformer(name)
+
 
 def create_dense_embeddings(model: SentenceTransformer, chunks: List[Chunk]) -> np.ndarray:
     """

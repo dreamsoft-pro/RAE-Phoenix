@@ -15,18 +15,19 @@
 OpenTelemetry Tracing Infrastructure - Enterprise-grade distributed tracing.
 Provides Trace IDs, Spans, and integration with Jaeger/Zipkin.
 """
-import uuid
 import contextvars
 import functools
-from typing import Optional, Dict, Any
+import uuid
 from contextlib import contextmanager
+from typing import Any, Dict, Optional
 
 try:
     from opentelemetry import trace
+    from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+    from opentelemetry.sdk.resources import SERVICE_NAME, Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-    from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
@@ -50,7 +51,7 @@ def init_tracing(
     service_name: str = "feniks",
     jaeger_host: str = "localhost",
     jaeger_port: int = 6831,
-    enable_console_export: bool = False
+    enable_console_export: bool = False,
 ) -> bool:
     """
     Initialize OpenTelemetry tracing with Jaeger exporter.
@@ -88,6 +89,7 @@ def init_tracing(
         # Add console exporter for debugging
         if enable_console_export:
             from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
             console_exporter = ConsoleSpanExporter()
             _tracer_provider.add_span_processor(BatchSpanProcessor(console_exporter))
 
@@ -127,7 +129,7 @@ def get_trace_id() -> str:
         try:
             current_span = trace.get_current_span()
             if current_span and current_span.is_recording():
-                trace_id = format(current_span.get_span_context().trace_id, '032x')
+                trace_id = format(current_span.get_span_context().trace_id, "032x")
                 return trace_id
         except Exception:
             pass
@@ -146,7 +148,7 @@ def get_span_id() -> Optional[str]:
         try:
             current_span = trace.get_current_span()
             if current_span and current_span.is_recording():
-                span_id = format(current_span.get_span_context().span_id, '016x')
+                span_id = format(current_span.get_span_context().span_id, "016x")
                 return span_id
         except Exception:
             pass
@@ -190,8 +192,9 @@ def span(name: str, attributes: Optional[Dict[str, Any]] = None):
             log.warning(f"OpenTelemetry span creation failed: {e}")
 
     # Fallback to custom implementation
-    from feniks.infra.logging import get_logger
     import time
+
+    from feniks.infra.logging import get_logger
 
     log = get_logger("infra.tracing")
 
@@ -202,30 +205,27 @@ def span(name: str, attributes: Optional[Dict[str, Any]] = None):
     token = _span_id_ctx.set(current_span)
     start_time = time.time()
 
-    log.info(f"SPAN_START: {name}", extra={
-        "span.name": name,
-        "span.id": current_span,
-        "span.parent_id": parent_span,
-        "trace.id": trace_id,
-        **(attributes or {})
-    })
+    log.info(
+        f"SPAN_START: {name}",
+        extra={
+            "span.name": name,
+            "span.id": current_span,
+            "span.parent_id": parent_span,
+            "trace.id": trace_id,
+            **(attributes or {}),
+        },
+    )
 
     try:
         yield None
     except Exception as e:
-        log.error(f"SPAN_ERROR: {name}", extra={
-            "span.name": name,
-            "span.id": current_span,
-            "error": str(e)
-        })
+        log.error(f"SPAN_ERROR: {name}", extra={"span.name": name, "span.id": current_span, "error": str(e)})
         raise
     finally:
         duration = time.time() - start_time
-        log.info(f"SPAN_END: {name}", extra={
-            "span.name": name,
-            "span.id": current_span,
-            "duration_ms": duration * 1000
-        })
+        log.info(
+            f"SPAN_END: {name}", extra={"span.name": name, "span.id": current_span, "duration_ms": duration * 1000}
+        )
         _span_id_ctx.reset(token)
 
 
@@ -236,13 +236,16 @@ def trace_function(name: Optional[str] = None):
     Args:
         name: Optional span name (defaults to function name)
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             span_name = name or func.__name__
             with span(span_name):
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 

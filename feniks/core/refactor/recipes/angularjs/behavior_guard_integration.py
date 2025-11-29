@@ -17,11 +17,11 @@ Behavior Guard Integration for AngularJS Migration.
 Provides integration between AngularJS recipe pack and Legacy Behavior Guard
 to enable automated testing of migrations.
 """
-from typing import List, Dict, Any, Optional
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from feniks.core.refactor.recipe import RefactorResult, RefactorPlan
+from feniks.core.refactor.recipe import RefactorPlan, RefactorResult
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.behavior_guard_integration")
@@ -30,6 +30,7 @@ log = get_logger("refactor.recipes.angularjs.behavior_guard_integration")
 @dataclass
 class MigrationTestPlan:
     """Test plan for migration validation."""
+
     project_id: str
     legacy_routes: List[Dict[str, str]]  # path -> component mapping
     migrated_routes: List[Dict[str, str]]  # path -> component mapping
@@ -52,10 +53,7 @@ class BehaviorGuardIntegration:
         """Initialize the integration."""
         self.logger = get_logger("behavior_guard_integration")
 
-    def create_test_plan(
-        self,
-        refactor_result: RefactorResult
-    ) -> MigrationTestPlan:
+    def create_test_plan(self, refactor_result: RefactorResult) -> MigrationTestPlan:
         """
         Create a test plan from refactoring result.
 
@@ -76,30 +74,24 @@ class BehaviorGuardIntegration:
 
         # Build route mappings
         for legacy_path, mapping in route_mapping.items():
-            legacy_routes.append({
-                "path": legacy_path,
-                "controller": mapping.get("controller"),
-                "template": mapping.get("template")
-            })
+            legacy_routes.append(
+                {"path": legacy_path, "controller": mapping.get("controller"), "template": mapping.get("template")}
+            )
 
-            migrated_routes.append({
-                "path": mapping.get("nextPath"),
-                "component": mapping.get("file")
-            })
+            migrated_routes.append({"path": mapping.get("nextPath"), "component": mapping.get("file")})
 
         # Build component mappings
         for controller_name, mapping in component_mapping.items():
             if "controller" in mapping and "component" in mapping:
-                legacy_routes.append({
-                    "path": f"/component/{controller_name}",
-                    "controller": mapping["controller"],
-                    "template": mapping.get("template")
-                })
+                legacy_routes.append(
+                    {
+                        "path": f"/component/{controller_name}",
+                        "controller": mapping["controller"],
+                        "template": mapping.get("template"),
+                    }
+                )
 
-                migrated_routes.append({
-                    "path": f"/component/{controller_name}",
-                    "component": mapping["component"]
-                })
+                migrated_routes.append({"path": f"/component/{controller_name}", "component": mapping["component"]})
 
         # Generate scenarios for each route
         scenarios = self._generate_scenarios(legacy_routes)
@@ -109,17 +101,13 @@ class BehaviorGuardIntegration:
             legacy_routes=legacy_routes,
             migrated_routes=migrated_routes,
             scenarios=scenarios,
-            risk_threshold=self._calculate_risk_threshold(refactor_result.plan)
+            risk_threshold=self._calculate_risk_threshold(refactor_result.plan),
         )
 
         self.logger.info(f"Created test plan with {len(scenarios)} scenarios")
         return plan
 
-    def generate_behavior_scenarios(
-        self,
-        test_plan: MigrationTestPlan,
-        output_path: str
-    ) -> str:
+    def generate_behavior_scenarios(self, test_plan: MigrationTestPlan, output_path: str) -> str:
         """
         Generate Behavior Guard scenario YAML files.
 
@@ -141,15 +129,12 @@ class BehaviorGuardIntegration:
             # Find corresponding route
             route_idx = i % len(test_plan.legacy_routes)
             legacy_route = test_plan.legacy_routes[route_idx]
-            migrated_route = test_plan.migrated_routes[route_idx] if route_idx < len(test_plan.migrated_routes) else None
+            migrated_route = (
+                test_plan.migrated_routes[route_idx] if route_idx < len(test_plan.migrated_routes) else None
+            )
 
             # Generate scenario YAML
-            scenario_yaml = self._generate_scenario_yaml(
-                scenario_id,
-                legacy_route,
-                migrated_route,
-                test_plan
-            )
+            scenario_yaml = self._generate_scenario_yaml(scenario_id, legacy_route, migrated_route, test_plan)
 
             # Write to file
             scenario_file = output_dir / f"{scenario_id}.yaml"
@@ -162,11 +147,7 @@ class BehaviorGuardIntegration:
         self.logger.info(f"Generated {len(scenarios_generated)} scenario files")
         return str(output_dir)
 
-    def generate_test_script(
-        self,
-        test_plan: MigrationTestPlan,
-        output_path: str
-    ) -> str:
+    def generate_test_script(self, test_plan: MigrationTestPlan, output_path: str) -> str:
         """
         Generate a test script for running behavior validation.
 
@@ -482,12 +463,7 @@ For more information, see:
     def _calculate_risk_threshold(self, plan: RefactorPlan) -> float:
         """Calculate appropriate risk threshold based on plan."""
         # Higher risk refactorings get lower threshold (stricter)
-        risk_map = {
-            "LOW": 0.5,
-            "MEDIUM": 0.3,
-            "HIGH": 0.1,
-            "CRITICAL": 0.05
-        }
+        risk_map = {"LOW": 0.5, "MEDIUM": 0.3, "HIGH": 0.1, "CRITICAL": 0.05}
 
         return risk_map.get(plan.risk_level.value.upper(), 0.3)
 
@@ -496,7 +472,7 @@ For more information, see:
         scenario_id: str,
         legacy_route: Dict[str, str],
         migrated_route: Optional[Dict[str, str]],
-        test_plan: MigrationTestPlan
+        test_plan: MigrationTestPlan,
     ) -> str:
         """Generate scenario YAML content."""
         path = legacy_route.get("path", "/")

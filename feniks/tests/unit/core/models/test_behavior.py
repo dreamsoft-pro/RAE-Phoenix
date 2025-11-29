@@ -14,38 +14,16 @@
 """
 Unit tests for Behavior Contract Models.
 """
-import pytest
 from datetime import datetime
-from feniks.core.models.behavior import (
-    # Input models
-    UIAction,
-    APIRequest,
-    CLICommand,
-    BehaviorInput,
-    # Criteria
-    HTTPCriteria,
-    DOMCriteria,
-    LogCriteria,
-    BehaviorSuccessCriteria,
-    # Scenario
-    BehaviorScenario,
-    # Observations
-    ObservedHTTP,
-    ObservedDOM,
-    ObservedLogs,
-    # Violations and Snapshots
-    BehaviorViolation,
-    BehaviorSnapshot,
-    # Contracts
-    HTTPContract,
-    DOMContract,
-    LogContract,
-    BehaviorContract,
-    # Check result
-    BehaviorCheckResult,
-    BehaviorChecksSummary,
-)
 
+import pytest
+
+from feniks.core.models.behavior import (  # Input models; Criteria; Scenario; Observations; Violations and Snapshots; Contracts; Check result
+    APIRequest, BehaviorCheckResult, BehaviorChecksSummary, BehaviorContract,
+    BehaviorInput, BehaviorScenario, BehaviorSnapshot, BehaviorSuccessCriteria,
+    BehaviorViolation, CLICommand, DOMContract, DOMCriteria, HTTPContract,
+    HTTPCriteria, LogContract, LogCriteria, ObservedDOM, ObservedHTTP,
+    ObservedLogs, UIAction)
 
 # ============================================================================
 # Input Models Tests
@@ -54,10 +32,7 @@ from feniks.core.models.behavior import (
 
 def test_ui_action_click():
     """Test UI action for click event."""
-    action = UIAction(
-        action_type="click",
-        selector="#submit-button"
-    )
+    action = UIAction(action_type="click", selector="#submit-button")
     assert action.action_type == "click"
     assert action.selector == "#submit-button"
     assert action.text is None
@@ -65,21 +40,14 @@ def test_ui_action_click():
 
 def test_ui_action_type_text():
     """Test UI action for typing text."""
-    action = UIAction(
-        action_type="type",
-        selector="input[name='email']",
-        text="user@example.com"
-    )
+    action = UIAction(action_type="type", selector="input[name='email']", text="user@example.com")
     assert action.action_type == "type"
     assert action.text == "user@example.com"
 
 
 def test_ui_action_navigate():
     """Test UI action for navigation."""
-    action = UIAction(
-        action_type="navigate",
-        url="/dashboard"
-    )
+    action = UIAction(action_type="navigate", url="/dashboard")
     assert action.action_type == "navigate"
     assert action.url == "/dashboard"
 
@@ -90,7 +58,7 @@ def test_api_request_post():
         method="POST",
         url="/api/orders",
         headers={"Authorization": "Bearer token123"},
-        body={"product_id": 123, "quantity": 2}
+        body={"product_id": 123, "quantity": 2},
     )
     assert request.method == "POST"
     assert request.url == "/api/orders"
@@ -100,21 +68,14 @@ def test_api_request_post():
 
 def test_api_request_get():
     """Test API request specification for GET."""
-    request = APIRequest(
-        method="GET",
-        url="/api/products?category=books"
-    )
+    request = APIRequest(method="GET", url="/api/products?category=books")
     assert request.method == "GET"
     assert request.body is None
 
 
 def test_cli_command():
     """Test CLI command specification."""
-    cmd = CLICommand(
-        command="python",
-        args=["main.py", "--config", "config.yml"],
-        env={"ENV": "test", "DEBUG": "1"}
-    )
+    cmd = CLICommand(command="python", args=["main.py", "--config", "config.yml"], env={"ENV": "test", "DEBUG": "1"})
     assert cmd.command == "python"
     assert len(cmd.args) == 3
     assert cmd.env["ENV"] == "test"
@@ -125,7 +86,7 @@ def test_behavior_input_ui():
     actions = [
         UIAction(action_type="navigate", url="/login"),
         UIAction(action_type="type", selector="#username", text="admin"),
-        UIAction(action_type="click", selector="#submit")
+        UIAction(action_type="click", selector="#submit"),
     ]
     input_spec = BehaviorInput(ui_actions=actions)
     assert len(input_spec.ui_actions) == 3
@@ -155,10 +116,7 @@ def test_http_criteria_default():
 
 def test_http_criteria_custom():
     """Test HTTP criteria with custom values."""
-    criteria = HTTPCriteria(
-        expected_status_codes=[200, 201],
-        must_contain_json_paths=["$.data.id", "$.data.name"]
-    )
+    criteria = HTTPCriteria(expected_status_codes=[200, 201], must_contain_json_paths=["$.data.id", "$.data.name"])
     assert 201 in criteria.expected_status_codes
     assert len(criteria.must_contain_json_paths) == 2
 
@@ -168,7 +126,7 @@ def test_dom_criteria():
     criteria = DOMCriteria(
         required_selectors=["#success-message", ".confirmation"],
         forbidden_selectors=[".error-banner", ".warning-popup"],
-        required_text_snippets=["Order placed successfully"]
+        required_text_snippets=["Order placed successfully"],
     )
     assert "#success-message" in criteria.required_selectors
     assert ".error-banner" in criteria.forbidden_selectors
@@ -178,8 +136,7 @@ def test_dom_criteria():
 def test_log_criteria():
     """Test log criteria specification."""
     criteria = LogCriteria(
-        forbidden_patterns=["ERROR", "Exception", "Traceback"],
-        required_patterns=["Request completed"]
+        forbidden_patterns=["ERROR", "Exception", "Traceback"], required_patterns=["Request completed"]
     )
     assert "ERROR" in criteria.forbidden_patterns
     assert "Request completed" in criteria.required_patterns
@@ -190,7 +147,7 @@ def test_behavior_success_criteria_combined():
     criteria = BehaviorSuccessCriteria(
         http=HTTPCriteria(expected_status_codes=[200]),
         dom=DOMCriteria(required_selectors=["#content"]),
-        logs=LogCriteria(forbidden_patterns=["ERROR"])
+        logs=LogCriteria(forbidden_patterns=["ERROR"]),
     )
     assert criteria.http.expected_status_codes == [200]
     assert criteria.dom.required_selectors == ["#content"]
@@ -216,13 +173,11 @@ def test_behavior_scenario_ui():
             ui_actions=[
                 UIAction(action_type="navigate", url="/login"),
                 UIAction(action_type="type", selector="#username", text="admin"),
-                UIAction(action_type="click", selector="#submit")
+                UIAction(action_type="click", selector="#submit"),
             ]
         ),
-        success_criteria=BehaviorSuccessCriteria(
-            dom=DOMCriteria(required_selectors=["#dashboard"])
-        ),
-        created_at=datetime.now()
+        success_criteria=BehaviorSuccessCriteria(dom=DOMCriteria(required_selectors=["#dashboard"])),
+        created_at=datetime.now(),
     )
     assert scenario.category == "ui"
     assert len(scenario.tags) == 2
@@ -239,19 +194,12 @@ def test_behavior_scenario_api():
         description="Test order creation endpoint",
         environment="legacy",
         input=BehaviorInput(
-            api_request=APIRequest(
-                method="POST",
-                url="/api/orders",
-                body={"product_id": 123, "quantity": 1}
-            )
+            api_request=APIRequest(method="POST", url="/api/orders", body={"product_id": 123, "quantity": 1})
         ),
         success_criteria=BehaviorSuccessCriteria(
-            http=HTTPCriteria(
-                expected_status_codes=[201],
-                must_contain_json_paths=["$.order_id"]
-            )
+            http=HTTPCriteria(expected_status_codes=[201], must_contain_json_paths=["$.order_id"])
         ),
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     assert scenario.category == "api"
     assert scenario.input.api_request.method == "POST"
@@ -265,9 +213,7 @@ def test_behavior_scenario_api():
 def test_observed_http():
     """Test ObservedHTTP model."""
     observed = ObservedHTTP(
-        status_code=200,
-        headers={"Content-Type": "application/json"},
-        body={"status": "success", "data": {"id": 123}}
+        status_code=200, headers={"Content-Type": "application/json"}, body={"status": "success", "data": {"id": 123}}
     )
     assert observed.status_code == 200
     assert observed.headers["Content-Type"] == "application/json"
@@ -279,7 +225,7 @@ def test_observed_dom():
     observed = ObservedDOM(
         present_selectors=["#dashboard", ".user-info"],
         missing_selectors=[".error-message"],
-        present_text_snippets=["Welcome, Admin"]
+        present_text_snippets=["Welcome, Admin"],
     )
     assert "#dashboard" in observed.present_selectors
     assert ".error-message" in observed.missing_selectors
@@ -290,7 +236,7 @@ def test_observed_logs():
     observed = ObservedLogs(
         lines=["INFO: Request started", "INFO: Request completed"],
         matched_forbidden_patterns=[],
-        matched_required_patterns=["Request completed"]
+        matched_required_patterns=["Request completed"],
     )
     assert len(observed.lines) == 2
     assert len(observed.matched_forbidden_patterns) == 0
@@ -307,7 +253,7 @@ def test_behavior_violation():
         code="HTTP_STATUS_MISMATCH",
         message="Expected status 200, got 500",
         severity="critical",
-        details={"expected": 200, "actual": 500}
+        details={"expected": 200, "actual": 500},
     )
     assert violation.code == "HTTP_STATUS_MISMATCH"
     assert violation.severity == "critical"
@@ -321,15 +267,11 @@ def test_behavior_snapshot_success():
         scenario_id="scenario-login",
         project_id="legacy-app",
         environment="legacy",
-        observed_http=ObservedHTTP(
-            status_code=200,
-            headers={},
-            body={"success": True}
-        ),
+        observed_http=ObservedHTTP(status_code=200, headers={}, body={"success": True}),
         duration_ms=150,
         success=True,
         violations=[],
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     assert snapshot.success is True
     assert len(snapshot.violations) == 0
@@ -343,7 +285,7 @@ def test_behavior_snapshot_with_violations():
             code="DOM_ELEMENT_MISSING",
             message="Required selector '#success-message' not found",
             severity="high",
-            details={"selector": "#success-message"}
+            details={"selector": "#success-message"},
         )
     ]
     snapshot = BehaviorSnapshot(
@@ -351,14 +293,11 @@ def test_behavior_snapshot_with_violations():
         scenario_id="scenario-checkout",
         project_id="legacy-app",
         environment="candidate",
-        observed_dom=ObservedDOM(
-            present_selectors=["#cart"],
-            missing_selectors=["#success-message"]
-        ),
+        observed_dom=ObservedDOM(present_selectors=["#cart"], missing_selectors=["#success-message"]),
         success=False,
         violations=violations,
         error_count=1,
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     assert snapshot.success is False
     assert len(snapshot.violations) == 1
@@ -373,9 +312,7 @@ def test_behavior_snapshot_with_violations():
 def test_http_contract():
     """Test HTTPContract model."""
     contract = HTTPContract(
-        required_status_codes=[200, 201],
-        forbidden_status_codes=[500, 502],
-        required_json_paths=["$.data"]
+        required_status_codes=[200, 201], forbidden_status_codes=[500, 502], required_json_paths=["$.data"]
     )
     assert 200 in contract.required_status_codes
     assert 500 in contract.forbidden_status_codes
@@ -386,7 +323,7 @@ def test_dom_contract():
     contract = DOMContract(
         must_have_selectors=["#header", "#footer"],
         must_not_have_selectors=[".error-banner"],
-        must_have_text_snippets=["Copyright 2025"]
+        must_have_text_snippets=["Copyright 2025"],
     )
     assert "#header" in contract.must_have_selectors
     assert ".error-banner" in contract.must_not_have_selectors
@@ -394,10 +331,7 @@ def test_dom_contract():
 
 def test_log_contract():
     """Test LogContract model."""
-    contract = LogContract(
-        forbidden_patterns=["Exception", "ERROR"],
-        required_patterns=["Request successful"]
-    )
+    contract = LogContract(forbidden_patterns=["Exception", "ERROR"], required_patterns=["Request successful"])
     assert "Exception" in contract.forbidden_patterns
 
 
@@ -414,7 +348,7 @@ def test_behavior_contract():
         max_error_rate=0.05,
         max_duration_ms_p95=500,
         derived_from_snapshot_ids=["snap-1", "snap-2", "snap-3"],
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     assert contract.version == "1.0.0"
     assert contract.max_error_rate == 0.05
@@ -435,7 +369,7 @@ def test_behavior_check_result_passed():
         passed=True,
         violations=[],
         risk_score=0.0,
-        checked_at=datetime.now()
+        checked_at=datetime.now(),
     )
     assert result.passed is True
     assert result.risk_score == 0.0
@@ -446,17 +380,9 @@ def test_behavior_check_result_failed():
     """Test BehaviorCheckResult with failed check."""
     violations = [
         BehaviorViolation(
-            code="HTTP_STATUS_MISMATCH",
-            message="Expected 200, got 500",
-            severity="critical",
-            details={}
+            code="HTTP_STATUS_MISMATCH", message="Expected 200, got 500", severity="critical", details={}
         ),
-        BehaviorViolation(
-            code="DOM_ELEMENT_MISSING",
-            message="Required element missing",
-            severity="high",
-            details={}
-        )
+        BehaviorViolation(code="DOM_ELEMENT_MISSING", message="Required element missing", severity="high", details={}),
     ]
     result = BehaviorCheckResult(
         snapshot_id="snap-456",
@@ -465,7 +391,7 @@ def test_behavior_check_result_failed():
         passed=False,
         violations=violations,
         risk_score=0.85,
-        checked_at=datetime.now()
+        checked_at=datetime.now(),
     )
     assert result.passed is False
     assert result.risk_score == 0.85
@@ -475,11 +401,7 @@ def test_behavior_check_result_failed():
 def test_behavior_checks_summary():
     """Test BehaviorChecksSummary aggregation."""
     summary = BehaviorChecksSummary(
-        total_scenarios_checked=10,
-        total_snapshots_checked=50,
-        total_passed=45,
-        total_failed=5,
-        max_risk_score=0.65
+        total_scenarios_checked=10, total_snapshots_checked=50, total_passed=45, total_failed=5, max_risk_score=0.65
     )
     assert summary.total_scenarios_checked == 10
     assert summary.total_passed == 45
@@ -489,11 +411,7 @@ def test_behavior_checks_summary():
 def test_behavior_checks_summary_all_passed():
     """Test BehaviorChecksSummary with all checks passed."""
     summary = BehaviorChecksSummary(
-        total_scenarios_checked=5,
-        total_snapshots_checked=20,
-        total_passed=20,
-        total_failed=0,
-        max_risk_score=0.0
+        total_scenarios_checked=5, total_snapshots_checked=20, total_passed=20, total_failed=0, max_risk_score=0.0
     )
     assert summary.total_failed == 0
     assert summary.max_risk_score == 0.0
@@ -514,13 +432,9 @@ def test_complete_scenario_execution_flow():
         name="Health Check",
         description="Test health endpoint",
         environment="legacy",
-        input=BehaviorInput(
-            api_request=APIRequest(method="GET", url="/health")
-        ),
-        success_criteria=BehaviorSuccessCriteria(
-            http=HTTPCriteria(expected_status_codes=[200])
-        ),
-        created_at=datetime.now()
+        input=BehaviorInput(api_request=APIRequest(method="GET", url="/health")),
+        success_criteria=BehaviorSuccessCriteria(http=HTTPCriteria(expected_status_codes=[200])),
+        created_at=datetime.now(),
     )
 
     # 2. Execute and capture snapshot
@@ -530,13 +444,11 @@ def test_complete_scenario_execution_flow():
         project_id=scenario.project_id,
         environment="legacy",
         observed_http=ObservedHTTP(
-            status_code=200,
-            headers={"Content-Type": "application/json"},
-            body={"status": "healthy"}
+            status_code=200, headers={"Content-Type": "application/json"}, body={"status": "healthy"}
         ),
         duration_ms=50,
         success=True,
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
     # 3. Build contract from snapshot(s)
@@ -546,7 +458,7 @@ def test_complete_scenario_execution_flow():
         project_id=scenario.project_id,
         http_contract=HTTPContract(required_status_codes=[200]),
         derived_from_snapshot_ids=[snapshot.id],
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
     # 4. Check new snapshot against contract
@@ -557,7 +469,7 @@ def test_complete_scenario_execution_flow():
         passed=True,
         violations=[],
         risk_score=0.0,
-        checked_at=datetime.now()
+        checked_at=datetime.now(),
     )
 
     # Verify flow
@@ -579,7 +491,7 @@ def test_regression_detection_flow():
         environment="legacy",
         observed_http=ObservedHTTP(status_code=200, headers={}, body={"ok": True}),
         success=True,
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
     # Contract from legacy
@@ -589,7 +501,7 @@ def test_regression_detection_flow():
         project_id="test-project",
         http_contract=HTTPContract(required_status_codes=[200]),
         derived_from_snapshot_ids=[legacy_snapshot.id],
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
     # Candidate snapshot (fails - regression!)
@@ -605,10 +517,10 @@ def test_regression_detection_flow():
                 code="HTTP_STATUS_MISMATCH",
                 message="Expected 200, got 500",
                 severity="critical",
-                details={"expected": 200, "actual": 500}
+                details={"expected": 200, "actual": 500},
             )
         ],
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
     # Check result (regression detected)
@@ -619,7 +531,7 @@ def test_regression_detection_flow():
         passed=False,
         violations=candidate_snapshot.violations,
         risk_score=0.9,  # High risk - critical regression
-        checked_at=datetime.now()
+        checked_at=datetime.now(),
     )
 
     # Verify regression detected

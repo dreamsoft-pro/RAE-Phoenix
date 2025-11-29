@@ -22,8 +22,8 @@ These models enable Feniks to:
 """
 from datetime import datetime
 from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field
 
+from pydantic import BaseModel, Field
 
 # ============================================================================
 # Input Models - Describe how to execute a scenario
@@ -39,6 +39,7 @@ class UIAction(BaseModel):
     - Type text: UIAction(action_type="type", selector="input[name='email']", text="user@example.com")
     - Navigate: UIAction(action_type="navigate", url="/dashboard")
     """
+
     action_type: Literal["click", "type", "navigate", "select", "wait"]
     selector: Optional[str] = None  # CSS/XPath selector
     text: Optional[str] = None  # Text to type
@@ -58,6 +59,7 @@ class APIRequest(BaseModel):
         body={"product_id": 123, "quantity": 2}
     )
     """
+
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
     url: str
     headers: dict[str, str] = Field(default_factory=dict)
@@ -75,6 +77,7 @@ class CLICommand(BaseModel):
         env={"ENV": "test"}
     )
     """
+
     command: str
     args: list[str] = Field(default_factory=list)
     env: dict[str, str] = Field(default_factory=dict)
@@ -85,6 +88,7 @@ class BehaviorInput(BaseModel):
     Input specification for a behavior scenario.
     Depending on scenario category, different fields are used.
     """
+
     ui_actions: Optional[list[UIAction]] = None
     api_request: Optional[APIRequest] = None
     cli_command: Optional[CLICommand] = None
@@ -102,6 +106,7 @@ class HTTPCriteria(BaseModel):
     """
     HTTP-level success criteria for API scenarios.
     """
+
     expected_status_codes: list[int] = Field(default_factory=lambda: [200])
     allowed_status_codes: list[int] = Field(default_factory=lambda: [200, 201, 204])
     forbidden_status_codes: list[int] = Field(default_factory=lambda: [500, 502, 503])
@@ -115,6 +120,7 @@ class DOMCriteria(BaseModel):
     """
     DOM-level success criteria for UI scenarios.
     """
+
     required_selectors: list[str] = Field(default_factory=list)  # Must exist in DOM
     forbidden_selectors: list[str] = Field(default_factory=list)  # Must NOT exist (e.g., ".error-banner")
     required_text_snippets: list[str] = Field(default_factory=list)  # Text must be present
@@ -125,6 +131,7 @@ class LogCriteria(BaseModel):
     """
     Log-level success criteria - patterns to check in logs.
     """
+
     forbidden_patterns: list[str] = Field(default_factory=list)  # e.g., ["ERROR", "Exception", "Traceback"]
     required_patterns: list[str] = Field(default_factory=list)  # e.g., ["Request successful"]
 
@@ -134,6 +141,7 @@ class BehaviorSuccessCriteria(BaseModel):
     Multi-layered success criteria for a behavior scenario.
     Combines HTTP, DOM, and log-level checks.
     """
+
     http: Optional[HTTPCriteria] = None
     dom: Optional[DOMCriteria] = None
     logs: Optional[LogCriteria] = None
@@ -158,6 +166,7 @@ class BehaviorScenario(BaseModel):
 
     Scenarios are reusable and can be executed multiple times to collect snapshots.
     """
+
     id: str
     project_id: str
 
@@ -190,6 +199,7 @@ class ObservedHTTP(BaseModel):
     """
     Observed HTTP response from an API scenario execution.
     """
+
     status_code: int
     headers: dict[str, str]
     body: Optional[str | dict[str, Any]] = None
@@ -200,6 +210,7 @@ class ObservedDOM(BaseModel):
     Minimal DOM snapshot from UI scenario execution.
     We don't store full HTML - just key selectors and text.
     """
+
     present_selectors: list[str] = Field(default_factory=list)
     missing_selectors: list[str] = Field(default_factory=list)
     present_text_snippets: list[str] = Field(default_factory=list)
@@ -210,6 +221,7 @@ class ObservedLogs(BaseModel):
     """
     Observed logs from scenario execution.
     """
+
     lines: list[str] = Field(default_factory=list)
     matched_forbidden_patterns: list[str] = Field(default_factory=list)
     matched_required_patterns: list[str] = Field(default_factory=list)
@@ -229,6 +241,7 @@ class BehaviorViolation(BaseModel):
     - DOM_ELEMENT_MISSING: Required selector "#success-message" not found
     - LOG_FORBIDDEN_PATTERN: Found "Exception" in logs
     """
+
     code: str  # e.g., "HTTP_STATUS_MISMATCH", "DOM_ELEMENT_MISSING"
     message: str  # Human-readable description
     severity: Literal["low", "medium", "high", "critical"]
@@ -250,6 +263,7 @@ class BehaviorSnapshot(BaseModel):
     - Success assessment against criteria
     - Any violations detected
     """
+
     id: str
     scenario_id: str
     project_id: str
@@ -284,6 +298,7 @@ class HTTPContract(BaseModel):
     """
     Generalized HTTP contract derived from multiple snapshots.
     """
+
     required_status_codes: list[int] = Field(default_factory=lambda: [200])
     allowed_status_codes: list[int] = Field(default_factory=lambda: [200, 201, 204])
     forbidden_status_codes: list[int] = Field(default_factory=lambda: [500, 502, 503])
@@ -297,6 +312,7 @@ class DOMContract(BaseModel):
     """
     Generalized DOM contract - minimal set of elements visible to user.
     """
+
     must_have_selectors: list[str] = Field(default_factory=list)
     must_not_have_selectors: list[str] = Field(default_factory=list)
     must_have_text_snippets: list[str] = Field(default_factory=list)
@@ -307,6 +323,7 @@ class LogContract(BaseModel):
     """
     Log contract - what we absolutely don't want to see after refactoring.
     """
+
     forbidden_patterns: list[str] = Field(default_factory=lambda: ["Exception", "Traceback", "ERROR"])
     required_patterns: list[str] = Field(default_factory=list)
 
@@ -318,6 +335,7 @@ class BehaviorContract(BaseModel):
     Represents the "expected behavior" that must be preserved during refactoring.
     Acts as a substitute for regression tests when no tests exist.
     """
+
     id: str
     scenario_id: str
     project_id: str
@@ -355,6 +373,7 @@ class BehaviorCheckResult(BaseModel):
     Used by Legacy Behavior Guard to detect regressions during refactoring.
     Feeds into FeniksReport for risk assessment.
     """
+
     snapshot_id: str
     contract_id: str
     project_id: str
@@ -381,6 +400,7 @@ class BehaviorChecksSummary(BaseModel):
 
     Aggregates results from multiple BehaviorCheckResult instances.
     """
+
     total_scenarios_checked: int
     total_snapshots_checked: int
     total_passed: int

@@ -13,6 +13,6 @@
 # limitations under the License.
 """Feniks embedding module - handles dense and sparse embeddings."""
 
-from .embed import get_embedding_model, create_dense_embeddings, build_tfidf
+from .embed import build_tfidf, create_dense_embeddings, get_embedding_model
 
 __all__ = ["get_embedding_model", "create_dense_embeddings", "build_tfidf"]

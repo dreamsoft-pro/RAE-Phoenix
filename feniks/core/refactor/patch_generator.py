@@ -14,13 +14,13 @@
 """
 Patch Generator - Generates unified diff patches for refactoring changes.
 """
+import difflib
+from datetime import datetime
 from pathlib import Path
 from typing import List
-from datetime import datetime
-import difflib
 
+from feniks.core.refactor.recipe import FileChange, RefactorResult
 from feniks.infra.logging import get_logger
-from feniks.core.refactor.recipe import RefactorResult, FileChange
 
 log = get_logger("refactor.patch_generator")
 
@@ -35,11 +35,7 @@ class PatchGenerator:
     - Stored as audit trail
     """
 
-    def generate_patch(
-        self,
-        result: RefactorResult,
-        output_dir: Path
-    ) -> Path:
+    def generate_patch(self, result: RefactorResult, output_dir: Path) -> Path:
         """
         Generate a unified diff patch file.
 
@@ -104,18 +100,10 @@ class PatchGenerator:
             List of diff lines
         """
         if file_change.change_type == "delete":
-            return [
-                f"--- {file_change.file_path}",
-                f"+++ /dev/null",
-                "# File deleted"
-            ]
+            return [f"--- {file_change.file_path}", f"+++ /dev/null", "# File deleted"]
 
         if file_change.change_type == "create":
-            return [
-                f"--- /dev/null",
-                f"+++ {file_change.file_path}",
-                "# New file created"
-            ]
+            return [f"--- /dev/null", f"+++ {file_change.file_path}", "# New file created"]
 
         # For modifications, generate suggestions as comments
         diff_lines = []
@@ -132,12 +120,7 @@ class PatchGenerator:
 
         return diff_lines
 
-    def generate_unified_diff(
-        self,
-        original: str,
-        modified: str,
-        file_path: str
-    ) -> str:
+    def generate_unified_diff(self, original: str, modified: str, file_path: str) -> str:
         """
         Generate unified diff between two strings.
 
@@ -153,11 +136,7 @@ class PatchGenerator:
         modified_lines = modified.splitlines(keepends=True)
 
         diff = difflib.unified_diff(
-            original_lines,
-            modified_lines,
-            fromfile=f"a/{file_path}",
-            tofile=f"b/{file_path}",
-            lineterm=""
+            original_lines, modified_lines, fromfile=f"a/{file_path}", tofile=f"b/{file_path}", lineterm=""
         )
 
         return "".join(diff)

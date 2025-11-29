@@ -16,11 +16,11 @@ Capability Detector - detects system capabilities from code patterns.
 Analyzes chunks, modules, and dependencies to infer what the system can do.
 """
 import re
-from typing import List, Dict, Set
 from collections import defaultdict
+from typing import Dict, List, Set
 
+from feniks.core.models.types import Capability, Chunk, Module, SystemModel
 from feniks.infra.logging import get_logger
-from feniks.core.models.types import Chunk, SystemModel, Capability, Module
 
 log = get_logger("core.capability_detector")
 
@@ -44,86 +44,86 @@ class CapabilityDetector:
                 "description": "HTTP client for external API calls",
                 "type": "integration",
                 "patterns": [r"\$http", r"fetch\(", r"axios", r"XMLHttpRequest"],
-                "business_domain": "integration"
+                "business_domain": "integration",
             },
             "routing": {
                 "description": "UI routing and navigation",
                 "type": "feature",
                 "patterns": [r"\$route", r"ui-router", r"ngRoute", r"Router"],
-                "business_domain": "navigation"
+                "business_domain": "navigation",
             },
             "authentication": {
                 "description": "User authentication and authorization",
                 "type": "feature",
                 "patterns": [r"auth", r"login", r"logout", r"session", r"token", r"jwt"],
-                "business_domain": "security"
+                "business_domain": "security",
             },
             "data_binding": {
                 "description": "Two-way data binding",
                 "type": "pattern",
                 "patterns": [r"ng-model", r"ng-bind", r"\$scope\.\$watch"],
-                "business_domain": "ui"
+                "business_domain": "ui",
             },
             "form_handling": {
                 "description": "Form validation and handling",
                 "type": "feature",
                 "patterns": [r"ng-form", r"form\s+validation", r"\$valid", r"\$invalid"],
-                "business_domain": "ui"
+                "business_domain": "ui",
             },
             "state_management": {
                 "description": "Application state management",
                 "type": "pattern",
                 "patterns": [r"redux", r"vuex", r"ngrx", r"store", r"\$rootScope"],
-                "business_domain": "architecture"
+                "business_domain": "architecture",
             },
             "rest_api": {
                 "description": "RESTful API endpoints",
                 "type": "integration",
                 "patterns": [r"\/api\/", r"REST", r"endpoint"],
-                "business_domain": "integration"
+                "business_domain": "integration",
             },
             "payment": {
                 "description": "Payment processing",
                 "type": "feature",
                 "patterns": [r"payment", r"checkout", r"transaction", r"billing", r"stripe", r"paypal"],
-                "business_domain": "payment"
+                "business_domain": "payment",
             },
             "analytics": {
                 "description": "Analytics and reporting",
                 "type": "feature",
                 "patterns": [r"analytics", r"tracking", r"metric", r"report", r"dashboard"],
-                "business_domain": "analytics"
+                "business_domain": "analytics",
             },
             "notification": {
                 "description": "User notifications",
                 "type": "feature",
                 "patterns": [r"notification", r"alert", r"toast", r"message"],
-                "business_domain": "ui"
+                "business_domain": "ui",
             },
             "localization": {
                 "description": "Internationalization and localization",
                 "type": "feature",
                 "patterns": [r"i18n", r"translate", r"locale", r"language"],
-                "business_domain": "localization"
+                "business_domain": "localization",
             },
             "websocket": {
                 "description": "Real-time communication via WebSocket",
                 "type": "integration",
                 "patterns": [r"WebSocket", r"socket\.io", r"ws://"],
-                "business_domain": "realtime"
+                "business_domain": "realtime",
             },
             "file_upload": {
                 "description": "File upload functionality",
                 "type": "feature",
                 "patterns": [r"upload", r"file\s+select", r"FormData", r"multipart"],
-                "business_domain": "file"
+                "business_domain": "file",
             },
             "caching": {
                 "description": "Data caching",
                 "type": "pattern",
                 "patterns": [r"cache", r"\$cacheFactory", r"localStorage", r"sessionStorage"],
-                "business_domain": "performance"
-            }
+                "business_domain": "performance",
+            },
         }
 
     def detect_from_chunks(self, chunks: List[Chunk]) -> List[Capability]:
@@ -138,12 +138,9 @@ class CapabilityDetector:
         """
         log.info("Detecting capabilities from chunks...")
 
-        detected_capabilities: Dict[str, Dict] = defaultdict(lambda: {
-            "chunks": [],
-            "modules": set(),
-            "patterns": set(),
-            "confidence": 0.0
-        })
+        detected_capabilities: Dict[str, Dict] = defaultdict(
+            lambda: {"chunks": [], "modules": set(), "patterns": set(), "confidence": 0.0}
+        )
 
         # Analyze each chunk
         for chunk in chunks:
@@ -187,7 +184,7 @@ class CapabilityDetector:
                 chunks=data["chunks"],
                 patterns=list(data["patterns"]),
                 business_domain=config["business_domain"],
-                complexity_score=complexity_score
+                complexity_score=complexity_score,
             )
             capabilities.append(capability)
 
@@ -211,16 +208,18 @@ class CapabilityDetector:
 
         # Detect module structure capabilities
         if len(system_model.modules) > 10:
-            capabilities.append(Capability(
-                name="modular_architecture",
-                description="Well-structured modular architecture",
-                capability_type="pattern",
-                confidence=0.8,
-                modules=list(system_model.modules.keys())[:5],
-                patterns=["multiple_modules"],
-                business_domain="architecture",
-                complexity_score=len(system_model.modules) / 20.0
-            ))
+            capabilities.append(
+                Capability(
+                    name="modular_architecture",
+                    description="Well-structured modular architecture",
+                    capability_type="pattern",
+                    confidence=0.8,
+                    modules=list(system_model.modules.keys())[:5],
+                    patterns=["multiple_modules"],
+                    business_domain="architecture",
+                    complexity_score=len(system_model.modules) / 20.0,
+                )
+            )
 
         # Detect API capability from endpoints
         if len(system_model.api_endpoints) > 5:
@@ -229,29 +228,33 @@ class CapabilityDetector:
                 if any(endpoint for chunk in module.chunks for endpoint in system_model.api_endpoints):
                     modules_with_api.add(module.name)
 
-            capabilities.append(Capability(
-                name="rich_api",
-                description=f"Rich API with {len(system_model.api_endpoints)} endpoints",
-                capability_type="integration",
-                confidence=0.9,
-                modules=list(modules_with_api)[:5],
-                patterns=["api_endpoints"],
-                business_domain="integration",
-                complexity_score=len(system_model.api_endpoints) / 50.0
-            ))
+            capabilities.append(
+                Capability(
+                    name="rich_api",
+                    description=f"Rich API with {len(system_model.api_endpoints)} endpoints",
+                    capability_type="integration",
+                    confidence=0.9,
+                    modules=list(modules_with_api)[:5],
+                    patterns=["api_endpoints"],
+                    business_domain="integration",
+                    complexity_score=len(system_model.api_endpoints) / 50.0,
+                )
+            )
 
         # Detect routing capability from UI routes
         if len(system_model.ui_routes) > 3:
-            capabilities.append(Capability(
-                name="multi_page_app",
-                description=f"Multi-page application with {len(system_model.ui_routes)} routes",
-                capability_type="feature",
-                confidence=0.9,
-                modules=[],
-                patterns=["ui_routes"],
-                business_domain="navigation",
-                complexity_score=len(system_model.ui_routes) / 20.0
-            ))
+            capabilities.append(
+                Capability(
+                    name="multi_page_app",
+                    description=f"Multi-page application with {len(system_model.ui_routes)} routes",
+                    capability_type="feature",
+                    confidence=0.9,
+                    modules=[],
+                    patterns=["ui_routes"],
+                    business_domain="navigation",
+                    complexity_score=len(system_model.ui_routes) / 20.0,
+                )
+            )
 
         # Detect business domain capabilities from module business tags
         business_domains = defaultdict(set)
@@ -261,16 +264,18 @@ class CapabilityDetector:
 
         for domain, modules in business_domains.items():
             if len(modules) >= 2:
-                capabilities.append(Capability(
-                    name=f"{domain}_domain",
-                    description=f"Business domain: {domain}",
-                    capability_type="feature",
-                    confidence=0.7,
-                    modules=list(modules)[:5],
-                    patterns=[domain],
-                    business_domain=domain,
-                    complexity_score=len(modules) / 10.0
-                ))
+                capabilities.append(
+                    Capability(
+                        name=f"{domain}_domain",
+                        description=f"Business domain: {domain}",
+                        capability_type="feature",
+                        confidence=0.7,
+                        modules=list(modules)[:5],
+                        patterns=[domain],
+                        business_domain=domain,
+                        complexity_score=len(modules) / 10.0,
+                    )
+                )
 
         log.info(f"Detected {len(capabilities)} additional capabilities from system model")
 

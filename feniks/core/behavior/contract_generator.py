@@ -17,23 +17,19 @@ Contract Generator - Derives behavior contracts from observed snapshots.
 Analyzes legacy system snapshots to automatically generate behavioral contracts
 for regression testing without traditional test suites.
 """
-import uuid
 import statistics
-from typing import List, Optional, Set
-from datetime import datetime
+import uuid
 from collections import Counter
+from datetime import datetime
+from typing import List, Optional, Set
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorSnapshot,
-    BehaviorContract,
-    HTTPSuccessCriteria,
-    CLISuccessCriteria,
-    DOMSuccessCriteria,
-    LogSuccessCriteria,
-    SuccessCriteria
-)
+from feniks.core.models.behavior import (BehaviorContract, BehaviorSnapshot,
+                                         CLISuccessCriteria,
+                                         DOMSuccessCriteria,
+                                         HTTPSuccessCriteria,
+                                         LogSuccessCriteria, SuccessCriteria)
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("core.behavior.contract_generator")
 
@@ -49,12 +45,7 @@ class ContractGenerator:
     - Log patterns and error markers
     """
 
-    def __init__(
-        self,
-        min_snapshots: int = 3,
-        confidence_threshold: float = 0.8,
-        percentile: int = 95
-    ):
+    def __init__(self, min_snapshots: int = 3, confidence_threshold: float = 0.8, percentile: int = 95):
         """
         Initialize contract generator.
 
@@ -66,13 +57,12 @@ class ContractGenerator:
         self.min_snapshots = min_snapshots
         self.confidence_threshold = confidence_threshold
         self.percentile = percentile
-        log.info(f"ContractGenerator initialized (min_snapshots={min_snapshots}, confidence={confidence_threshold}, p{percentile})")
+        log.info(
+            f"ContractGenerator initialized (min_snapshots={min_snapshots}, confidence={confidence_threshold}, p{percentile})"
+        )
 
     def generate_contract(
-        self,
-        snapshots: List[BehaviorSnapshot],
-        contract_id: Optional[str] = None,
-        version: str = "1.0.0"
+        self, snapshots: List[BehaviorSnapshot], contract_id: Optional[str] = None, version: str = "1.0.0"
     ) -> BehaviorContract:
         """
         Generate behavior contract from snapshots.
@@ -124,7 +114,7 @@ class ContractGenerator:
             max_duration_ms=max_duration_ms,
             created_at=datetime.now(),
             created_from_snapshots=len(snapshots),
-            confidence_score=self._calculate_confidence_score(snapshots)
+            confidence_score=self._calculate_confidence_score(snapshots),
         )
 
         log.info(f"Contract generated: {contract.id} (confidence={contract.confidence_score:.2f})")
@@ -165,8 +155,7 @@ class ContractGenerator:
         # Include status codes above confidence threshold
         total = len(status_codes)
         expected_status_codes = [
-            code for code, count in status_counter.items()
-            if count / total >= self.confidence_threshold
+            code for code, count in status_counter.items() if count / total >= self.confidence_threshold
         ]
 
         # If no codes meet threshold, take most common
@@ -184,7 +173,7 @@ class ContractGenerator:
             must_contain_json_paths=json_paths,
             must_not_contain_json_paths=[],
             must_contain_header_patterns=[],
-            must_not_contain_header_patterns=[]
+            must_not_contain_header_patterns=[],
         )
 
     def _derive_cli_criteria(self, snapshots: List[BehaviorSnapshot]) -> CLISuccessCriteria:
@@ -196,8 +185,7 @@ class ContractGenerator:
         # Include exit codes above confidence threshold
         total = len(exit_codes)
         expected_exit_codes = [
-            code for code, count in exit_counter.items()
-            if count / total >= self.confidence_threshold
+            code for code, count in exit_counter.items() if count / total >= self.confidence_threshold
         ]
 
         # If no codes meet threshold, take most common
@@ -217,7 +205,7 @@ class ContractGenerator:
             must_contain_stdout_patterns=stdout_patterns,
             must_not_contain_stdout_patterns=[],
             must_contain_stderr_patterns=[],
-            must_not_contain_stderr_patterns=[]
+            must_not_contain_stderr_patterns=[],
         )
 
     def _derive_dom_criteria(self, snapshots: List[BehaviorSnapshot]) -> DOMSuccessCriteria:
@@ -242,8 +230,7 @@ class ContractGenerator:
         # Include selectors above confidence threshold
         total = len(snapshots)
         required_selectors = [
-            selector for selector, count in selector_counts.items()
-            if count / total >= self.confidence_threshold
+            selector for selector, count in selector_counts.items() if count / total >= self.confidence_threshold
         ]
 
         log.debug(f"DOM required selectors: {len(required_selectors)} (from {len(all_selectors)} total)")
@@ -252,7 +239,7 @@ class ContractGenerator:
             must_exist_selectors=required_selectors,
             must_not_exist_selectors=[],
             must_be_visible_selectors=[],
-            must_contain_text_patterns=[]
+            must_contain_text_patterns=[],
         )
 
     def _derive_log_criteria(self, snapshots: List[BehaviorSnapshot]) -> LogSuccessCriteria:
@@ -269,7 +256,7 @@ class ContractGenerator:
         return LogSuccessCriteria(
             must_contain_patterns=[],  # User can customize
             must_not_contain_patterns=error_patterns,
-            max_error_count=0  # No errors expected
+            max_error_count=0,  # No errors expected
         )
 
     def _extract_common_json_paths(self, snapshots: List[BehaviorSnapshot]) -> List[str]:
@@ -291,10 +278,7 @@ class ContractGenerator:
 
         # Include paths above confidence threshold
         total = len(snapshots)
-        common_paths = [
-            path for path, count in path_counts.items()
-            if count / total >= self.confidence_threshold
-        ]
+        common_paths = [path for path, count in path_counts.items() if count / total >= self.confidence_threshold]
 
         log.debug(f"Common JSON paths: {len(common_paths)} (from {len(all_paths)} total)")
         return sorted(common_paths)[:10]  # Limit to top 10
@@ -327,27 +311,32 @@ class ContractGenerator:
         # Simple heuristic: find common lines
         line_counter = Counter()
         for text in texts:
-            lines = text.strip().split('\n')
+            lines = text.strip().split("\n")
             for line in lines:
                 if line.strip():
                     line_counter[line.strip()] += 1
 
         # Include patterns above confidence threshold
         total = len(texts)
-        common_patterns = [
-            line for line, count in line_counter.items()
-            if count / total >= self.confidence_threshold
-        ]
+        common_patterns = [line for line, count in line_counter.items() if count / total >= self.confidence_threshold]
 
         return sorted(common_patterns)[:5]  # Limit to top 5
 
     def _identify_error_patterns(self, logs: List[str]) -> List[str]:
         """Identify error patterns in logs (heuristic)."""
         error_keywords = [
-            "error", "ERROR", "Error",
-            "exception", "Exception", "EXCEPTION",
-            "failed", "Failed", "FAILED",
-            "fatal", "Fatal", "FATAL"
+            "error",
+            "ERROR",
+            "Error",
+            "exception",
+            "Exception",
+            "EXCEPTION",
+            "failed",
+            "Failed",
+            "FAILED",
+            "fatal",
+            "Fatal",
+            "FATAL",
         ]
 
         error_patterns = set()
@@ -384,7 +373,7 @@ class ContractGenerator:
         success_score = success_count / len(snapshots)
 
         # Combine scores
-        confidence = (sample_score * 0.4 + success_score * 0.6)
+        confidence = sample_score * 0.4 + success_score * 0.6
 
         return round(confidence, 2)
 
@@ -393,10 +382,9 @@ class ContractGenerator:
 # Factory Function
 # ============================================================================
 
+
 def create_contract_generator(
-    min_snapshots: int = 3,
-    confidence_threshold: float = 0.8,
-    percentile: int = 95
+    min_snapshots: int = 3, confidence_threshold: float = 0.8, percentile: int = 95
 ) -> ContractGenerator:
     """
     Create contract generator instance.
@@ -410,7 +398,5 @@ def create_contract_generator(
         ContractGenerator instance
     """
     return ContractGenerator(
-        min_snapshots=min_snapshots,
-        confidence_threshold=confidence_threshold,
-        percentile=percentile
+        min_snapshots=min_snapshots, confidence_threshold=confidence_threshold, percentile=percentile
     )

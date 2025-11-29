@@ -1,4 +1,3 @@
-
 import sys
 import uuid
 from pathlib import Path
@@ -9,9 +8,10 @@ from qdrant_client import QdrantClient
 # Correct the path to allow imports from the project root and scripts directory
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(project_root / 'scripts'))
+sys.path.insert(0, str(project_root / "scripts"))
 
 from feniks_cli import run_build_process
+
 from feniks.config.settings import settings
 
 
@@ -23,7 +23,7 @@ def test_full_end_to_end_pipeline(monkeypatch):
     """
     # 1. Setup: Define a unique collection name for this test run
     collection_name = f"test-collection-{uuid.uuid4()}"
-    
+
     qdrant_client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
 
     try:
@@ -32,12 +32,14 @@ def test_full_end_to_end_pipeline(monkeypatch):
 
         # 3. Verify: Check the results in Qdrant
         collection_info = qdrant_client.get_collection(collection_name=collection_name)
-        
+
         # Assert that the collection was created and is not empty
         assert collection_info is not None
         assert collection_info.points_count > 0
 
-        print(f"\n✅ E2E test passed: Successfully ingested {collection_info.points_count} points into collection '{collection_name}'.")
+        print(
+            f"\n✅ E2E test passed: Successfully ingested {collection_info.points_count} points into collection '{collection_name}'."
+        )
 
     finally:
         # 4. Cleanup: Delete the test collection from Qdrant

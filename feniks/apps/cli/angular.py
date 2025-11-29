@@ -21,17 +21,13 @@ import time
 from pathlib import Path
 from typing import Dict, List
 
-from feniks.infra.logging import get_logger
-from feniks.exceptions import FeniksError
+from feniks.core.models.types import Chunk, Module, SystemModel
 from feniks.core.refactor.recipes.angularjs import (
-    ControllerToComponentRecipe,
-    DirectiveToComponentRecipe,
-    TemplateToJsxRecipe,
-    RoutingToAppRouterRecipe,
-    ScopeToHooksRecipe,
-    BehaviorGuardIntegration,
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+    BehaviorGuardIntegration, ControllerToComponentRecipe,
+    DirectiveToComponentRecipe, RoutingToAppRouterRecipe, ScopeToHooksRecipe,
+    TemplateToJsxRecipe)
+from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("cli.angular")
 
@@ -78,7 +74,7 @@ def _create_system_model_from_directory(source_dir: Path, project_id: str) -> Sy
                     content=content,
                     start_line=1,
                     end_line=len(content.splitlines()),
-                    language=language
+                    language=language,
                 )
                 chunks.append(chunk)
                 chunk_id += 1
@@ -98,15 +94,12 @@ def _create_system_model_from_directory(source_dir: Path, project_id: str) -> Sy
         file_paths=[c.file_path for c in chunks],
         chunks=chunks,
         total_lines=sum(c.end_line - c.start_line + 1 for c in chunks),
-        complexity_score=len(chunks) * 2.0
+        complexity_score=len(chunks) * 2.0,
     )
 
     # Create system model
     system_model = SystemModel(
-        project_id=project_id,
-        modules={project_id: module},
-        total_lines=module.total_lines,
-        total_chunks=len(chunks)
+        project_id=project_id, modules={project_id: module}, total_lines=module.total_lines, total_chunks=len(chunks)
     )
 
     return system_model
@@ -178,6 +171,7 @@ def handle_angular_migrate(args):
     config = {}
     if args.config:
         import json
+
         config_path = Path(args.config)
         if config_path.exists():
             config = json.loads(config_path.read_text())
@@ -196,11 +190,11 @@ def handle_angular_migrate(args):
     log.info("📊 Step 1/6: Building system model...")
     try:
         system_model = _create_system_model_from_directory(
-            source_dir,
-            args.project_id if hasattr(args, 'project_id') and args.project_id
-            else source_dir.name
+            source_dir, args.project_id if hasattr(args, "project_id") and args.project_id else source_dir.name
         )
-        log.info(f"✅ System model created: {len(system_model.modules[list(system_model.modules.keys())[0]].chunks)} chunks")
+        log.info(
+            f"✅ System model created: {len(system_model.modules[list(system_model.modules.keys())[0]].chunks)} chunks"
+        )
     except Exception as e:
         raise FeniksError(f"Failed to create system model: {e}")
     log.info("")
@@ -213,16 +207,24 @@ def handle_angular_migrate(args):
     if "controller" in recipes_to_run:
         log.info("🔄 Step 2/6: Controller to Component...")
         try:
-            recipe = ControllerToComponentRecipe(config=config.get("controller", {
-                "target_dir": str(output_dir / "app" / "_legacy" / "components"),
-                "state_strategy": "useState",
-                "typing_mode": "strict"
-            }))
+            recipe = ControllerToComponentRecipe(
+                config=config.get(
+                    "controller",
+                    {
+                        "target_dir": str(output_dir / "app" / "_legacy" / "components"),
+                        "state_strategy": "useState",
+                        "typing_mode": "strict",
+                    },
+                )
+            )
 
             plan = recipe.analyze(system_model)
             if plan:
-                chunks = [c for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
-                         if "controller" in c.file_path.lower()]
+                chunks = [
+                    c
+                    for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
+                    if "controller" in c.file_path.lower()
+                ]
                 result = recipe.execute(plan, chunks, dry_run=args.dry_run)
                 results["controller"] = result
 
@@ -242,15 +244,15 @@ def handle_angular_migrate(args):
     if "template" in recipes_to_run:
         log.info("🔄 Step 3/6: Template to JSX...")
         try:
-            recipe = TemplateToJsxRecipe(config=config.get("template", {
-                "preserve_comments": True,
-                "generate_filter_stubs": True
-            }))
+            recipe = TemplateToJsxRecipe(
+                config=config.get("template", {"preserve_comments": True, "generate_filter_stubs": True})
+            )
 
             plan = recipe.analyze(system_model)
             if plan:
-                chunks = [c for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
-                         if c.language == "html"]
+                chunks = [
+                    c for c in system_model.modules[list(system_model.modules.keys())[0]].chunks if c.language == "html"
+                ]
                 result = recipe.execute(plan, chunks, dry_run=args.dry_run)
                 results["template"] = result
 
@@ -270,14 +272,15 @@ def handle_angular_migrate(args):
     if "routing" in recipes_to_run:
         log.info("🔄 Step 4/6: Routing to App Router...")
         try:
-            recipe = RoutingToAppRouterRecipe(config=config.get("routing", {
-                "target_dir": str(output_dir / "app")
-            }))
+            recipe = RoutingToAppRouterRecipe(config=config.get("routing", {"target_dir": str(output_dir / "app")}))
 
             plan = recipe.analyze(system_model)
             if plan:
-                chunks = [c for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
-                         if "app.js" in c.file_path.lower() or "route" in c.file_path.lower()]
+                chunks = [
+                    c
+                    for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
+                    if "app.js" in c.file_path.lower() or "route" in c.file_path.lower()
+                ]
                 result = recipe.execute(plan, chunks, dry_run=args.dry_run)
                 results["routing"] = result
 
@@ -297,14 +300,15 @@ def handle_angular_migrate(args):
     if "scope" in recipes_to_run:
         log.info("🔄 Step 5/6: Scope to Hooks Analysis...")
         try:
-            recipe = ScopeToHooksRecipe(config=config.get("scope", {
-                "global_state_strategy": "context"
-            }))
+            recipe = ScopeToHooksRecipe(config=config.get("scope", {"global_state_strategy": "context"}))
 
             plan = recipe.analyze(system_model)
             if plan:
-                chunks = [c for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
-                         if "controller" in c.file_path.lower() or "app.js" in c.file_path.lower()]
+                chunks = [
+                    c
+                    for c in system_model.modules[list(system_model.modules.keys())[0]].chunks
+                    if "controller" in c.file_path.lower() or "app.js" in c.file_path.lower()
+                ]
                 result = recipe.execute(plan, chunks, dry_run=args.dry_run)
                 results["scope"] = result
 
@@ -328,11 +332,10 @@ def handle_angular_migrate(args):
 
             # Create test plan from routing results
             routing_result = results.get("routing")
-            if routing_result and hasattr(routing_result, 'metadata'):
-                test_plan = integration.create_test_plan({
-                    "route_mapping": routing_result.metadata.get("route_mapping", {}),
-                    "component_mapping": {}
-                })
+            if routing_result and hasattr(routing_result, "metadata"):
+                test_plan = integration.create_test_plan(
+                    {"route_mapping": routing_result.metadata.get("route_mapping", {}), "component_mapping": {}}
+                )
 
                 # Generate scenarios
                 scenarios_dir = output_dir.parent / "scenarios"
@@ -371,10 +374,10 @@ def handle_angular_migrate(args):
 """
 
     for recipe_name, result in results.items():
-        if isinstance(result, dict) and 'error' in result:
+        if isinstance(result, dict) and "error" in result:
             report_content += f"### ❌ {recipe_name.capitalize()}\n\n"
             report_content += f"**Error**: {result['error']}\n\n"
-        elif hasattr(result, 'file_changes'):
+        elif hasattr(result, "file_changes"):
             report_content += f"### ✅ {recipe_name.capitalize()}\n\n"
             report_content += f"- Files generated: {len(result.file_changes)}\n"
             report_content += f"- Success: {result.success}\n\n"
@@ -450,64 +453,33 @@ def register_angular_commands(subparsers):
         subparsers: argparse subparsers object
     """
     # Angular command group
-    angular_parser = subparsers.add_parser(
-        "angular",
-        help="AngularJS migration commands"
-    )
+    angular_parser = subparsers.add_parser("angular", help="AngularJS migration commands")
 
-    angular_subparsers = angular_parser.add_subparsers(
-        dest="angular_command",
-        help="Available Angular commands"
-    )
+    angular_subparsers = angular_parser.add_subparsers(dest="angular_command", help="Available Angular commands")
 
     # Migrate command
-    migrate_parser = angular_subparsers.add_parser(
-        "migrate",
-        help="Migrate AngularJS application to Next.js"
-    )
+    migrate_parser = angular_subparsers.add_parser("migrate", help="Migrate AngularJS application to Next.js")
+
+    migrate_parser.add_argument("--project", type=str, required=True, help="Path to AngularJS project directory")
 
     migrate_parser.add_argument(
-        "--project",
-        type=str,
-        required=True,
-        help="Path to AngularJS project directory"
+        "--out", type=str, required=True, help="Output directory for migrated Next.js application"
     )
 
-    migrate_parser.add_argument(
-        "--out",
-        type=str,
-        required=True,
-        help="Output directory for migrated Next.js application"
-    )
-
-    migrate_parser.add_argument(
-        "--project-id",
-        type=str,
-        help="Project identifier (default: directory name)"
-    )
+    migrate_parser.add_argument("--project-id", type=str, help="Project identifier (default: directory name)")
 
     migrate_parser.add_argument(
         "--recipes",
         type=str,
-        help="Comma-separated list of recipes to run (controller,template,routing,scope,behavior). Default: all"
+        help="Comma-separated list of recipes to run (controller,template,routing,scope,behavior). Default: all",
     )
 
-    migrate_parser.add_argument(
-        "--config",
-        type=str,
-        help="Path to configuration JSON file"
-    )
+    migrate_parser.add_argument("--config", type=str, help="Path to configuration JSON file")
+
+    migrate_parser.add_argument("--dry-run", action="store_true", help="Perform dry run without writing files")
 
     migrate_parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Perform dry run without writing files"
-    )
-
-    migrate_parser.add_argument(
-        "--report",
-        type=str,
-        help="Path to migration report output (default: <out>/migration-report.md)"
+        "--report", type=str, help="Path to migration report output (default: <out>/migration-report.md)"
     )
 
     migrate_parser.set_defaults(func=handle_angular_migrate)

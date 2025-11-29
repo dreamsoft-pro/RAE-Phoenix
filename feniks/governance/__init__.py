@@ -14,6 +14,6 @@
 """
 Feniks Governance - Cost control and budget management for enterprise deployments.
 """
-from feniks.core.policies.cost import CostController, Budget
+from feniks.core.policies.cost import Budget, CostController
 
 __all__ = ["CostController", "Budget"]

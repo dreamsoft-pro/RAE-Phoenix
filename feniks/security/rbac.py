@@ -14,8 +14,8 @@
 """
 RBAC Manager - Role-Based Access Control.
 """
-from typing import Dict, Set
 from enum import Enum
+from typing import Dict, Set
 
 from feniks.infra.logging import get_logger
 from feniks.security.auth import UserRole
@@ -25,6 +25,7 @@ log = get_logger("security.rbac")
 
 class Permission(Enum):
     """System permissions."""
+
     # Read permissions
     VIEW_METRICS = "view_metrics"
     VIEW_REPORTS = "view_reports"
@@ -55,20 +56,16 @@ class RBACManager:
     def __init__(self):
         """Initialize RBAC manager."""
         self.role_permissions: Dict[UserRole, Set[Permission]] = {
-            UserRole.VIEWER: {
-                Permission.VIEW_METRICS,
-                Permission.VIEW_REPORTS,
-                Permission.VIEW_PROJECTS
-            },
+            UserRole.VIEWER: {Permission.VIEW_METRICS, Permission.VIEW_REPORTS, Permission.VIEW_PROJECTS},
             UserRole.REFACTORER: {
                 Permission.VIEW_METRICS,
                 Permission.VIEW_REPORTS,
                 Permission.VIEW_PROJECTS,
                 Permission.INGEST_CODE,
                 Permission.ANALYZE_CODE,
-                Permission.REFACTOR_CODE
+                Permission.REFACTOR_CODE,
             },
-            UserRole.ADMIN: set(Permission)  # All permissions
+            UserRole.ADMIN: set(Permission),  # All permissions
         }
         log.info("RBACManager initialized")
 

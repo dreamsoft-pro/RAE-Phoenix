@@ -15,21 +15,23 @@
 Feniks ingestion pipeline - orchestrates the process of loading code chunks into Qdrant.
 """
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import numpy as np
 from qdrant_client import QdrantClient
 
-from feniks.infra.logging import get_logger
+from feniks.adapters.ingest.filters import ChunkFilter, create_default_filter
+from feniks.adapters.ingest.jsonl_loader import load_jsonl
 from feniks.config.settings import settings
 from feniks.core.models.types import Chunk
-from feniks.exceptions import FeniksIngestError, FeniksStoreError, FeniksConfigError
-from feniks.adapters.ingest.jsonl_loader import load_jsonl
-from feniks.adapters.ingest.filters import ChunkFilter, create_default_filter
-from feniks.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
-from feniks.store import ensure_collection, upsert_points
-from feniks.infra.metrics import get_metrics_collector
 from feniks.core.policies.cost import get_cost_controller
+from feniks.embedding import (build_tfidf, create_dense_embeddings,
+                              get_embedding_model)
+from feniks.exceptions import (FeniksConfigError, FeniksIngestError,
+                               FeniksStoreError)
+from feniks.infra.logging import get_logger
+from feniks.infra.metrics import get_metrics_collector
+from feniks.store import ensure_collection, upsert_points
 
 log = get_logger("core.ingest")
 
@@ -43,7 +45,7 @@ class IngestPipeline:
         self,
         qdrant_host: Optional[str] = None,
         qdrant_port: Optional[int] = None,
-        embedding_model_name: Optional[str] = None
+        embedding_model_name: Optional[str] = None,
     ):
         """
         Initialize the ingestion pipeline.
@@ -57,8 +59,10 @@ class IngestPipeline:
         self.qdrant_port = qdrant_port or settings.qdrant_port
         self.embedding_model_name = embedding_model_name or settings.embedding_model
 
-        log.info(f"IngestPipeline initialized: Qdrant={self.qdrant_host}:{self.qdrant_port}, "
-                 f"Model={self.embedding_model_name}")
+        log.info(
+            f"IngestPipeline initialized: Qdrant={self.qdrant_host}:{self.qdrant_port}, "
+            f"Model={self.embedding_model_name}"
+        )
 
     def run(
         self,
@@ -67,7 +71,7 @@ class IngestPipeline:
         reset_collection: bool = False,
         chunk_filter: Optional[ChunkFilter] = None,
         skip_errors: bool = False,
-        batch_size: int = 512
+        batch_size: int = 512,
     ) -> dict:
         """
         Run the complete ingestion pipeline.
@@ -87,13 +91,7 @@ class IngestPipeline:
             FeniksIngestError: If ingestion fails
             FeniksStoreError: If Qdrant operations fail
         """
-        stats = {
-            "loaded": 0,
-            "filtered": 0,
-            "ingested": 0,
-            "collection": collection_name,
-            "reset": reset_collection
-        }
+        stats = {"loaded": 0, "filtered": 0, "ingested": 0, "collection": collection_name, "reset": reset_collection}
 
         # Start metrics tracking
         metrics_collector = get_metrics_collector() if settings.metrics_enabled else None
@@ -138,19 +136,16 @@ class IngestPipeline:
 
                 # Test connection
                 collections = qdrant_client.get_collections()
-                log.info(f"Connected to Qdrant. Existing collections: "
-                        f"{[c.name for c in collections.collections]}")
+                log.info(f"Connected to Qdrant. Existing collections: " f"{[c.name for c in collections.collections]}")
 
             except Exception as e:
-                raise FeniksStoreError(f"Failed to connect to Qdrant at "
-                                      f"{self.qdrant_host}:{self.qdrant_port}: {e}") from e
+                raise FeniksStoreError(
+                    f"Failed to connect to Qdrant at " f"{self.qdrant_host}:{self.qdrant_port}: {e}"
+                ) from e
 
             # Ensure collection exists
             ensure_collection(
-                client=qdrant_client,
-                name=collection_name,
-                dim=dense_embeddings.shape[1],
-                reset=reset_collection
+                client=qdrant_client, name=collection_name, dim=dense_embeddings.shape[1], reset=reset_collection
             )
             log.info(f"Collection '{collection_name}' ready")
 
@@ -163,18 +158,14 @@ class IngestPipeline:
                 dense=dense_embeddings,
                 X_tfidf=tfidf_matrix,
                 vocab=tfidf_vectorizer.vocabulary_,
-                batch=batch_size
+                batch=batch_size,
             )
             stats["ingested"] = len(chunks)
             log.info(f"Successfully ingested {len(chunks)} chunks to collection '{collection_name}'")
 
             # Complete metrics tracking
             if operation and metrics_collector:
-                metrics_collector.complete_operation(
-                    operation,
-                    success=True,
-                    metadata={"chunks_ingested": len(chunks)}
-                )
+                metrics_collector.complete_operation(operation, success=True, metadata={"chunks_ingested": len(chunks)})
 
             # Charge cost
             if cost_controller:
@@ -206,7 +197,7 @@ def run_ingest(
     reset_collection: bool = False,
     include_patterns: Optional[List[str]] = None,
     exclude_patterns: Optional[List[str]] = None,
-    skip_errors: bool = False
+    skip_errors: bool = False,
 ) -> dict:
     """
     Convenience function to run the ingestion pipeline.
@@ -223,10 +214,11 @@ def run_ingest(
         dict: Statistics about the ingestion
     """
     # Create filter
-    chunk_filter = ChunkFilter(
-        include_patterns=include_patterns,
-        exclude_patterns=exclude_patterns
-    ) if (include_patterns or exclude_patterns) else create_default_filter()
+    chunk_filter = (
+        ChunkFilter(include_patterns=include_patterns, exclude_patterns=exclude_patterns)
+        if (include_patterns or exclude_patterns)
+        else create_default_filter()
+    )
 
     # Create and run pipeline
     pipeline = IngestPipeline()
@@ -235,5 +227,5 @@ def run_ingest(
         collection_name=collection_name,
         reset_collection=reset_collection,
         chunk_filter=chunk_filter,
-        skip_errors=skip_errors
+        skip_errors=skip_errors,
     )

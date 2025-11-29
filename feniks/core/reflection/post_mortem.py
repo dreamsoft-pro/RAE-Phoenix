@@ -14,27 +14,29 @@
 """
 Post-Mortem Analysis Loop - analyzes completed sessions to identify failures and inefficiencies.
 """
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 import uuid
 from collections import Counter
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.domain import SessionSummary, FeniksReport, ReasoningTrace, CostProfile
-from feniks.core.models.types import MetaReflection, ReflectionLevel, ReflectionScope, ReflectionImpact, ReflectionEvidence
 from feniks.core.models.behavior import BehaviorCheckResult
+from feniks.core.models.domain import (CostProfile, FeniksReport,
+                                       ReasoningTrace, SessionSummary)
+from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
+                                      ReflectionImpact, ReflectionLevel,
+                                      ReflectionScope)
+from feniks.infra.logging import get_logger
 
 log = get_logger("core.reflection.post_mortem")
+
 
 class PostMortemAnalyzer:
     """
     Analyzes individual sessions (Post-Mortem) to generate insights and recommendations.
     """
-    
+
     def analyze_session(
-        self,
-        session_summary: SessionSummary,
-        behavior_checks: Optional[List[BehaviorCheckResult]] = None
+        self, session_summary: SessionSummary, behavior_checks: Optional[List[BehaviorCheckResult]] = None
     ) -> List[MetaReflection]:
         """
         Analyze a single session and generate meta-reflections.
@@ -75,16 +77,14 @@ class PostMortemAnalyzer:
         return MetaReflection(
             id=f"pm-fail-{uuid.uuid4()}",
             timestamp=datetime.now().isoformat(),
-            project_id="post-mortem", # Context dependent, maybe passed in
+            project_id="post-mortem",  # Context dependent, maybe passed in
             level=ReflectionLevel.REFLECTION,
-            scope=ReflectionScope.TECHNICAL_DEBT, # Or PROCESS
+            scope=ReflectionScope.TECHNICAL_DEBT,  # Or PROCESS
             impact=ReflectionImpact.CRITICAL,
             title="Session Failure Detected",
             content=f"Session {session.session_id} marked as failed.",
-            evidence=[
-                ReflectionEvidence(type="status", source="session_summary", value=False)
-            ],
-            recommendations=["Investigate logs for errors", "Check reasoning trace for abandonment"]
+            evidence=[ReflectionEvidence(type="status", source="session_summary", value=False)],
+            recommendations=["Investigate logs for errors", "Check reasoning trace for abandonment"],
         )
 
     def _analyze_cost(self, session: SessionSummary) -> Optional[MetaReflection]:
@@ -103,7 +103,7 @@ class PostMortemAnalyzer:
                 evidence=[
                     ReflectionEvidence(type="metric", source="cost_profile", value=session.cost_profile.cost_usd)
                 ],
-                recommendations=["Review prompt verbosity", "Check for reasoning loops"]
+                recommendations=["Review prompt verbosity", "Check for reasoning loops"],
             )
         return None
 
@@ -112,37 +112,44 @@ class PostMortemAnalyzer:
         traces = session.reasoning_traces
         if not traces:
             return reflections
-            
+
         # Check for empty thoughts
         empty_thoughts = [t for t in traces if not t.thought.strip()]
         if empty_thoughts:
-             reflections.append(MetaReflection(
-                id=f"pm-empty-{uuid.uuid4()}",
-                timestamp=datetime.now().isoformat(),
-                project_id="post-mortem",
-                level=ReflectionLevel.REFLECTION,
-                scope=ReflectionScope.PATTERN,
-                impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-                title="Empty Reasoning Steps",
-                content=f"Found {len(empty_thoughts)} steps with empty reasoning thoughts.",
-                recommendations=["Improve prompt instructions to enforce reasoning before action"]
-            ))
-            
-        # Detect simple repetitions (loops) - consecutive identical actions
-        for i in range(1, len(traces)):
-            if traces[i].action == traces[i-1].action and traces[i].action.strip():
-                reflections.append(MetaReflection(
-                    id=f"pm-loop-{uuid.uuid4()}",
+            reflections.append(
+                MetaReflection(
+                    id=f"pm-empty-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
                     project_id="post-mortem",
-                    level=ReflectionLevel.META_REFLECTION,
+                    level=ReflectionLevel.REFLECTION,
                     scope=ReflectionScope.PATTERN,
-                    impact=ReflectionImpact.CRITICAL,
-                    title="Reasoning Loop Detected",
-                    content=f"Identical action repeated at step {traces[i].step_id}: {traces[i].action}",
-                    recommendations=["Implement loop detection mechanism in agent core", "Increase penalties for repeated actions"]
-                ))
-                break # Report one loop per session to avoid noise
+                    impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                    title="Empty Reasoning Steps",
+                    content=f"Found {len(empty_thoughts)} steps with empty reasoning thoughts.",
+                    recommendations=["Improve prompt instructions to enforce reasoning before action"],
+                )
+            )
+
+        # Detect simple repetitions (loops) - consecutive identical actions
+        for i in range(1, len(traces)):
+            if traces[i].action == traces[i - 1].action and traces[i].action.strip():
+                reflections.append(
+                    MetaReflection(
+                        id=f"pm-loop-{uuid.uuid4()}",
+                        timestamp=datetime.now().isoformat(),
+                        project_id="post-mortem",
+                        level=ReflectionLevel.META_REFLECTION,
+                        scope=ReflectionScope.PATTERN,
+                        impact=ReflectionImpact.CRITICAL,
+                        title="Reasoning Loop Detected",
+                        content=f"Identical action repeated at step {traces[i].step_id}: {traces[i].action}",
+                        recommendations=[
+                            "Implement loop detection mechanism in agent core",
+                            "Increase penalties for repeated actions",
+                        ],
+                    )
+                )
+                break  # Report one loop per session to avoid noise
 
         return reflections
 
@@ -172,28 +179,24 @@ class PostMortemAnalyzer:
             total_violations = sum(len(c.violations) for c in failed_checks)
             avg_risk = sum(c.risk_score for c in failed_checks) / len(failed_checks)
 
-            reflections.append(MetaReflection(
-                id=f"pm-behavior-fail-{uuid.uuid4()}",
-                timestamp=datetime.now().isoformat(),
-                project_id="post-mortem",
-                level=ReflectionLevel.REFLECTION,
-                scope=ReflectionScope.TECHNICAL_DEBT,
-                impact=ReflectionImpact.CRITICAL if avg_risk >= 0.7 else ReflectionImpact.REFACTOR_RECOMMENDED,
-                title="Behavior Regression Detected",
-                content=f"Found {len(failed_checks)} failed behavior checks with {total_violations} violations (avg risk: {avg_risk:.2f})",
-                evidence=[
-                    ReflectionEvidence(
-                        type="metric",
-                        source="behavior_checks",
-                        value=len(failed_checks)
-                    )
-                ],
-                recommendations=[
-                    "Review behavior violations before deployment",
-                    "Investigate root cause of behavioral changes",
-                    "Update contracts if behavior changes are intentional"
-                ]
-            ))
+            reflections.append(
+                MetaReflection(
+                    id=f"pm-behavior-fail-{uuid.uuid4()}",
+                    timestamp=datetime.now().isoformat(),
+                    project_id="post-mortem",
+                    level=ReflectionLevel.REFLECTION,
+                    scope=ReflectionScope.TECHNICAL_DEBT,
+                    impact=ReflectionImpact.CRITICAL if avg_risk >= 0.7 else ReflectionImpact.REFACTOR_RECOMMENDED,
+                    title="Behavior Regression Detected",
+                    content=f"Found {len(failed_checks)} failed behavior checks with {total_violations} violations (avg risk: {avg_risk:.2f})",
+                    evidence=[ReflectionEvidence(type="metric", source="behavior_checks", value=len(failed_checks))],
+                    recommendations=[
+                        "Review behavior violations before deployment",
+                        "Investigate root cause of behavioral changes",
+                        "Update contracts if behavior changes are intentional",
+                    ],
+                )
+            )
 
         # Analyze violation patterns
         all_violations = []
@@ -207,28 +210,26 @@ class PostMortemAnalyzer:
 
             # Generate reflection for common violation patterns
             if most_common[0][1] >= 3:  # At least 3 occurrences
-                reflections.append(MetaReflection(
-                    id=f"pm-behavior-pattern-{uuid.uuid4()}",
-                    timestamp=datetime.now().isoformat(),
-                    project_id="post-mortem",
-                    level=ReflectionLevel.META_REFLECTION,
-                    scope=ReflectionScope.PATTERN,
-                    impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-                    title="Repeated Behavior Violation Pattern",
-                    content=f"Violation '{most_common[0][0]}' occurred {most_common[0][1]} times across scenarios",
-                    evidence=[
-                        ReflectionEvidence(
-                            type="pattern",
-                            source="behavior_violations",
-                            value=most_common[0][0]
-                        )
-                    ],
-                    recommendations=[
-                        f"Investigate systematic cause of {most_common[0][0]} violations",
-                        "Check if refactoring introduced unintended side effects",
-                        "Consider updating test scenarios if pattern is expected"
-                    ]
-                ))
+                reflections.append(
+                    MetaReflection(
+                        id=f"pm-behavior-pattern-{uuid.uuid4()}",
+                        timestamp=datetime.now().isoformat(),
+                        project_id="post-mortem",
+                        level=ReflectionLevel.META_REFLECTION,
+                        scope=ReflectionScope.PATTERN,
+                        impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                        title="Repeated Behavior Violation Pattern",
+                        content=f"Violation '{most_common[0][0]}' occurred {most_common[0][1]} times across scenarios",
+                        evidence=[
+                            ReflectionEvidence(type="pattern", source="behavior_violations", value=most_common[0][0])
+                        ],
+                        recommendations=[
+                            f"Investigate systematic cause of {most_common[0][0]} violations",
+                            "Check if refactoring introduced unintended side effects",
+                            "Consider updating test scenarios if pattern is expected",
+                        ],
+                    )
+                )
 
         # High-risk warning
         if high_risk_checks:
@@ -237,28 +238,26 @@ class PostMortemAnalyzer:
                 critical_violations.extend([v for v in check.violations if v.severity in ["critical", "high"]])
 
             if critical_violations:
-                reflections.append(MetaReflection(
-                    id=f"pm-behavior-risk-{uuid.uuid4()}",
-                    timestamp=datetime.now().isoformat(),
-                    project_id="post-mortem",
-                    level=ReflectionLevel.REFLECTION,
-                    scope=ReflectionScope.TECHNICAL_DEBT,
-                    impact=ReflectionImpact.CRITICAL,
-                    title="High-Risk Behavior Changes Detected",
-                    content=f"Found {len(high_risk_checks)} checks with risk score >= 0.7, including {len(critical_violations)} critical/high severity violations",
-                    evidence=[
-                        ReflectionEvidence(
-                            type="metric",
-                            source="behavior_risk",
-                            value=len(high_risk_checks)
-                        )
-                    ],
-                    recommendations=[
-                        "Block deployment until violations are resolved",
-                        "Perform manual testing of affected scenarios",
-                        "Review changes with domain experts"
-                    ]
-                ))
+                reflections.append(
+                    MetaReflection(
+                        id=f"pm-behavior-risk-{uuid.uuid4()}",
+                        timestamp=datetime.now().isoformat(),
+                        project_id="post-mortem",
+                        level=ReflectionLevel.REFLECTION,
+                        scope=ReflectionScope.TECHNICAL_DEBT,
+                        impact=ReflectionImpact.CRITICAL,
+                        title="High-Risk Behavior Changes Detected",
+                        content=f"Found {len(high_risk_checks)} checks with risk score >= 0.7, including {len(critical_violations)} critical/high severity violations",
+                        evidence=[
+                            ReflectionEvidence(type="metric", source="behavior_risk", value=len(high_risk_checks))
+                        ],
+                        recommendations=[
+                            "Block deployment until violations are resolved",
+                            "Perform manual testing of affected scenarios",
+                            "Review changes with domain experts",
+                        ],
+                    )
+                )
 
         log.debug(f"Behavior analysis generated {len(reflections)} reflections from {len(checks)} checks")
         return reflections

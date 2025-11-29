@@ -18,20 +18,18 @@ Commands for recording, building contracts, and checking behavior
 of legacy systems without traditional tests.
 """
 import json
-import yaml
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import List
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    BehaviorContract,
-    BehaviorCheckResult,
-    BehaviorChecksSummary,
-)
+import yaml
+
+from feniks.core.models.behavior import (BehaviorCheckResult,
+                                         BehaviorChecksSummary,
+                                         BehaviorContract, BehaviorScenario,
+                                         BehaviorSnapshot)
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("cli.behavior")
 
@@ -83,7 +81,7 @@ def handle_behavior_record(args):
         "environment": args.environment,
         "success": True,
         "created_at": datetime.now().isoformat(),
-        "note": "PLACEHOLDER - implement actual scenario execution"
+        "note": "PLACEHOLDER - implement actual scenario execution",
     }
 
     with output_path.open("w") as f:
@@ -162,7 +160,7 @@ def handle_behavior_build_contracts(args):
             "version": "1.0.0",
             "derived_from_snapshot_ids": [s["id"] for s in scenario_snapshots],
             "created_at": datetime.now().isoformat(),
-            "note": "PLACEHOLDER - implement actual contract generation"
+            "note": "PLACEHOLDER - implement actual contract generation",
         }
         contracts.append(contract)
 
@@ -260,7 +258,7 @@ def handle_behavior_check(args):
             "violations": [],
             "risk_score": risk_score,
             "checked_at": datetime.now().isoformat(),
-            "note": "PLACEHOLDER - implement actual behavior comparison"
+            "note": "PLACEHOLDER - implement actual behavior comparison",
         }
 
         check_results.append(check_result)
@@ -350,131 +348,52 @@ def register_behavior_commands(subparsers):
     """
     # Main behavior command
     behavior_parser = subparsers.add_parser(
-        "behavior",
-        help="Legacy Behavior Guard commands (record, build-contracts, check)"
+        "behavior", help="Legacy Behavior Guard commands (record, build-contracts, check)"
     )
     behavior_subparsers = behavior_parser.add_subparsers(dest="behavior_command")
 
     # behavior define-scenario
     define_parser = behavior_subparsers.add_parser(
-        "define-scenario",
-        help="Define a new behavior scenario from YAML file"
+        "define-scenario", help="Define a new behavior scenario from YAML file"
     )
-    define_parser.add_argument(
-        "--project-id",
-        type=str,
-        required=True,
-        help="Project identifier"
-    )
-    define_parser.add_argument(
-        "--from-file",
-        type=str,
-        required=True,
-        help="Path to scenario YAML file"
-    )
+    define_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    define_parser.add_argument("--from-file", type=str, required=True, help="Path to scenario YAML file")
     define_parser.set_defaults(func=handle_behavior_define_scenario)
 
     # behavior record
-    record_parser = behavior_subparsers.add_parser(
-        "record",
-        help="Record behavior snapshots by executing scenarios"
-    )
-    record_parser.add_argument(
-        "--project-id",
-        type=str,
-        required=True,
-        help="Project identifier"
-    )
-    record_parser.add_argument(
-        "--scenario-id",
-        type=str,
-        required=True,
-        help="Scenario ID to execute"
-    )
+    record_parser = behavior_subparsers.add_parser("record", help="Record behavior snapshots by executing scenarios")
+    record_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    record_parser.add_argument("--scenario-id", type=str, required=True, help="Scenario ID to execute")
     record_parser.add_argument(
         "--environment",
         type=str,
         choices=["legacy", "candidate", "staging", "production", "test"],
         default="legacy",
-        help="Environment to execute in (default: legacy)"
+        help="Environment to execute in (default: legacy)",
     )
-    record_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="Output JSONL file for snapshots"
-    )
-    record_parser.add_argument(
-        "--count",
-        type=int,
-        default=1,
-        help="Number of times to execute scenario (default: 1)"
-    )
+    record_parser.add_argument("--output", type=str, required=True, help="Output JSONL file for snapshots")
+    record_parser.add_argument("--count", type=int, default=1, help="Number of times to execute scenario (default: 1)")
     record_parser.set_defaults(func=handle_behavior_record)
 
     # behavior build-contracts
     build_parser = behavior_subparsers.add_parser(
-        "build-contracts",
-        help="Build behavior contracts from recorded snapshots"
+        "build-contracts", help="Build behavior contracts from recorded snapshots"
     )
+    build_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    build_parser.add_argument("--input", type=str, required=True, help="Input JSONL file with snapshots")
+    build_parser.add_argument("--output", type=str, required=True, help="Output JSONL file for contracts")
     build_parser.add_argument(
-        "--project-id",
-        type=str,
-        required=True,
-        help="Project identifier"
-    )
-    build_parser.add_argument(
-        "--input",
-        type=str,
-        required=True,
-        help="Input JSONL file with snapshots"
-    )
-    build_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="Output JSONL file for contracts"
-    )
-    build_parser.add_argument(
-        "--min-snapshots",
-        type=int,
-        default=3,
-        help="Minimum snapshots required per scenario (default: 3)"
+        "--min-snapshots", type=int, default=3, help="Minimum snapshots required per scenario (default: 3)"
     )
     build_parser.set_defaults(func=handle_behavior_build_contracts)
 
     # behavior check
-    check_parser = behavior_subparsers.add_parser(
-        "check",
-        help="Check candidate system behavior against contracts"
-    )
+    check_parser = behavior_subparsers.add_parser("check", help="Check candidate system behavior against contracts")
+    check_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    check_parser.add_argument("--contracts", type=str, required=True, help="Input JSONL file with behavior contracts")
+    check_parser.add_argument("--snapshots", type=str, required=True, help="Input JSONL file with candidate snapshots")
+    check_parser.add_argument("--output", type=str, required=True, help="Output JSONL file for check results")
     check_parser.add_argument(
-        "--project-id",
-        type=str,
-        required=True,
-        help="Project identifier"
-    )
-    check_parser.add_argument(
-        "--contracts",
-        type=str,
-        required=True,
-        help="Input JSONL file with behavior contracts"
-    )
-    check_parser.add_argument(
-        "--snapshots",
-        type=str,
-        required=True,
-        help="Input JSONL file with candidate snapshots"
-    )
-    check_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="Output JSONL file for check results"
-    )
-    check_parser.add_argument(
-        "--fail-on-violations",
-        action="store_true",
-        help="Exit with error code if violations found"
+        "--fail-on-violations", action="store_true", help="Exit with error code if violations found"
     )
     check_parser.set_defaults(func=handle_behavior_check)

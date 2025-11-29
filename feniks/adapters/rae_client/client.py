@@ -16,20 +16,22 @@ RAE Client - Integration with Reflective Agent Engine (RAE).
 Handles storing meta-reflections and system capabilities to RAE memory.
 """
 import json
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from feniks.infra.logging import get_logger
 from feniks.config.settings import settings
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("integrations.rae_client")
 
 
 class RAEError(FeniksError):
     """Exception raised for RAE integration errors."""
+
     pass
 
 
@@ -43,12 +45,7 @@ class RAEClient:
     - Authentication via API key or JWT
     """
 
-    def __init__(
-        self,
-        base_url: Optional[str] = None,
-        api_key: Optional[str] = None,
-        timeout: int = 30
-    ):
+    def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None, timeout: int = 30):
         """
         Initialize RAE client.
 
@@ -70,22 +67,17 @@ class RAEClient:
             total=3,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "POST", "PUT"]
+            allowed_methods=["GET", "POST", "PUT"],
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
         # Set default headers
-        self.session.headers.update({
-            "Content-Type": "application/json",
-            "User-Agent": "RAE-Feniks/0.1.0"
-        })
+        self.session.headers.update({"Content-Type": "application/json", "User-Agent": "RAE-Feniks/0.1.0"})
 
         if self.api_key:
-            self.session.headers.update({
-                "Authorization": f"Bearer {self.api_key}"
-            })
+            self.session.headers.update({"Authorization": f"Bearer {self.api_key}"})
 
         log.info(f"RAEClient initialized: base_url={self.base_url}")
 
@@ -105,11 +97,7 @@ class RAEClient:
         log.info(f"Storing meta-reflection to RAE: {reflection_payload.get('id')}")
 
         try:
-            response = self._make_request(
-                method="POST",
-                endpoint="/memory/meta-reflection",
-                data=reflection_payload
-            )
+            response = self._make_request(method="POST", endpoint="/memory/meta-reflection", data=reflection_payload)
 
             log.info(f"Successfully stored meta-reflection: {reflection_payload.get('id')}")
             return response
@@ -133,11 +121,7 @@ class RAEClient:
         log.info(f"Storing system capabilities to RAE: project_id={capabilities_payload.get('project_id')}")
 
         try:
-            response = self._make_request(
-                method="POST",
-                endpoint="/memory/semantic",
-                data=capabilities_payload
-            )
+            response = self._make_request(method="POST", endpoint="/memory/semantic", data=capabilities_payload)
 
             log.info(f"Successfully stored system capabilities for project: {capabilities_payload.get('project_id')}")
             return response
@@ -162,9 +146,7 @@ class RAEClient:
 
         try:
             response = self._make_request(
-                method="POST",
-                endpoint="/memory/semantic/system-model",
-                data=system_model_payload
+                method="POST", endpoint="/memory/semantic/system-model", data=system_model_payload
             )
 
             log.info(f"Successfully stored system model for project: {system_model_payload.get('project_id')}")
@@ -174,10 +156,7 @@ class RAEClient:
             raise RAEError(f"Failed to store system model: {e}") from e
 
     def get_memory_for_project(
-        self,
-        project_id: str,
-        memory_types: Optional[List[str]] = None,
-        limit: int = 100
+        self, project_id: str, memory_types: Optional[List[str]] = None, limit: int = 100
     ) -> List[Dict[str, Any]]:
         """
         Retrieve memory for a project from RAE (to be implemented in future iteration).
@@ -196,18 +175,11 @@ class RAEClient:
         log.info(f"Retrieving memory from RAE: project_id={project_id}")
 
         try:
-            params = {
-                "project_id": project_id,
-                "limit": limit
-            }
+            params = {"project_id": project_id, "limit": limit}
             if memory_types:
                 params["types"] = ",".join(memory_types)
 
-            response = self._make_request(
-                method="GET",
-                endpoint="/memory/query",
-                params=params
-            )
+            response = self._make_request(method="GET", endpoint="/memory/query", params=params)
 
             memories = response.get("memories", [])
             log.info(f"Retrieved {len(memories)} memories for project: {project_id}")
@@ -227,10 +199,7 @@ class RAEClient:
             RAEError: If health check fails
         """
         try:
-            response = self._make_request(
-                method="GET",
-                endpoint="/health"
-            )
+            response = self._make_request(method="GET", endpoint="/health")
             log.info(f"RAE health check: {response.get('status')}")
             return response
 
@@ -238,11 +207,7 @@ class RAEClient:
             raise RAEError(f"RAE health check failed: {e}") from e
 
     def _make_request(
-        self,
-        method: str,
-        endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-        params: Optional[Dict[str, Any]] = None
+        self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Make HTTP request to RAE.
@@ -262,13 +227,7 @@ class RAEClient:
         url = f"{self.base_url}{endpoint}"
 
         try:
-            response = self.session.request(
-                method=method,
-                url=url,
-                json=data,
-                params=params,
-                timeout=self.timeout
-            )
+            response = self.session.request(method=method, url=url, json=data, params=params, timeout=self.timeout)
 
             # Log request details
             log.debug(f"{method} {url} - Status: {response.status_code}")
@@ -312,11 +271,7 @@ def create_rae_client() -> Optional[RAEClient]:
         return None
 
     try:
-        client = RAEClient(
-            base_url=settings.rae_base_url,
-            api_key=settings.rae_api_key,
-            timeout=settings.rae_timeout
-        )
+        client = RAEClient(base_url=settings.rae_base_url, api_key=settings.rae_api_key, timeout=settings.rae_timeout)
         return client
     except RAEError as e:
         log.warning(f"Failed to create RAE client: {e}")

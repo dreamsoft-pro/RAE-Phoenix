@@ -15,20 +15,21 @@
 Refactor Recipe - Base classes for refactoring recipes.
 Defines the structure for refactoring workflows.
 """
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+from feniks.core.models.types import Chunk, Module, SystemModel
 from feniks.infra.logging import get_logger
-from feniks.core.models.types import SystemModel, Module, Chunk
 
 log = get_logger("refactor.recipe")
 
 
 class RefactorRisk(Enum):
     """Risk levels for refactoring operations."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -38,6 +39,7 @@ class RefactorRisk(Enum):
 @dataclass
 class FileChange:
     """Represents a change to a single file."""
+
     file_path: str
     original_content: str
     modified_content: str
@@ -52,6 +54,7 @@ class RefactorPlan:
 
     Contains all information needed to execute and audit a refactoring operation.
     """
+
     recipe_name: str
     project_id: str
     target_modules: List[str]
@@ -71,6 +74,7 @@ class RefactorResult:
 
     Contains all changes, validation results, and audit information.
     """
+
     plan: RefactorPlan
     success: bool
     file_changes: List[FileChange] = field(default_factory=list)
@@ -125,11 +129,7 @@ class RefactorRecipe(ABC):
         pass
 
     @abstractmethod
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         """
         Analyze the system and create a refactoring plan.
 
@@ -143,12 +143,7 @@ class RefactorRecipe(ABC):
         pass
 
     @abstractmethod
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         """
         Execute the refactoring based on the plan.
 
@@ -189,7 +184,7 @@ class RefactorRecipe(ABC):
             "estimated_files": len(plan.target_files),
             "estimated_changes": plan.estimated_changes,
             "risk_level": plan.risk_level.value,
-            "complexity": "medium"  # Can be overridden by subclasses
+            "complexity": "medium",  # Can be overridden by subclasses
         }
 
     def generate_meta_reflection(self, result: RefactorResult) -> Dict[str, Any]:
@@ -217,7 +212,7 @@ class RefactorRecipe(ABC):
             "validation_passed": all(result.validation_results.values()) if result.validation_results else False,
             "errors": result.errors,
             "warnings": result.warnings,
-            "lessons_learned": self._extract_lessons(result)
+            "lessons_learned": self._extract_lessons(result),
         }
 
     def _extract_lessons(self, result: RefactorResult) -> List[str]:

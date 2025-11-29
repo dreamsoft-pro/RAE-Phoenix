@@ -16,22 +16,19 @@ HTTP Scenario Runner - Executes API behavior scenarios and captures snapshots.
 
 Supports REST APIs with full HTTP method coverage and response validation.
 """
-import uuid
-import time
 import re
+import time
+import uuid
 from datetime import datetime
 from typing import Optional
+
 import requests
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    ObservedHTTP,
-    ObservedLogs,
-    BehaviorViolation
-)
+from feniks.core.models.behavior import (BehaviorScenario, BehaviorSnapshot,
+                                         BehaviorViolation, ObservedHTTP,
+                                         ObservedLogs)
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("adapters.runners.http")
 
@@ -61,11 +58,7 @@ class HTTPRunner:
         self.session = requests.Session()
         log.info(f"HTTPRunner initialized (timeout={timeout}s, verify_ssl={verify_ssl})")
 
-    def execute_scenario(
-        self,
-        scenario: BehaviorScenario,
-        environment: str = "candidate"
-    ) -> BehaviorSnapshot:
+    def execute_scenario(self, scenario: BehaviorScenario, environment: str = "candidate") -> BehaviorSnapshot:
         """
         Execute an API scenario and capture snapshot.
 
@@ -107,7 +100,7 @@ class HTTPRunner:
                 json=body if isinstance(body, dict) else None,
                 data=body if isinstance(body, str) else None,
                 timeout=self.timeout,
-                verify=self.verify_ssl
+                verify=self.verify_ssl,
             )
 
             duration_ms = int((time.time() - start_time) * 1000)
@@ -116,7 +109,7 @@ class HTTPRunner:
             observed_http = ObservedHTTP(
                 status_code=response.status_code,
                 headers=dict(response.headers),
-                body=self._parse_response_body(response)
+                body=self._parse_response_body(response),
             )
 
             # Validate against success criteria
@@ -124,10 +117,7 @@ class HTTPRunner:
             success = True
 
             if scenario.success_criteria.http:
-                http_violations = self._validate_http_criteria(
-                    observed_http,
-                    scenario.success_criteria.http
-                )
+                http_violations = self._validate_http_criteria(observed_http, scenario.success_criteria.http)
                 violations.extend(http_violations)
                 if http_violations:
                     success = False
@@ -144,10 +134,12 @@ class HTTPRunner:
                 success=success,
                 violations=violations,
                 created_at=datetime.now(),
-                recorded_by="http_runner"
+                recorded_by="http_runner",
             )
 
-            log.info(f"Scenario executed: {scenario.id} (success={success}, status={response.status_code}, duration={duration_ms}ms)")
+            log.info(
+                f"Scenario executed: {scenario.id} (success={success}, status={response.status_code}, duration={duration_ms}ms)"
+            )
             return snapshot
 
         except requests.exceptions.Timeout:
@@ -156,7 +148,7 @@ class HTTPRunner:
                 scenario=scenario,
                 environment=environment,
                 error_message=f"Request timeout after {self.timeout}s",
-                duration_ms=int((time.time() - start_time) * 1000)
+                duration_ms=int((time.time() - start_time) * 1000),
             )
 
         except requests.exceptions.ConnectionError as e:
@@ -165,7 +157,7 @@ class HTTPRunner:
                 scenario=scenario,
                 environment=environment,
                 error_message=f"Connection error: {str(e)}",
-                duration_ms=int((time.time() - start_time) * 1000)
+                duration_ms=int((time.time() - start_time) * 1000),
             )
 
         except Exception as e:
@@ -174,7 +166,7 @@ class HTTPRunner:
                 scenario=scenario,
                 environment=environment,
                 error_message=f"Unexpected error: {str(e)}",
-                duration_ms=int((time.time() - start_time) * 1000)
+                duration_ms=int((time.time() - start_time) * 1000),
             )
 
     def _parse_response_body(self, response: requests.Response) -> Optional[dict | str]:
@@ -190,40 +182,48 @@ class HTTPRunner:
 
         # Check status codes
         if criteria.expected_status_codes and observed.status_code not in criteria.expected_status_codes:
-            violations.append(BehaviorViolation(
-                code="HTTP_STATUS_UNEXPECTED",
-                message=f"Status {observed.status_code} not in expected: {criteria.expected_status_codes}",
-                severity="high",
-                details={"expected": criteria.expected_status_codes, "actual": observed.status_code}
-            ))
+            violations.append(
+                BehaviorViolation(
+                    code="HTTP_STATUS_UNEXPECTED",
+                    message=f"Status {observed.status_code} not in expected: {criteria.expected_status_codes}",
+                    severity="high",
+                    details={"expected": criteria.expected_status_codes, "actual": observed.status_code},
+                )
+            )
 
         if criteria.forbidden_status_codes and observed.status_code in criteria.forbidden_status_codes:
-            violations.append(BehaviorViolation(
-                code="HTTP_STATUS_FORBIDDEN",
-                message=f"Status {observed.status_code} is forbidden",
-                severity="critical",
-                details={"forbidden": criteria.forbidden_status_codes, "actual": observed.status_code}
-            ))
+            violations.append(
+                BehaviorViolation(
+                    code="HTTP_STATUS_FORBIDDEN",
+                    message=f"Status {observed.status_code} is forbidden",
+                    severity="critical",
+                    details={"forbidden": criteria.forbidden_status_codes, "actual": observed.status_code},
+                )
+            )
 
         # Check JSON paths (basic implementation)
         if isinstance(observed.body, dict):
             for json_path in criteria.must_contain_json_paths:
                 if not self._check_json_path(observed.body, json_path):
-                    violations.append(BehaviorViolation(
-                        code="JSON_PATH_MISSING",
-                        message=f"Required JSON path not found: {json_path}",
-                        severity="high",
-                        details={"path": json_path}
-                    ))
+                    violations.append(
+                        BehaviorViolation(
+                            code="JSON_PATH_MISSING",
+                            message=f"Required JSON path not found: {json_path}",
+                            severity="high",
+                            details={"path": json_path},
+                        )
+                    )
 
             for json_path in criteria.must_not_contain_json_paths:
                 if self._check_json_path(observed.body, json_path):
-                    violations.append(BehaviorViolation(
-                        code="JSON_PATH_FORBIDDEN",
-                        message=f"Forbidden JSON path found: {json_path}",
-                        severity="medium",
-                        details={"path": json_path}
-                    ))
+                    violations.append(
+                        BehaviorViolation(
+                            code="JSON_PATH_FORBIDDEN",
+                            message=f"Forbidden JSON path found: {json_path}",
+                            severity="medium",
+                            details={"path": json_path},
+                        )
+                    )
 
         return violations
 
@@ -242,8 +242,8 @@ class HTTPRunner:
             for key in keys:
                 # Handle array indices like [0]
                 if "[" in key and "]" in key:
-                    base_key = key[:key.index("[")]
-                    index = int(key[key.index("[") + 1:key.index("]")])
+                    base_key = key[: key.index("[")]
+                    index = int(key[key.index("[") + 1 : key.index("]")])
                     current = current[base_key][index]
                 else:
                     current = current[key]
@@ -252,11 +252,7 @@ class HTTPRunner:
             return False
 
     def _create_error_snapshot(
-        self,
-        scenario: BehaviorScenario,
-        environment: str,
-        error_message: str,
-        duration_ms: int
+        self, scenario: BehaviorScenario, environment: str, error_message: str, duration_ms: int
     ) -> BehaviorSnapshot:
         """Create snapshot for error scenarios."""
         return BehaviorSnapshot(
@@ -267,21 +263,19 @@ class HTTPRunner:
             observed_logs=ObservedLogs(lines=[error_message]),
             duration_ms=duration_ms,
             success=False,
-            violations=[BehaviorViolation(
-                code="EXECUTION_ERROR",
-                message=error_message,
-                severity="critical",
-                details={}
-            )],
+            violations=[
+                BehaviorViolation(code="EXECUTION_ERROR", message=error_message, severity="critical", details={})
+            ],
             error_count=1,
             created_at=datetime.now(),
-            recorded_by="http_runner"
+            recorded_by="http_runner",
         )
 
 
 # ============================================================================
 # Factory Function
 # ============================================================================
+
 
 def create_http_runner(timeout: int = 30, verify_ssl: bool = True) -> HTTPRunner:
     """

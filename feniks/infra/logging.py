@@ -15,22 +15,23 @@
 Feniks centralized logging system.
 Provides structured JSON logging with Trace ID support.
 """
+import datetime
+import json
 import logging
 import sys
-import json
-import datetime
-from typing import Optional, Any
+from typing import Any, Optional
 
-# Delayed import inside formatting to avoid circular imports if needed, 
+# Delayed import inside formatting to avoid circular imports if needed,
 # or just import trace functions directly.
 # Note: get_trace_id depends on contextvars which is safe.
-from feniks.infra.tracing import get_trace_id, get_span_id, get_project_id
+from feniks.infra.tracing import get_project_id, get_span_id, get_trace_id
+
 
 class JSONFormatter(logging.Formatter):
     """
     Formatter that outputs JSON strings with context information.
     """
-    
+
     def format(self, record: logging.LogRecord) -> str:
         log_record = {
             "timestamp": datetime.datetime.fromtimestamp(record.created).isoformat(),
@@ -41,16 +42,36 @@ class JSONFormatter(logging.Formatter):
             "span_id": get_span_id(),
             "project_id": get_project_id(),
             "module": record.module,
-            "line": record.lineno
+            "line": record.lineno,
         }
-        
+
         # Include extra fields passed via 'extra={...}'
         if hasattr(record, "__dict__"):
             for key, value in record.__dict__.items():
-                if key not in ["args", "asctime", "created", "exc_info", "exc_text", "filename", 
-                               "funcName", "levelname", "levelno", "lineno", "module", 
-                               "msecs", "message", "msg", "name", "pathname", "process", 
-                               "processName", "relativeCreated", "stack_info", "thread", "threadName"]:
+                if key not in [
+                    "args",
+                    "asctime",
+                    "created",
+                    "exc_info",
+                    "exc_text",
+                    "filename",
+                    "funcName",
+                    "levelname",
+                    "levelno",
+                    "lineno",
+                    "module",
+                    "msecs",
+                    "message",
+                    "msg",
+                    "name",
+                    "pathname",
+                    "process",
+                    "processName",
+                    "relativeCreated",
+                    "stack_info",
+                    "thread",
+                    "threadName",
+                ]:
                     log_record[key] = value
 
         # Handle exceptions
@@ -58,6 +79,7 @@ class JSONFormatter(logging.Formatter):
             log_record["exception"] = self.formatException(record.exc_info)
 
         return json.dumps(log_record)
+
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """
@@ -92,9 +114,11 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
 
     return logger
 
+
 def setup_logger():
     """Legacy compatibility."""
     return get_logger()
+
 
 # Global instance
 log = get_logger()

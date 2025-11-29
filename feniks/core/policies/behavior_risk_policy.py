@@ -19,17 +19,19 @@ without traditional tests. They analyze BehaviorCheckResult data and prevent
 merge/deployment when behavior regressions exceed thresholds.
 """
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
+from feniks.config.settings import settings
 from feniks.core.models.domain import FeniksReport
 from feniks.core.models.types import MetaReflection, ReflectionImpact
-from feniks.config.settings import settings
 
 
 class PolicyEvaluationResult(BaseModel):
     """
     Result of policy evaluation.
     """
+
     passed: bool
     reason: str
     severity: Optional[str] = None  # For compatibility with reflection system
@@ -56,12 +58,7 @@ class MaxBehaviorRiskPolicy:
             print(f"Policy failed: {result.reason}")
     """
 
-    def __init__(
-        self,
-        max_risk_score: float = 0.5,
-        max_failed_scenarios: int = 0,
-        require_checks: bool = True
-    ):
+    def __init__(self, max_risk_score: float = 0.5, max_failed_scenarios: int = 0, require_checks: bool = True):
         """
         Initialize MaxBehaviorRiskPolicy.
 
@@ -92,14 +89,11 @@ class MaxBehaviorRiskPolicy:
                 return PolicyEvaluationResult(
                     passed=False,
                     reason="No behavior checks were executed. Behavior checks are required by policy.",
-                    severity="critical"
+                    severity="critical",
                 )
             else:
                 # Checks not required, policy passes
-                return PolicyEvaluationResult(
-                    passed=True,
-                    reason="Behavior checks not required by policy."
-                )
+                return PolicyEvaluationResult(passed=True, reason="Behavior checks not required by policy.")
 
         # Check max risk score threshold
         if summary.max_risk_score > self.max_risk_score:
@@ -110,7 +104,7 @@ class MaxBehaviorRiskPolicy:
                     f"threshold {self.max_risk_score:.2f}. "
                     f"Review behavior violations before proceeding."
                 ),
-                severity="critical" if summary.max_risk_score >= 0.7 else "high"
+                severity="critical" if summary.max_risk_score >= 0.7 else "high",
             )
 
         # Check failed scenarios threshold
@@ -122,7 +116,7 @@ class MaxBehaviorRiskPolicy:
                     f"(threshold: {self.max_failed_scenarios}). "
                     f"Fix regressions before merge."
                 ),
-                severity="high"
+                severity="high",
             )
 
         # All checks passed
@@ -132,7 +126,7 @@ class MaxBehaviorRiskPolicy:
                 f"Behavior risk within acceptable limits. "
                 f"Risk score: {summary.max_risk_score:.2f}, "
                 f"Failed scenarios: {summary.total_failed}/{summary.total_scenarios_checked}"
-            )
+            ),
         )
 
     def check_violations(self, report: FeniksReport) -> list[MetaReflection]:
@@ -171,15 +165,19 @@ class MaxBehaviorRiskPolicy:
                     "policy": "MaxBehaviorRiskPolicy",
                     "max_risk_score": self.max_risk_score,
                     "max_failed_scenarios": self.max_failed_scenarios,
-                    "actual_risk_score": report.behavior_checks_summary.max_risk_score if report.behavior_checks_summary else None,
-                    "actual_failed": report.behavior_checks_summary.total_failed if report.behavior_checks_summary else None,
+                    "actual_risk_score": (
+                        report.behavior_checks_summary.max_risk_score if report.behavior_checks_summary else None
+                    ),
+                    "actual_failed": (
+                        report.behavior_checks_summary.total_failed if report.behavior_checks_summary else None
+                    ),
                 },
                 recommendations=[
                     "Review behavior violations in the report",
                     "Fix failing scenarios before proceeding with merge",
                     "Consider rolling back changes if regressions are critical",
-                    "Run manual tests on high-risk scenarios"
-                ]
+                    "Run manual tests on high-risk scenarios",
+                ],
             )
             reflections.append(reflection)
 
@@ -223,7 +221,7 @@ class MinimumCoverageBehaviorPolicy:
             return PolicyEvaluationResult(
                 passed=False,
                 reason=f"No behavior checks executed. Minimum {self.min_scenarios} scenario(s) required.",
-                severity="high"
+                severity="high",
             )
 
         if summary.total_scenarios_checked < self.min_scenarios:
@@ -233,12 +231,11 @@ class MinimumCoverageBehaviorPolicy:
                     f"Only {summary.total_scenarios_checked} scenario(s) checked. "
                     f"Minimum {self.min_scenarios} required for adequate coverage."
                 ),
-                severity="medium"
+                severity="medium",
             )
 
         return PolicyEvaluationResult(
-            passed=True,
-            reason=f"Coverage requirement met: {summary.total_scenarios_checked} scenario(s) checked."
+            passed=True, reason=f"Coverage requirement met: {summary.total_scenarios_checked} scenario(s) checked."
         )
 
 
@@ -270,7 +267,7 @@ class ZeroRegressionPolicy:
             return PolicyEvaluationResult(
                 passed=False,
                 reason="No behavior checks executed. Zero regression policy requires checks.",
-                severity="critical"
+                severity="critical",
             )
 
         if summary.total_failed > 0:
@@ -281,7 +278,7 @@ class ZeroRegressionPolicy:
                     f"{summary.total_failed} scenario(s) failed. "
                     f"All scenarios must pass without violations."
                 ),
-                severity="critical"
+                severity="critical",
             )
 
         if summary.max_risk_score > 0.0:
@@ -292,12 +289,12 @@ class ZeroRegressionPolicy:
                     f"Risk score {summary.max_risk_score:.2f} detected. "
                     f"All scenarios must have 0.0 risk."
                 ),
-                severity="critical"
+                severity="critical",
             )
 
         return PolicyEvaluationResult(
             passed=True,
-            reason=f"Zero regression policy satisfied. All {summary.total_scenarios_checked} scenario(s) passed."
+            reason=f"Zero regression policy satisfied. All {summary.total_scenarios_checked} scenario(s) passed.",
         )
 
 
@@ -305,10 +302,11 @@ class ZeroRegressionPolicy:
 # Factory Functions (Settings Integration)
 # ============================================================================
 
+
 def create_max_behavior_risk_policy(
     max_risk_score: Optional[float] = None,
     max_failed_scenarios: Optional[int] = None,
-    require_checks: Optional[bool] = None
+    require_checks: Optional[bool] = None,
 ) -> MaxBehaviorRiskPolicy:
     """
     Create MaxBehaviorRiskPolicy using settings defaults.
@@ -324,13 +322,11 @@ def create_max_behavior_risk_policy(
     return MaxBehaviorRiskPolicy(
         max_risk_score=max_risk_score if max_risk_score is not None else settings.behavior_max_risk_threshold,
         max_failed_scenarios=max_failed_scenarios if max_failed_scenarios is not None else 0,
-        require_checks=require_checks if require_checks is not None else True
+        require_checks=require_checks if require_checks is not None else True,
     )
 
 
-def create_minimum_coverage_policy(
-    min_scenarios: Optional[int] = None
-) -> MinimumCoverageBehaviorPolicy:
+def create_minimum_coverage_policy(min_scenarios: Optional[int] = None) -> MinimumCoverageBehaviorPolicy:
     """
     Create MinimumCoverageBehaviorPolicy using settings defaults.
 

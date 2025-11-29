@@ -16,19 +16,20 @@ Meta-Reflection Engine - generates meta-reflections about code quality and archi
 Analyzes system model and generates insights, recommendations, and meta-observations.
 """
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.types import SystemModel, MetaReflection, ReflectionLevel
 from feniks.core.models.domain import SessionSummary
-from feniks.core.reflection.rules import ReflectionRuleSet
-from feniks.core.reflection.post_mortem import PostMortemAnalyzer
-from feniks.core.reflection.longitudinal import LongitudinalAnalyzer
-from feniks.core.reflection.self_model import SelfModelAnalyzer
+from feniks.core.models.types import (MetaReflection, ReflectionLevel,
+                                      SystemModel)
 from feniks.core.policies.manager import PolicyManager
+from feniks.core.reflection.longitudinal import LongitudinalAnalyzer
+from feniks.core.reflection.post_mortem import PostMortemAnalyzer
+from feniks.core.reflection.rules import ReflectionRuleSet
+from feniks.core.reflection.self_model import SelfModelAnalyzer
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("core.meta_reflection")
 
@@ -53,11 +54,11 @@ class MetaReflectionEngine:
         """
         # Standard post-mortem insights
         reflections = self.post_mortem.analyze_session(session_summary)
-        
+
         # Policy compliance checks
         policy_violations = self.policy_manager.check_session_compliance(session_summary, project_id)
         reflections.extend(policy_violations)
-        
+
         return reflections
 
     def run_longitudinal(self, sessions: List[SessionSummary]) -> List[MetaReflection]:
@@ -84,10 +85,12 @@ class MetaReflectionEngine:
         reflections = self.rule_set.evaluate(system_model)
 
         # Sort by impact and level
-        reflections.sort(key=lambda r: (
-            ["critical", "refactor-recommended", "monitor", "informational"].index(r.impact.value),
-            -r.level.value
-        ))
+        reflections.sort(
+            key=lambda r: (
+                ["critical", "refactor-recommended", "monitor", "informational"].index(r.impact.value),
+                -r.level.value,
+            )
+        )
 
         log.info(f"Generated {len(reflections)} meta-reflections")
 
@@ -130,12 +133,7 @@ class MetaReflectionEngine:
                     "title": reflection.title,
                     "content": reflection.content,
                     "evidence": [
-                        {
-                            "type": e.type,
-                            "source": e.source,
-                            "value": e.value,
-                            "context": e.context
-                        }
+                        {"type": e.type, "source": e.source, "value": e.value, "context": e.context}
                         for e in reflection.evidence
                     ],
                     "related_modules": reflection.related_modules,
@@ -144,7 +142,7 @@ class MetaReflectionEngine:
                     "origin": reflection.origin,
                     "tags": reflection.tags,
                     "confidence": reflection.confidence,
-                    "metadata": reflection.metadata
+                    "metadata": reflection.metadata,
                 }
 
                 # Write as JSON line
@@ -162,7 +160,9 @@ class MetaReflectionEngine:
         Returns:
             List[MetaReflection]: Loaded reflections
         """
-        from feniks.core.models.types import ReflectionEvidence, ReflectionLevel, ReflectionScope, ReflectionImpact
+        from feniks.core.models.types import (ReflectionEvidence,
+                                              ReflectionImpact,
+                                              ReflectionLevel, ReflectionScope)
 
         log.info(f"Loading reflections from {input_path}")
 
@@ -184,10 +184,7 @@ class MetaReflectionEngine:
                     # Parse evidence
                     evidence = [
                         ReflectionEvidence(
-                            type=e["type"],
-                            source=e["source"],
-                            value=e["value"],
-                            context=e.get("context")
+                            type=e["type"], source=e["source"], value=e["value"], context=e.get("context")
                         )
                         for e in data.get("evidence", [])
                     ]
@@ -209,7 +206,7 @@ class MetaReflectionEngine:
                         origin=data.get("origin", "feniks"),
                         tags=data.get("tags", []),
                         confidence=data.get("confidence", 1.0),
-                        metadata=data.get("metadata", {})
+                        metadata=data.get("metadata", {}),
                     )
 
                     reflections.append(reflection)
@@ -297,11 +294,7 @@ def generate_meta_reflections(system_model: SystemModel) -> List[MetaReflection]
     return engine.generate_reflections(system_model)
 
 
-def save_meta_reflections(
-    reflections: List[MetaReflection],
-    output_path: Path,
-    format: str = "jsonl"
-) -> None:
+def save_meta_reflections(reflections: List[MetaReflection], output_path: Path, format: str = "jsonl") -> None:
     """
     Convenience function to save meta-reflections.
 

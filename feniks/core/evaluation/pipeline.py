@@ -15,27 +15,30 @@
 Analysis Pipeline - orchestrates system model building and analysis.
 Loads chunks from Qdrant, builds system model, detects capabilities, generates reports.
 """
-from pathlib import Path
-from typing import Optional, List
 import json
 import time
 from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
-from feniks.infra.logging import get_logger
-from feniks.infra.tracing import trace, set_project_context, span
-from feniks.infra.metrics import get_metrics_collector
+from feniks.adapters.rae_client.client import RAEError, create_rae_client
 from feniks.config.settings import settings
-from feniks.core.models.types import Chunk, SystemModel, Dependency, ApiEndpoint, GitInfo
-from feniks.core.models.domain import FeniksReport, SessionSummary, CostProfile, ReasoningTrace
-from feniks.exceptions import FeniksError, FeniksStoreError
-from feniks.core.reflection.system_model import build_system_model
+from feniks.core.evaluation.reporting import ReportGenerator, generate_report
+from feniks.core.models.domain import (CostProfile, FeniksReport,
+                                       ReasoningTrace, SessionSummary)
+from feniks.core.models.types import (ApiEndpoint, Chunk, Dependency, GitInfo,
+                                      SystemModel)
 from feniks.core.reflection.capabilities import CapabilityDetector
-from feniks.core.evaluation.reporting import generate_report, ReportGenerator
-from feniks.core.reflection.engine import generate_meta_reflections, save_meta_reflections
-from feniks.adapters.rae_client.client import create_rae_client, RAEError
+from feniks.core.reflection.engine import (generate_meta_reflections,
+                                           save_meta_reflections)
+from feniks.core.reflection.system_model import build_system_model
+from feniks.exceptions import FeniksError, FeniksStoreError
+from feniks.infra.logging import get_logger
+from feniks.infra.metrics import get_metrics_collector
+from feniks.infra.tracing import set_project_context, span, trace
 from feniks.integrations.rae_formatter import RAEFormatter
 
 log = get_logger("core.analysis")
@@ -44,11 +47,7 @@ log = get_logger("core.analysis")
 class AnalysisPipeline:
     """Orchestrates the analysis pipeline."""
 
-    def __init__(
-        self,
-        qdrant_host: Optional[str] = None,
-        qdrant_port: Optional[int] = None
-    ):
+    def __init__(self, qdrant_host: Optional[str] = None, qdrant_port: Optional[int] = None):
         """
         Initialize the analysis pipeline.
 
@@ -63,11 +62,7 @@ class AnalysisPipeline:
         log.info(f"AnalysisPipeline initialized: Qdrant={self.qdrant_host}:{self.qdrant_port}")
 
     @trace("load_chunks")
-    def _load_chunks_from_qdrant(
-        self,
-        collection_name: str,
-        limit: Optional[int] = None
-    ) -> List[Chunk]:
+    def _load_chunks_from_qdrant(self, collection_name: str, limit: Optional[int] = None) -> List[Chunk]:
         """
         Load chunks from Qdrant collection.
         """
@@ -93,7 +88,7 @@ class AnalysisPipeline:
                     limit=batch_size,
                     offset=offset,
                     with_payload=True,
-                    with_vectors=False
+                    with_vectors=False,
                 )
 
                 points, next_offset = results
@@ -132,21 +127,20 @@ class AnalysisPipeline:
         dependencies = []
         for dep_data in payload.get("dependencies", []):
             if isinstance(dep_data, dict):
-                dependencies.append(Dependency(
-                    type=dep_data.get("type", ""),
-                    value=dep_data.get("value", "")
-                ))
+                dependencies.append(Dependency(type=dep_data.get("type", ""), value=dep_data.get("value", "")))
 
         # Parse API endpoints
         api_endpoints = []
         for ep_data in payload.get("api_endpoints", []):
             if isinstance(ep_data, dict):
-                api_endpoints.append(ApiEndpoint(
-                    url=ep_data.get("url", ""),
-                    method=ep_data.get("method", "GET"),
-                    dataKeys=ep_data.get("dataKeys", []),
-                    paramKeys=ep_data.get("paramKeys", [])
-                ))
+                api_endpoints.append(
+                    ApiEndpoint(
+                        url=ep_data.get("url", ""),
+                        method=ep_data.get("method", "GET"),
+                        dataKeys=ep_data.get("dataKeys", []),
+                        paramKeys=ep_data.get("paramKeys", []),
+                    )
+                )
 
         # Parse git info
         git_info = None
@@ -156,7 +150,7 @@ class AnalysisPipeline:
                 hash=git_data.get("hash", ""),
                 author=git_data.get("author", ""),
                 date=git_data.get("date", ""),
-                summary=git_data.get("summary", "")
+                summary=git_data.get("summary", ""),
             )
 
         # Create chunk
@@ -177,7 +171,7 @@ class AnalysisPipeline:
             ui_routes=payload.get("ui_routes", []),
             cyclomatic_complexity=payload.get("cyclomatic_complexity", 0),
             business_tags=payload.get("business_tags", []),
-            git_last_commit=git_info
+            git_last_commit=git_info,
         )
 
         return chunk
@@ -238,21 +232,21 @@ class AnalysisPipeline:
         collection_name: str = "code_chunks",
         output_path: Optional[Path] = None,
         meta_reflections_output: Optional[Path] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
     ) -> SystemModel:
         """
         Run the complete analysis pipeline.
         """
         set_project_context(project_id)
         self.metrics.inc("feniks_operations_total")
-        
+
         stats = {
             "project_id": project_id,
             "collection": collection_name,
             "chunks_loaded": 0,
             "modules": 0,
             "dependencies": 0,
-            "capabilities": 0
+            "capabilities": 0,
         }
 
         start_time = time.time()
@@ -290,7 +284,7 @@ class AnalysisPipeline:
                 meta_reflections = generate_meta_reflections(system_model)
             stats["meta_reflections"] = len(meta_reflections)
             log.info(f"Generated {len(meta_reflections)} meta-reflections")
-            
+
             # Update Metrics
             self.metrics.inc("feniks_recommendations_count", len(meta_reflections))
 
@@ -322,26 +316,26 @@ class AnalysisPipeline:
             # --- Create Domain Models (FeniksReport) ---
             end_time = time.time()
             duration = end_time - start_time
-            
+
             summary = SessionSummary(
                 session_id=f"{project_id}-{int(start_time)}",
                 duration=duration,
                 success=True,
                 reasoning_traces=[],
-                cost_profile=CostProfile(total_tokens=0, cost_usd=0.0, breakdown={})
+                cost_profile=CostProfile(total_tokens=0, cost_usd=0.0, breakdown={}),
             )
-            
+
             recommendations_data = generator.get_recommendations_data()
-            recommendations_list = [r['title'] for r in recommendations_data]
-            
+            recommendations_list = [r["title"] for r in recommendations_data]
+
             feniks_report = FeniksReport(
                 project_id=project_id,
                 timestamp=datetime.now().isoformat(),
                 summary=summary,
                 metrics=stats,
-                recommendations=recommendations_list
+                recommendations=recommendations_list,
             )
-            
+
             if output_path:
                 report_json_path = output_path.with_suffix(".json")
                 with open(report_json_path, "w") as f:
@@ -369,7 +363,7 @@ def run_analysis(
     collection_name: str = "code_chunks",
     output_path: Optional[Path] = None,
     meta_reflections_output: Optional[Path] = None,
-    limit: Optional[int] = None
+    limit: Optional[int] = None,
 ) -> SystemModel:
     """
     Convenience function to run the analysis pipeline.
@@ -390,5 +384,5 @@ def run_analysis(
         collection_name=collection_name,
         output_path=output_path,
         meta_reflections_output=meta_reflections_output,
-        limit=limit
+        limit=limit,
     )

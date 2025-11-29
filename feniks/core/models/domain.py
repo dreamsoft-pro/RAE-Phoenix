@@ -1,36 +1,45 @@
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from feniks.core.models.behavior import BehaviorChecksSummary, BehaviorViolation
+    from feniks.core.models.behavior import (BehaviorChecksSummary,
+                                             BehaviorViolation)
+
 
 class ReasoningTrace(BaseModel):
     """
     Represents a single step in the reasoning process.
     """
+
     step_id: str = Field(..., description="Unique identifier for the reasoning step")
     thought: str = Field(..., description="The reasoning thought process")
     action: str = Field(..., description="The action taken")
     result: str = Field(..., description="The result of the action")
     timestamp: str = Field(..., description="Timestamp of the step")
 
+
 class CostProfile(BaseModel):
     """
     Represents the cost profile of an operation or session.
     """
+
     total_tokens: int = Field(..., description="Total tokens consumed")
     cost_usd: float = Field(..., description="Total cost in USD")
     breakdown: Dict[str, float] = Field(default_factory=dict, description="Breakdown of costs by category")
+
 
 class SessionSummary(BaseModel):
     """
     Summary of a Feniks session.
     """
+
     session_id: str = Field(..., description="Unique session identifier")
     duration: float = Field(..., description="Duration of the session in seconds")
     success: bool = Field(..., description="Whether the session was successful")
     reasoning_traces: List[ReasoningTrace] = Field(default_factory=list, description="Trace of reasoning steps")
     cost_profile: Optional[CostProfile] = Field(None, description="Cost profile of the session")
+
 
 class FeniksReport(BaseModel):
     """
@@ -41,6 +50,7 @@ class FeniksReport(BaseModel):
     - Behavior checks (legacy system regression testing)
     - Recommendations and risk assessment
     """
+
     project_id: str = Field(..., description="Project identifier")
     timestamp: str = Field(..., description="Timestamp of the report generation")
     summary: SessionSummary = Field(..., description="Summary of the analysis session")
@@ -49,10 +59,8 @@ class FeniksReport(BaseModel):
 
     # Behavior checks (Legacy Behavior Guard integration)
     behavior_checks_summary: Optional["BehaviorChecksSummary"] = Field(
-        None,
-        description="Summary of behavior checks performed (pass/fail, risk scores)"
+        None, description="Summary of behavior checks performed (pass/fail, risk scores)"
     )
     behavior_violations: List["BehaviorViolation"] = Field(
-        default_factory=list,
-        description="List of behavior contract violations detected"
+        default_factory=list, description="List of behavior contract violations detected"
     )

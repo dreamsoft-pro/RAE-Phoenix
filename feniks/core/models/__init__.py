@@ -16,42 +16,14 @@ Feniks Core Models.
 
 Export all domain and behavior models for easy import.
 """
-from feniks.core.models.domain import (
-    ReasoningTrace,
-    CostProfile,
-    SessionSummary,
-    FeniksReport,
-)
-
-from feniks.core.models.behavior import (
-    # Input models
-    UIAction,
-    APIRequest,
-    CLICommand,
-    BehaviorInput,
-    # Criteria models
-    HTTPCriteria,
-    DOMCriteria,
-    LogCriteria,
-    BehaviorSuccessCriteria,
-    # Scenario
-    BehaviorScenario,
-    # Observation models
-    ObservedHTTP,
-    ObservedDOM,
-    ObservedLogs,
-    # Violation and Snapshot
-    BehaviorViolation,
-    BehaviorSnapshot,
-    # Contract models
-    HTTPContract,
-    DOMContract,
-    LogContract,
-    BehaviorContract,
-    # Check result
-    BehaviorCheckResult,
-    BehaviorChecksSummary,
-)
+from feniks.core.models.behavior import (  # Input models; Criteria models; Scenario; Observation models; Violation and Snapshot; Contract models; Check result
+    APIRequest, BehaviorCheckResult, BehaviorChecksSummary, BehaviorContract,
+    BehaviorInput, BehaviorScenario, BehaviorSnapshot, BehaviorSuccessCriteria,
+    BehaviorViolation, CLICommand, DOMContract, DOMCriteria, HTTPContract,
+    HTTPCriteria, LogContract, LogCriteria, ObservedDOM, ObservedHTTP,
+    ObservedLogs, UIAction)
+from feniks.core.models.domain import (CostProfile, FeniksReport,
+                                       ReasoningTrace, SessionSummary)
 
 __all__ = [
     # Domain models

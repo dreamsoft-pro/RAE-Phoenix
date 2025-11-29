@@ -14,14 +14,14 @@
 """
 Cost Controller - Manages budgets and cost limits for operations.
 """
-from typing import Dict, Optional
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-import json
+from typing import Dict, Optional
 
-from feniks.infra.logging import get_logger
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("governance.cost_controller")
 
@@ -29,6 +29,7 @@ log = get_logger("governance.cost_controller")
 @dataclass
 class Budget:
     """Budget for a project or operation."""
+
     project_id: str
     total_budget: float  # Total budget in cost units
     spent: float = 0.0
@@ -53,6 +54,7 @@ class Budget:
 
 class BudgetExceededError(FeniksError):
     """Exception raised when budget is exceeded."""
+
     pass
 
 
@@ -71,7 +73,7 @@ class CostController:
     DEFAULT_COSTS = {
         "ingest": 1.0,  # Per 1000 chunks
         "analyze": 2.0,  # Per analysis
-        "refactor": 5.0  # Per refactoring
+        "refactor": 5.0,  # Per refactoring
     }
 
     def __init__(self):
@@ -111,12 +113,7 @@ class CostController:
         """
         return self.budgets.get(project_id)
 
-    def check_budget(
-        self,
-        project_id: str,
-        operation: str,
-        quantity: int = 1
-    ) -> tuple[bool, float]:
+    def check_budget(self, project_id: str, operation: str, quantity: int = 1) -> tuple[bool, float]:
         """
         Check if operation is within budget.
 
@@ -152,13 +149,7 @@ class CostController:
 
         return can_afford, estimated_cost
 
-    def charge_operation(
-        self,
-        project_id: str,
-        operation: str,
-        quantity: int = 1,
-        actual_cost: Optional[float] = None
-    ):
+    def charge_operation(self, project_id: str, operation: str, quantity: int = 1, actual_cost: Optional[float] = None):
         """
         Charge budget for an operation.
 
@@ -190,15 +181,12 @@ class CostController:
         budget.operations[operation] += quantity
 
         log.info(
-            f"Charged {cost:.2f} to project {project_id} for {operation} "
-            f"(utilization: {budget.utilization:.1f}%)"
+            f"Charged {cost:.2f} to project {project_id} for {operation} " f"(utilization: {budget.utilization:.1f}%)"
         )
 
         # Alert if budget is running low
         if budget.utilization > 90:
-            log.warning(
-                f"Budget alert: Project {project_id} has used {budget.utilization:.1f}% of budget"
-            )
+            log.warning(f"Budget alert: Project {project_id} has used {budget.utilization:.1f}% of budget")
 
     def get_cost_report(self, project_id: Optional[str] = None) -> Dict[str, any]:
         """
@@ -222,8 +210,8 @@ class CostController:
                     "spent": budget.spent,
                     "remaining": budget.remaining,
                     "utilization": budget.utilization,
-                    "operations": budget.operations
-                }
+                    "operations": budget.operations,
+                },
             }
 
         # All projects
@@ -234,11 +222,11 @@ class CostController:
                     "spent": b.spent,
                     "remaining": b.remaining,
                     "utilization": b.utilization,
-                    "operations": b.operations
+                    "operations": b.operations,
                 }
                 for pid, b in self.budgets.items()
             },
-            "total_spent": sum(b.spent for b in self.budgets.values())
+            "total_spent": sum(b.spent for b in self.budgets.values()),
         }
 
     def export_costs(self, output_path: Path):

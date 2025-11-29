@@ -16,12 +16,18 @@ AngularJS migration recipes for Feniks.
 
 This package contains recipes for migrating AngularJS 1.x applications to Next.js.
 """
-from feniks.core.refactor.recipes.angularjs.controller_to_component import ControllerToComponentRecipe
-from feniks.core.refactor.recipes.angularjs.directive_to_component import DirectiveToComponentRecipe
-from feniks.core.refactor.recipes.angularjs.template_to_jsx import TemplateToJsxRecipe
-from feniks.core.refactor.recipes.angularjs.routing_to_app_router import RoutingToAppRouterRecipe
-from feniks.core.refactor.recipes.angularjs.scope_to_hooks import ScopeToHooksRecipe
-from feniks.core.refactor.recipes.angularjs.behavior_guard_integration import BehaviorGuardIntegration
+from feniks.core.refactor.recipes.angularjs.behavior_guard_integration import \
+    BehaviorGuardIntegration
+from feniks.core.refactor.recipes.angularjs.controller_to_component import \
+    ControllerToComponentRecipe
+from feniks.core.refactor.recipes.angularjs.directive_to_component import \
+    DirectiveToComponentRecipe
+from feniks.core.refactor.recipes.angularjs.routing_to_app_router import \
+    RoutingToAppRouterRecipe
+from feniks.core.refactor.recipes.angularjs.scope_to_hooks import \
+    ScopeToHooksRecipe
+from feniks.core.refactor.recipes.angularjs.template_to_jsx import \
+    TemplateToJsxRecipe
 
 __all__ = [
     "ControllerToComponentRecipe",

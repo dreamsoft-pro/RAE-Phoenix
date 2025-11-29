@@ -21,15 +21,15 @@ Handles:
 - Lifecycle hooks → useEffect
 - Navigation → next/navigation hooks
 """
-from typing import List, Dict, Any, Optional
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from feniks.core.refactor.recipe import (
-    RefactorRecipe, RefactorPlan, RefactorResult, RefactorRisk, FileChange
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
+                                         RefactorRecipe, RefactorResult,
+                                         RefactorRisk)
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.controller_to_component")
@@ -38,6 +38,7 @@ log = get_logger("refactor.recipes.angularjs.controller_to_component")
 @dataclass
 class ControllerMetadata:
     """Metadata extracted from an AngularJS controller."""
+
     name: str
     module_name: str
     dependencies: List[str]
@@ -75,11 +76,7 @@ class ControllerToComponentRecipe(RefactorRecipe):
     def risk_level(self) -> RefactorRisk:
         return RefactorRisk.MEDIUM
 
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         log.info(f"Analyzing for AngularJS controllers: {system_model.project_id}")
         controllers = self._find_controllers(system_model, target)
 
@@ -109,11 +106,11 @@ class ControllerToComponentRecipe(RefactorRecipe):
             rationale=f"Migrate {len(controller_metadata)} AngularJS controllers to Next.js components",
             risks=risks,
             risk_level=risk_level,
-            estimated_changes=len(controller_metadata) * 3, # Component + Service stubs
+            estimated_changes=len(controller_metadata) * 3,  # Component + Service stubs
             validation_steps=[
                 "Verify TypeScript compilation",
                 "Check all imports are resolved",
-                "Validate component props interfaces"
+                "Validate component props interfaces",
             ],
             metadata={
                 "controllers": [
@@ -121,22 +118,17 @@ class ControllerToComponentRecipe(RefactorRecipe):
                         "name": m.name,
                         "module": m.module_name,
                         "dependencies": m.dependencies,
-                        "template": m.template_path
+                        "template": m.template_path,
                     }
                     for m in controller_metadata
                 ],
                 "target_directory": self.target_dir,
-                "service_directory": self.service_dir
-            }
+                "service_directory": self.service_dir,
+            },
         )
         return plan
 
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         log.info(f"Executing controller migration (dry_run={dry_run})")
         result = RefactorResult(plan=plan, success=True)
 
@@ -155,27 +147,45 @@ class ControllerToComponentRecipe(RefactorRecipe):
                 # 1. Generate Component
                 component_code = self._generate_component(metadata, plan)
                 component_path = self._get_component_path(metadata)
-                result.file_changes.append(FileChange(
-                    file_path=component_path,
-                    original_content="",
-                    modified_content=component_code,
-                    change_type="create"
-                ))
+                result.file_changes.append(
+                    FileChange(
+                        file_path=component_path,
+                        original_content="",
+                        modified_content=component_code,
+                        change_type="create",
+                    )
+                )
                 log.info(f"Generated component: {component_path}")
 
                 # 2. Generate Service Stubs
                 for dep in metadata.dependencies:
-                    if dep not in ['$scope', '$http', '$timeout', '$interval', '$q', '$state', '$stateParams', '$location', '$rootScope'] and dep not in generated_services:
+                    if (
+                        dep
+                        not in [
+                            "$scope",
+                            "$http",
+                            "$timeout",
+                            "$interval",
+                            "$q",
+                            "$state",
+                            "$stateParams",
+                            "$location",
+                            "$rootScope",
+                        ]
+                        and dep not in generated_services
+                    ):
                         service_code = self._generate_service_stub(dep)
-                        service_name = dep.replace('$', '').capitalize()
+                        service_name = dep.replace("$", "").capitalize()
                         service_path = f"{self.service_dir}/{service_name}.ts"
-                        
-                        result.file_changes.append(FileChange(
-                            file_path=service_path,
-                            original_content="",
-                            modified_content=service_code,
-                            change_type="create"
-                        ))
+
+                        result.file_changes.append(
+                            FileChange(
+                                file_path=service_path,
+                                original_content="",
+                                modified_content=service_code,
+                                change_type="create",
+                            )
+                        )
                         generated_services.add(dep)
                         log.info(f"Generated service stub: {service_path}")
 
@@ -206,7 +216,7 @@ class ControllerToComponentRecipe(RefactorRecipe):
     def _is_controller_chunk(self, chunk: Chunk) -> bool:
         patterns = [
             r'\.controller\s*\(\s*["\'](\w+)["\']',
-            r'angular\.module\([^)]+\)\.controller',
+            r"angular\.module\([^)]+\)\.controller",
         ]
         for pattern in patterns:
             if re.search(pattern, chunk.content):
@@ -225,19 +235,22 @@ class ControllerToComponentRecipe(RefactorRecipe):
 
             dependencies = self._extract_dependencies(chunk.content)
             properties, methods = self._extract_properties_and_methods(chunk.content)
-            
+
             match = re.search(r'controllerAs\s*:\s*["\'](\w+)["\\]', chunk.content)
             controller_as = match.group(1) if match else None
 
             uses_scope = "$scope" in dependencies
-            
+
             hooks = []
-            if "$scope.$on('$destroy'" in chunk.content: hooks.append("$destroy")
-            if "$scope.$on('$init'" in chunk.content: hooks.append("$init")
+            if "$scope.$on('$destroy'" in chunk.content:
+                hooks.append("$destroy")
+            if "$scope.$on('$init'" in chunk.content:
+                hooks.append("$init")
 
             template_path = None
             match = re.search(r'templateUrl\s*:\s*["\']([^"\\]+)["\\]', chunk.content)
-            if match: template_path = match.group(1)
+            if match:
+                template_path = match.group(1)
 
             return ControllerMetadata(
                 name=controller_name,
@@ -248,31 +261,31 @@ class ControllerToComponentRecipe(RefactorRecipe):
                 controller_as=controller_as,
                 template_path=template_path,
                 uses_scope=uses_scope,
-                lifecycle_hooks=hooks
+                lifecycle_hooks=hooks,
             )
         except Exception as e:
             return None
 
     def _extract_dependencies(self, content: str) -> List[str]:
-        array_match = re.search(r'\[([^\]]+)\s*,\s*function', content)
+        array_match = re.search(r"\[([^\]]+)\s*,\s*function", content)
         if array_match:
             deps_str = array_match.group(1)
-            return [d.strip().strip('"\'') for d in deps_str.split(',')]
+            return [d.strip().strip("\"'") for d in deps_str.split(",")]
         else:
-            func_match = re.search(r'function\s*\(([^)]*)\)', content)
+            func_match = re.search(r"function\s*\(([^)]*)\)", content)
             if func_match:
                 params = func_match.group(1)
-                return [p.strip() for p in params.split(',') if p.strip()]
+                return [p.strip() for p in params.split(",") if p.strip()]
         return []
 
     def _extract_properties_and_methods(self, content: str) -> tuple:
         properties = {}
         methods = {}
-        prop_pattern = r'(?:this|(?:\$scope))\.(\w+)\s*=\s*([^;]+);'
+        prop_pattern = r"(?:this|(?:\$scope))\.(\w+)\s*=\s*([^;]+);"
         for match in re.finditer(prop_pattern, content):
             prop_name = match.group(1)
             prop_value = match.group(2).strip()
-            if prop_value.startswith('function'):
+            if prop_value.startswith("function"):
                 methods[prop_name] = prop_value
             else:
                 properties[prop_name] = prop_value
@@ -318,20 +331,31 @@ export default function {component_name}(props: {component_name}Props) {{
 """
 
     def _to_component_name(self, controller_name: str) -> str:
-        name = re.sub(r'(Ctrl|Controller)$', '', controller_name)
-        if not name.endswith('Page'): name += 'Page'
+        name = re.sub(r"(Ctrl|Controller)$", "", controller_name)
+        if not name.endswith("Page"):
+            name += "Page"
         return name
 
     def _generate_imports(self, metadata: ControllerMetadata) -> str:
         imports = ['import React, { useState, useEffect } from "react";']
-        if any(dep in ['$state', '$stateParams', '$location'] for dep in metadata.dependencies):
+        if any(dep in ["$state", "$stateParams", "$location"] for dep in metadata.dependencies):
             imports.append('import { useRouter } from "next/navigation";')
-        
+
         for dep in metadata.dependencies:
-            if dep not in ['$scope', '$http', '$timeout', '$interval', '$q', '$state', '$stateParams', '$location', '$rootScope']:
-                service_name = dep.replace('$', '').capitalize()
+            if dep not in [
+                "$scope",
+                "$http",
+                "$timeout",
+                "$interval",
+                "$q",
+                "$state",
+                "$stateParams",
+                "$location",
+                "$rootScope",
+            ]:
+                service_name = dep.replace("$", "").capitalize()
                 imports.append(f'import {{ {service_name} }} from "@/services/legacy/{service_name}";')
-        return '\n'.join(imports)
+        return "\n".join(imports)
 
     def _generate_props_interface(self, metadata: ControllerMetadata, component_name: str) -> str:
         return f"interface {component_name}Props {{ [key: string]: any; }}"
@@ -341,33 +365,35 @@ export default function {component_name}(props: {component_name}Props) {{
         for prop, val in metadata.properties.items():
             type_hint = self._infer_type(val)
             decls.append(f"  const [{{prop}}, set{{prop.capitalize()}}] = useState<{{type_hint}}>({{val}});")
-        return '\n'.join(decls)
+        return "\n".join(decls)
 
     def _infer_type(self, value: str) -> str:
-        if value in ['true', 'false']: return 'boolean'
-        if value.isdigit(): return 'number'
-        return 'any'
+        if value in ["true", "false"]:
+            return "boolean"
+        if value.isdigit():
+            return "number"
+        return "any"
 
     def _generate_methods(self, metadata: ControllerMetadata) -> str:
         methods = []
         for name, body in metadata.methods.items():
             converted = self._convert_http_to_fetch(body)
-            converted = converted.replace('$scope.', '').replace('this.', '')
-            
+            converted = converted.replace("$scope.", "").replace("this.", "")
+
             method_code = "  const " + name + " = async () => {\n"
             method_code += "    try {\n"
             method_code += "      " + converted + "\n"
             method_code += "    } catch (err) { console.error(err); }\n"
             method_code += "  };"
-            
+
             methods.append(method_code)
-        return '\n\n'.join(methods)
+        return "\n\n".join(methods)
 
     def _convert_http_to_fetch(self, body: str) -> str:
-        body = re.sub(r'^function\s*\([^)]*\)\s*\{\{', '', body)
-        body = re.sub(r'\}\}$', '', body)
+        body = re.sub(r"^function\s*\([^)]*\)\s*\{\{", "", body)
+        body = re.sub(r"\}\}$", "", body)
         # Simple $http.get conversion
-        body = re.sub(r'\$http\.get\s*\(([^)]+)\)', r'await fetch(\1).then(r => r.json())', body)
+        body = re.sub(r"\$http\.get\s*\(([^)]+)\)", r"await fetch(\1).then(r => r.json())", body)
         return body.strip()
 
     def _generate_effects(self, metadata: ControllerMetadata) -> str:
@@ -375,14 +401,14 @@ export default function {component_name}(props: {component_name}Props) {{
 
     def _generate_jsx_placeholder(self, metadata: ControllerMetadata) -> str:
         return f"    <div>{{metadata.name}}</div>"
-        
+
     def _get_component_path(self, metadata: ControllerMetadata) -> str:
         name = self._to_component_name(metadata.name)
         return f"{self.target_dir}/{{name}}.tsx"
-        
+
     def _generate_service_stub(self, service_name: str) -> str:
         """Generate a service stub file."""
-        clean_name = service_name.replace('$', '').capitalize()
+        clean_name = service_name.replace("$", "").capitalize()
         return f"""// Generated by Feniks - Service Stub
 // Original Service: {service_name}
 

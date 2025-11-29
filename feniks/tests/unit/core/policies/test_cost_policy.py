@@ -14,20 +14,19 @@
 """
 Tests for Cost Policy enforcement.
 """
-import pytest
 from unittest.mock import MagicMock, patch
-from feniks.core.policies.cost_policy import CostPolicyEnforcer, CostPolicyConfig
-from feniks.core.models.domain import SessionSummary, CostProfile
+
+import pytest
+
+from feniks.core.models.domain import CostProfile, SessionSummary
+from feniks.core.policies.cost_policy import (CostPolicyConfig,
+                                              CostPolicyEnforcer)
 
 
 @pytest.fixture
 def enforcer():
     """Create a CostPolicyEnforcer with default config."""
-    config = CostPolicyConfig(
-        max_session_cost=1.0,
-        alert_threshold_percent=80.0,
-        monthly_budget=100.0
-    )
+    config = CostPolicyConfig(max_session_cost=1.0, alert_threshold_percent=80.0, monthly_budget=100.0)
     return CostPolicyEnforcer(config)
 
 
@@ -38,10 +37,8 @@ def test_cost_policy_max_session_exceeded(enforcer):
         duration=120.0,
         success=True,
         cost_profile=CostProfile(
-            total_tokens=100000,
-            cost_usd=1.5,  # Powyżej limitu 1.0
-            breakdown={"input": 0.5, "output": 1.0}
-        )
+            total_tokens=100000, cost_usd=1.5, breakdown={"input": 0.5, "output": 1.0}  # Powyżej limitu 1.0
+        ),
     )
 
     reflections = enforcer.check_session_cost(session)
@@ -59,10 +56,8 @@ def test_cost_policy_within_limits(enforcer):
         duration=30.0,
         success=True,
         cost_profile=CostProfile(
-            total_tokens=5000,
-            cost_usd=0.15,  # Poniżej limitu 1.0
-            breakdown={"input": 0.05, "output": 0.10}
-        )
+            total_tokens=5000, cost_usd=0.15, breakdown={"input": 0.05, "output": 0.10}  # Poniżej limitu 1.0
+        ),
     )
 
     reflections = enforcer.check_session_cost(session)
@@ -74,12 +69,7 @@ def test_cost_policy_within_limits(enforcer):
 
 def test_cost_policy_no_cost_profile(enforcer):
     """Test dla sesji bez cost profile."""
-    session = SessionSummary(
-        session_id="no-cost",
-        duration=10.0,
-        success=True,
-        cost_profile=None
-    )
+    session = SessionSummary(session_id="no-cost", duration=10.0, success=True, cost_profile=None)
 
     reflections = enforcer.check_session_cost(session)
 
@@ -136,11 +126,7 @@ def test_cost_policy_edge_case_exact_limit(enforcer):
         session_id="exact-limit",
         duration=60.0,
         success=True,
-        cost_profile=CostProfile(
-            total_tokens=50000,
-            cost_usd=1.0,  # Dokładnie limit
-            breakdown={}
-        )
+        cost_profile=CostProfile(total_tokens=50000, cost_usd=1.0, breakdown={}),  # Dokładnie limit
     )
 
     reflections = enforcer.check_session_cost(session)
@@ -159,7 +145,7 @@ def test_cost_policy_recommendations():
         session_id="high-cost",
         duration=180.0,
         success=True,
-        cost_profile=CostProfile(total_tokens=200000, cost_usd=3.0)
+        cost_profile=CostProfile(total_tokens=200000, cost_usd=3.0),
     )
 
     reflections = enforcer.check_session_cost(session)

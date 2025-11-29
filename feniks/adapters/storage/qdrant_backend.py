@@ -21,31 +21,27 @@ Provides semantic search capabilities for:
 """
 import json
 import uuid
-from typing import List, Optional
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    BehaviorContract,
-    BehaviorCheckResult
-)
-from feniks.adapters.storage.base import (
-    BehaviorStorageBackend,
-    SemanticSearchMixin,
-    VersionedStorageMixin,
-    register_storage_backend
-)
+from feniks.adapters.storage.base import (BehaviorStorageBackend,
+                                          SemanticSearchMixin,
+                                          VersionedStorageMixin,
+                                          register_storage_backend)
+from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
+                                         BehaviorScenario, BehaviorSnapshot)
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("adapters.storage.qdrant")
 
 # Qdrant import with graceful fallback
 try:
     from qdrant_client import QdrantClient
-    from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+    from qdrant_client.models import (Distance, FieldCondition, Filter,
+                                      MatchValue, PointStruct, VectorParams)
+
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
@@ -54,6 +50,7 @@ except ImportError:
 # Sentence transformer for embeddings
 try:
     from sentence_transformers import SentenceTransformer
+
     SENTENCE_TRANSFORMERS_AVAILABLE = True
 except ImportError:
     SENTENCE_TRANSFORMERS_AVAILABLE = False
@@ -79,7 +76,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         collection_prefix: str = "feniks_behavior",
         embedding_model: str = "all-MiniLM-L6-v2",
         vector_size: int = 384,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize Qdrant backend.
@@ -92,14 +89,10 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
             vector_size: Embedding vector size
         """
         if not QDRANT_AVAILABLE:
-            raise FeniksError(
-                "qdrant-client not installed. Install with: pip install qdrant-client"
-            )
+            raise FeniksError("qdrant-client not installed. Install with: pip install qdrant-client")
 
         if not SENTENCE_TRANSFORMERS_AVAILABLE:
-            raise FeniksError(
-                "sentence-transformers not installed. Install with: pip install sentence-transformers"
-            )
+            raise FeniksError("sentence-transformers not installed. Install with: pip install sentence-transformers")
 
         self.client = QdrantClient(host=host, port=port)
         self.collection_prefix = collection_prefix
@@ -125,17 +118,14 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
             self.scenarios_collection,
             self.snapshots_collection,
             self.contracts_collection,
-            self.results_collection
+            self.results_collection,
         ]
 
         for collection_name in collections:
             if not self.client.collection_exists(collection_name):
                 self.client.create_collection(
                     collection_name=collection_name,
-                    vectors_config=VectorParams(
-                        size=self.vector_size,
-                        distance=Distance.COSINE
-                    )
+                    vectors_config=VectorParams(size=self.vector_size, distance=Distance.COSINE),
                 )
                 log.debug(f"Created collection: {collection_name}")
 
@@ -145,21 +135,12 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
 
     def _scenario_to_text(self, scenario: BehaviorScenario) -> str:
         """Convert scenario to searchable text."""
-        parts = [
-            scenario.name,
-            scenario.description or "",
-            scenario.category,
-            f"project:{scenario.project_id}"
-        ]
+        parts = [scenario.name, scenario.description or "", scenario.category, f"project:{scenario.project_id}"]
         return " ".join(parts)
 
     def _contract_to_text(self, contract: BehaviorContract) -> str:
         """Convert contract to searchable text."""
-        parts = [
-            f"scenario:{contract.scenario_id}",
-            f"version:{contract.version}",
-            f"project:{contract.project_id}"
-        ]
+        parts = [f"scenario:{contract.scenario_id}", f"version:{contract.version}", f"project:{contract.project_id}"]
 
         # Add criteria info
         if contract.success_criteria.http:
@@ -190,14 +171,11 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
                 "category": scenario.category,
                 "description": scenario.description,
                 "data": scenario.model_dump(mode="json"),
-                "created_at": scenario.created_at.isoformat()
-            }
+                "created_at": scenario.created_at.isoformat(),
+            },
         )
 
-        self.client.upsert(
-            collection_name=self.scenarios_collection,
-            points=[point]
-        )
+        self.client.upsert(collection_name=self.scenarios_collection, points=[point])
 
         log.info(f"Saved scenario: {scenario.id}")
 
@@ -205,15 +183,8 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         """Load a behavior scenario by ID."""
         results = self.client.scroll(
             collection_name=self.scenarios_collection,
-            scroll_filter=Filter(
-                must=[
-                    FieldCondition(
-                        key="scenario_id",
-                        match=MatchValue(value=scenario_id)
-                    )
-                ]
-            ),
-            limit=1
+            scroll_filter=Filter(must=[FieldCondition(key="scenario_id", match=MatchValue(value=scenario_id))]),
+            limit=1,
         )
 
         if results[0]:
@@ -225,20 +196,11 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         """List all scenarios, optionally filtered by project."""
         filter_conditions = []
         if project_id:
-            filter_conditions.append(
-                FieldCondition(
-                    key="project_id",
-                    match=MatchValue(value=project_id)
-                )
-            )
+            filter_conditions.append(FieldCondition(key="project_id", match=MatchValue(value=project_id)))
 
         scroll_filter = Filter(must=filter_conditions) if filter_conditions else None
 
-        results = self.client.scroll(
-            collection_name=self.scenarios_collection,
-            scroll_filter=scroll_filter,
-            limit=1000
-        )
+        results = self.client.scroll(collection_name=self.scenarios_collection, scroll_filter=scroll_filter, limit=1000)
 
         scenarios = []
         for point in results[0]:
@@ -250,23 +212,13 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         """Delete a scenario by ID."""
         results = self.client.scroll(
             collection_name=self.scenarios_collection,
-            scroll_filter=Filter(
-                must=[
-                    FieldCondition(
-                        key="scenario_id",
-                        match=MatchValue(value=scenario_id)
-                    )
-                ]
-            ),
-            limit=1
+            scroll_filter=Filter(must=[FieldCondition(key="scenario_id", match=MatchValue(value=scenario_id))]),
+            limit=1,
         )
 
         if results[0]:
             point_id = results[0][0].id
-            self.client.delete(
-                collection_name=self.scenarios_collection,
-                points_selector=[point_id]
-            )
+            self.client.delete(collection_name=self.scenarios_collection, points_selector=[point_id])
             log.info(f"Deleted scenario: {scenario_id}")
             return True
 
@@ -277,30 +229,19 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
     # ========================================================================
 
     def search_similar_scenarios(
-        self,
-        query: str,
-        limit: int = 10,
-        project_id: Optional[str] = None
+        self, query: str, limit: int = 10, project_id: Optional[str] = None
     ) -> List[BehaviorScenario]:
         """Search for scenarios similar to query text."""
         vector = self._embed_text(query)
 
         filter_conditions = []
         if project_id:
-            filter_conditions.append(
-                FieldCondition(
-                    key="project_id",
-                    match=MatchValue(value=project_id)
-                )
-            )
+            filter_conditions.append(FieldCondition(key="project_id", match=MatchValue(value=project_id)))
 
         search_filter = Filter(must=filter_conditions) if filter_conditions else None
 
         results = self.client.search(
-            collection_name=self.scenarios_collection,
-            query_vector=vector,
-            query_filter=search_filter,
-            limit=limit
+            collection_name=self.scenarios_collection, query_vector=vector, query_filter=search_filter, limit=limit
         )
 
         scenarios = []
@@ -310,11 +251,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         log.info(f"Found {len(scenarios)} similar scenarios for query: {query[:50]}")
         return scenarios
 
-    def search_similar_contracts(
-        self,
-        scenario_id: str,
-        limit: int = 5
-    ) -> List[BehaviorContract]:
+    def search_similar_contracts(self, scenario_id: str, limit: int = 5) -> List[BehaviorContract]:
         """Search for contracts similar to a scenario."""
         # Get scenario
         scenario = self.load_scenario(scenario_id)
@@ -325,11 +262,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         query = self._scenario_to_text(scenario)
         vector = self._embed_text(query)
 
-        results = self.client.search(
-            collection_name=self.contracts_collection,
-            query_vector=vector,
-            limit=limit
-        )
+        results = self.client.search(collection_name=self.contracts_collection, query_vector=vector, limit=limit)
 
         contracts = []
         for result in results:
@@ -353,43 +286,25 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
                 "project_id": snapshot.project_id,
                 "environment": snapshot.environment,
                 "data": snapshot.model_dump(mode="json"),
-                "created_at": snapshot.created_at.isoformat()
-            }
+                "created_at": snapshot.created_at.isoformat(),
+            },
         )
 
-        self.client.upsert(
-            collection_name=self.snapshots_collection,
-            points=[point]
-        )
+        self.client.upsert(collection_name=self.snapshots_collection, points=[point])
 
         log.info(f"Saved snapshot: {snapshot.id}")
 
     def load_snapshots(
-        self,
-        scenario_id: str,
-        environment: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: str, environment: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorSnapshot]:
         """Load snapshots for a scenario."""
-        filter_conditions = [
-            FieldCondition(
-                key="scenario_id",
-                match=MatchValue(value=scenario_id)
-            )
-        ]
+        filter_conditions = [FieldCondition(key="scenario_id", match=MatchValue(value=scenario_id))]
 
         if environment:
-            filter_conditions.append(
-                FieldCondition(
-                    key="environment",
-                    match=MatchValue(value=environment)
-                )
-            )
+            filter_conditions.append(FieldCondition(key="environment", match=MatchValue(value=environment)))
 
         results = self.client.scroll(
-            collection_name=self.snapshots_collection,
-            scroll_filter=Filter(must=filter_conditions),
-            limit=limit or 1000
+            collection_name=self.snapshots_collection, scroll_filter=Filter(must=filter_conditions), limit=limit or 1000
         )
 
         snapshots = []
@@ -433,11 +348,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         """Save a behavior contract."""
         self.save_contract_version(contract)
 
-    def save_contract_version(
-        self,
-        contract: BehaviorContract,
-        version_notes: Optional[str] = None
-    ) -> str:
+    def save_contract_version(self, contract: BehaviorContract, version_notes: Optional[str] = None) -> str:
         """Save a new version of a contract."""
         text = self._contract_to_text(contract)
         vector = self._embed_text(text)
@@ -452,14 +363,11 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
                 "project_id": contract.project_id,
                 "data": contract.model_dump(mode="json"),
                 "version_notes": version_notes or contract.version_notes,
-                "created_at": contract.created_at.isoformat()
-            }
+                "created_at": contract.created_at.isoformat(),
+            },
         )
 
-        self.client.upsert(
-            collection_name=self.contracts_collection,
-            points=[point]
-        )
+        self.client.upsert(collection_name=self.contracts_collection, points=[point])
 
         log.info(f"Saved contract version: {contract.id} v{contract.version}")
         return contract.version
@@ -478,10 +386,10 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
             scroll_filter=Filter(
                 must=[
                     FieldCondition(key="contract_id", match=MatchValue(value=contract_id)),
-                    FieldCondition(key="version", match=MatchValue(value=version))
+                    FieldCondition(key="version", match=MatchValue(value=version)),
                 ]
             ),
-            limit=1
+            limit=1,
         )
 
         if results[0]:
@@ -492,56 +400,35 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
         """Get all versions of a contract."""
         results = self.client.scroll(
             collection_name=self.contracts_collection,
-            scroll_filter=Filter(
-                must=[
-                    FieldCondition(
-                        key="contract_id",
-                        match=MatchValue(value=contract_id)
-                    )
-                ]
-            ),
-            limit=1000
+            scroll_filter=Filter(must=[FieldCondition(key="contract_id", match=MatchValue(value=contract_id))]),
+            limit=1000,
         )
 
         versions = []
         for point in results[0]:
             payload = point.payload
-            versions.append({
-                "version": payload["version"],
-                "created_at": datetime.fromisoformat(payload["created_at"]),
-                "notes": payload.get("version_notes"),
-                "contract": BehaviorContract(**payload["data"])
-            })
+            versions.append(
+                {
+                    "version": payload["version"],
+                    "created_at": datetime.fromisoformat(payload["created_at"]),
+                    "notes": payload.get("version_notes"),
+                    "contract": BehaviorContract(**payload["data"]),
+                }
+            )
 
         # Sort by created_at descending
         versions.sort(key=lambda x: x["created_at"], reverse=True)
         return versions
 
-    def load_contracts_for_scenario(
-        self,
-        scenario_id: str,
-        version: Optional[str] = None
-    ) -> List[BehaviorContract]:
+    def load_contracts_for_scenario(self, scenario_id: str, version: Optional[str] = None) -> List[BehaviorContract]:
         """Load contracts for a scenario."""
-        filter_conditions = [
-            FieldCondition(
-                key="scenario_id",
-                match=MatchValue(value=scenario_id)
-            )
-        ]
+        filter_conditions = [FieldCondition(key="scenario_id", match=MatchValue(value=scenario_id))]
 
         if version:
-            filter_conditions.append(
-                FieldCondition(
-                    key="version",
-                    match=MatchValue(value=version)
-                )
-            )
+            filter_conditions.append(FieldCondition(key="version", match=MatchValue(value=version)))
 
         results = self.client.scroll(
-            collection_name=self.contracts_collection,
-            scroll_filter=Filter(must=filter_conditions),
-            limit=1000
+            collection_name=self.contracts_collection, scroll_filter=Filter(must=filter_conditions), limit=1000
         )
 
         contracts = []
@@ -592,38 +479,26 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
                 "scenario_id": result.scenario_id,
                 "passed": result.passed,
                 "data": result.model_dump(mode="json"),
-                "checked_at": result.checked_at.isoformat()
-            }
+                "checked_at": result.checked_at.isoformat(),
+            },
         )
 
-        self.client.upsert(
-            collection_name=self.results_collection,
-            points=[point]
-        )
+        self.client.upsert(collection_name=self.results_collection, points=[point])
 
         log.info(f"Saved check result for snapshot: {result.snapshot_id}")
 
     def load_check_results(
-        self,
-        scenario_id: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorCheckResult]:
         """Load check results."""
         filter_conditions = []
         if scenario_id:
-            filter_conditions.append(
-                FieldCondition(
-                    key="scenario_id",
-                    match=MatchValue(value=scenario_id)
-                )
-            )
+            filter_conditions.append(FieldCondition(key="scenario_id", match=MatchValue(value=scenario_id)))
 
         scroll_filter = Filter(must=filter_conditions) if filter_conditions else None
 
         results = self.client.scroll(
-            collection_name=self.results_collection,
-            scroll_filter=scroll_filter,
-            limit=limit or 1000
+            collection_name=self.results_collection, scroll_filter=scroll_filter, limit=limit or 1000
         )
 
         check_results = []

@@ -19,29 +19,25 @@ Tests:
 - BehaviorComparisonEngine (violation detection, risk scoring)
 - Reflection loop integrations (Post-Mortem, Longitudinal)
 """
-import pytest
 from datetime import datetime
 
-from feniks.core.behavior.contract_generator import ContractGenerator
-from feniks.core.behavior.comparison_engine import BehaviorComparisonEngine
-from feniks.core.reflection.post_mortem import PostMortemAnalyzer
-from feniks.core.reflection.longitudinal import LongitudinalAnalyzer
-from feniks.core.models.behavior import (
-    BehaviorSnapshot,
-    BehaviorContract,
-    BehaviorCheckResult,
-    ObservedHTTP,
-    ObservedCLI,
-    BehaviorViolation,
-    HTTPSuccessCriteria
-)
-from feniks.core.models.domain import SessionSummary, CostProfile
-from feniks.exceptions import FeniksError
+import pytest
 
+from feniks.core.behavior.comparison_engine import BehaviorComparisonEngine
+from feniks.core.behavior.contract_generator import ContractGenerator
+from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
+                                         BehaviorSnapshot, BehaviorViolation,
+                                         HTTPSuccessCriteria, ObservedCLI,
+                                         ObservedHTTP)
+from feniks.core.models.domain import CostProfile, SessionSummary
+from feniks.core.reflection.longitudinal import LongitudinalAnalyzer
+from feniks.core.reflection.post_mortem import PostMortemAnalyzer
+from feniks.exceptions import FeniksError
 
 # ============================================================================
 # ContractGenerator Tests
 # ============================================================================
+
 
 class TestContractGenerator:
     """Tests for ContractGenerator."""
@@ -61,11 +57,11 @@ class TestContractGenerator:
                 observed_http=ObservedHTTP(
                     status_code=200,
                     headers={"content-type": "application/json"},
-                    body={"status": "success", "data": {"id": i, "name": "test"}}
+                    body={"status": "success", "data": {"id": i, "name": "test"}},
                 ),
                 duration_ms=100 + i * 10,
                 success=True,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             snapshots.append(snapshot)
 
@@ -96,7 +92,7 @@ class TestContractGenerator:
                 project_id="test",
                 environment="legacy",
                 success=True,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
         ]
 
@@ -114,7 +110,7 @@ class TestContractGenerator:
                 project_id="test",
                 environment="legacy",
                 success=True,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             ),
             BehaviorSnapshot(
                 id="snap-2",
@@ -122,7 +118,7 @@ class TestContractGenerator:
                 project_id="test",
                 environment="legacy",
                 success=True,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             ),
             BehaviorSnapshot(
                 id="snap-3",
@@ -130,8 +126,8 @@ class TestContractGenerator:
                 project_id="test",
                 environment="legacy",
                 success=True,
-                created_at=datetime.now()
-            )
+                created_at=datetime.now(),
+            ),
         ]
 
         with pytest.raises(FeniksError, match="multiple scenarios"):
@@ -148,15 +144,10 @@ class TestContractGenerator:
                 scenario_id="cli-test",
                 project_id="test",
                 environment="legacy",
-                observed_cli=ObservedCLI(
-                    command="echo test",
-                    exit_code=0,
-                    stdout="test output\n",
-                    stderr=""
-                ),
+                observed_cli=ObservedCLI(command="echo test", exit_code=0, stdout="test output\n", stderr=""),
                 duration_ms=50,
                 success=True,
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             snapshots.append(snapshot)
 
@@ -170,6 +161,7 @@ class TestContractGenerator:
 # ============================================================================
 # BehaviorComparisonEngine Tests
 # ============================================================================
+
 
 class TestBehaviorComparisonEngine:
     """Tests for BehaviorComparisonEngine."""
@@ -191,7 +183,7 @@ class TestBehaviorComparisonEngine:
                 )
             },
             max_duration_ms=200,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         # Create matching snapshot
@@ -200,14 +192,10 @@ class TestBehaviorComparisonEngine:
             scenario_id="test-scenario",
             project_id="test",
             environment="candidate",
-            observed_http=ObservedHTTP(
-                status_code=200,
-                headers={},
-                body={"status": "ok"}
-            ),
+            observed_http=ObservedHTTP(status_code=200, headers={}, body={"status": "ok"}),
             duration_ms=150,
             success=True,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         result = engine.check_snapshot(snapshot, contract)
@@ -225,12 +213,8 @@ class TestBehaviorComparisonEngine:
             scenario_id="test-scenario",
             project_id="test",
             version="1.0.0",
-            success_criteria={
-                "http": HTTPSuccessCriteria(
-                    expected_status_codes=[200]
-                )
-            },
-            created_at=datetime.now()
+            success_criteria={"http": HTTPSuccessCriteria(expected_status_codes=[200])},
+            created_at=datetime.now(),
         )
 
         snapshot = BehaviorSnapshot(
@@ -238,13 +222,9 @@ class TestBehaviorComparisonEngine:
             scenario_id="test-scenario",
             project_id="test",
             environment="candidate",
-            observed_http=ObservedHTTP(
-                status_code=500,  # Unexpected!
-                headers={},
-                body={}
-            ),
+            observed_http=ObservedHTTP(status_code=500, headers={}, body={}),  # Unexpected!
             success=False,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         result = engine.check_snapshot(snapshot, contract)
@@ -265,7 +245,7 @@ class TestBehaviorComparisonEngine:
             version="1.0.0",
             success_criteria={},
             max_duration_ms=100,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         snapshot = BehaviorSnapshot(
@@ -275,7 +255,7 @@ class TestBehaviorComparisonEngine:
             environment="candidate",
             duration_ms=250,  # Exceeds threshold!
             success=True,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         result = engine.check_snapshot(snapshot, contract)
@@ -298,7 +278,7 @@ class TestBehaviorComparisonEngine:
                     must_contain_json_paths=["$.data", "$.status"],
                 )
             },
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         snapshot = BehaviorSnapshot(
@@ -307,12 +287,10 @@ class TestBehaviorComparisonEngine:
             project_id="test",
             environment="candidate",
             observed_http=ObservedHTTP(
-                status_code=500,  # Critical: status violation
-                headers={},
-                body={"error": "fail"}  # High: missing paths
+                status_code=500, headers={}, body={"error": "fail"}  # Critical: status violation  # High: missing paths
             ),
             success=False,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         result = engine.check_snapshot(snapshot, contract)
@@ -327,6 +305,7 @@ class TestBehaviorComparisonEngine:
 # Reflection Integration Tests
 # ============================================================================
 
+
 class TestPostMortemBehaviorIntegration:
     """Tests for Post-Mortem analyzer behavior integration."""
 
@@ -337,11 +316,8 @@ class TestPostMortemBehaviorIntegration:
         session = SessionSummary(
             session_id="test-session",
             success=True,
-            cost_profile=CostProfile(
-                total_tokens=1000,
-                cost_usd=0.05
-            ),
-            reasoning_traces=[]
+            cost_profile=CostProfile(total_tokens=1000, cost_usd=0.05),
+            reasoning_traces=[],
         )
 
         # Create failed behavior checks
@@ -352,14 +328,10 @@ class TestPostMortemBehaviorIntegration:
                 scenario_id="scenario-1",
                 passed=False,
                 violations=[
-                    BehaviorViolation(
-                        code="HTTP_STATUS_UNEXPECTED",
-                        message="Status changed",
-                        severity="high"
-                    )
+                    BehaviorViolation(code="HTTP_STATUS_UNEXPECTED", message="Status changed", severity="high")
                 ],
                 risk_score=0.7,
-                checked_at=datetime.now()
+                checked_at=datetime.now(),
             ),
             BehaviorCheckResult(
                 snapshot_id="snap-2",
@@ -367,15 +339,11 @@ class TestPostMortemBehaviorIntegration:
                 scenario_id="scenario-2",
                 passed=False,
                 violations=[
-                    BehaviorViolation(
-                        code="HTTP_STATUS_UNEXPECTED",
-                        message="Status changed",
-                        severity="critical"
-                    )
+                    BehaviorViolation(code="HTTP_STATUS_UNEXPECTED", message="Status changed", severity="critical")
                 ],
                 risk_score=0.9,
-                checked_at=datetime.now()
-            )
+                checked_at=datetime.now(),
+            ),
         ]
 
         reflections = analyzer.analyze_session(session, behavior_checks=checks)
@@ -392,36 +360,37 @@ class TestLongitudinalBehaviorIntegration:
         """Test detection of declining behavior check pass rate."""
         analyzer = LongitudinalAnalyzer()
 
-        sessions = [
-            SessionSummary(session_id=f"s-{i}", success=True)
-            for i in range(10)
-        ]
+        sessions = [SessionSummary(session_id=f"s-{i}", success=True) for i in range(10)]
 
         # Create checks with declining pass rate
         checks = []
         # First half: 90% pass rate
         for i in range(10):
-            checks.append(BehaviorCheckResult(
-                snapshot_id=f"snap-{i}",
-                contract_id="contract",
-                scenario_id="scenario",
-                passed=(i % 10 != 0),  # 9/10 pass
-                violations=[],
-                risk_score=0.0 if (i % 10 != 0) else 0.5,
-                checked_at=datetime.now()
-            ))
+            checks.append(
+                BehaviorCheckResult(
+                    snapshot_id=f"snap-{i}",
+                    contract_id="contract",
+                    scenario_id="scenario",
+                    passed=(i % 10 != 0),  # 9/10 pass
+                    violations=[],
+                    risk_score=0.0 if (i % 10 != 0) else 0.5,
+                    checked_at=datetime.now(),
+                )
+            )
 
         # Last half: 60% pass rate
         for i in range(10, 20):
-            checks.append(BehaviorCheckResult(
-                snapshot_id=f"snap-{i}",
-                contract_id="contract",
-                scenario_id="scenario",
-                passed=(i % 5 != 0),  # 6/10 pass
-                violations=[],
-                risk_score=0.0 if (i % 5 != 0) else 0.5,
-                checked_at=datetime.now()
-            ))
+            checks.append(
+                BehaviorCheckResult(
+                    snapshot_id=f"snap-{i}",
+                    contract_id="contract",
+                    scenario_id="scenario",
+                    passed=(i % 5 != 0),  # 6/10 pass
+                    violations=[],
+                    risk_score=0.0 if (i % 5 != 0) else 0.5,
+                    checked_at=datetime.now(),
+                )
+            )
 
         reflections = analyzer.analyze_trends(sessions, behavior_checks=checks)
 

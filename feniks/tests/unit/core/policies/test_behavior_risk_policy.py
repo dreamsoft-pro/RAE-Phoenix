@@ -14,17 +14,16 @@
 """
 Unit tests for Behavior Risk Policies.
 """
-import pytest
 from datetime import datetime
 
+import pytest
+
+from feniks.core.models.behavior import (BehaviorChecksSummary,
+                                         BehaviorViolation)
 from feniks.core.models.domain import FeniksReport, SessionSummary
-from feniks.core.models.behavior import BehaviorChecksSummary, BehaviorViolation
 from feniks.core.policies.behavior_risk_policy import (
-    MaxBehaviorRiskPolicy,
-    MinimumCoverageBehaviorPolicy,
-    ZeroRegressionPolicy,
-    PolicyEvaluationResult,
-)
+    MaxBehaviorRiskPolicy, MinimumCoverageBehaviorPolicy,
+    PolicyEvaluationResult, ZeroRegressionPolicy)
 
 
 @pytest.fixture
@@ -33,14 +32,9 @@ def base_report():
     return FeniksReport(
         project_id="test-project",
         timestamp=datetime.now().isoformat(),
-        summary=SessionSummary(
-            session_id="test-session",
-            duration=100.0,
-            success=True,
-            reasoning_traces=[]
-        ),
+        summary=SessionSummary(session_id="test-session", duration=100.0, success=True, reasoning_traces=[]),
         metrics={},
-        recommendations=[]
+        recommendations=[],
     )
 
 
@@ -75,7 +69,7 @@ def test_max_behavior_risk_policy_low_risk_passes(base_report):
         total_snapshots_checked=20,
         total_passed=20,
         total_failed=0,
-        max_risk_score=0.15  # Low risk
+        max_risk_score=0.15,  # Low risk
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5)
@@ -92,7 +86,7 @@ def test_max_behavior_risk_policy_high_risk_fails(base_report):
         total_snapshots_checked=20,
         total_passed=15,
         total_failed=5,
-        max_risk_score=0.85  # High risk
+        max_risk_score=0.85,  # High risk
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5)
@@ -111,7 +105,7 @@ def test_max_behavior_risk_policy_exact_threshold(base_report):
         total_snapshots_checked=20,
         total_passed=18,
         total_failed=2,
-        max_risk_score=0.5  # Exactly at threshold
+        max_risk_score=0.5,  # Exactly at threshold
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5)
@@ -128,7 +122,7 @@ def test_max_behavior_risk_policy_failed_scenarios_exceeds(base_report):
         total_snapshots_checked=50,
         total_passed=45,
         total_failed=5,  # 5 failed > threshold of 2
-        max_risk_score=0.3  # Risk score is fine
+        max_risk_score=0.3,  # Risk score is fine
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5, max_failed_scenarios=2)
@@ -147,7 +141,7 @@ def test_max_behavior_risk_policy_failed_scenarios_at_threshold(base_report):
         total_snapshots_checked=50,
         total_passed=48,
         total_failed=2,  # Exactly at threshold
-        max_risk_score=0.2
+        max_risk_score=0.2,
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5, max_failed_scenarios=2)
@@ -164,7 +158,7 @@ def test_max_behavior_risk_policy_zero_tolerance(base_report):
         total_snapshots_checked=50,
         total_passed=49,
         total_failed=1,  # Even 1 failure is too many
-        max_risk_score=0.1
+        max_risk_score=0.1,
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5, max_failed_scenarios=0)
@@ -181,7 +175,7 @@ def test_max_behavior_risk_policy_check_violations_integration(base_report):
         total_snapshots_checked=20,
         total_passed=15,
         total_failed=5,
-        max_risk_score=0.9  # Critical risk
+        max_risk_score=0.9,  # Critical risk
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5)
@@ -198,11 +192,7 @@ def test_max_behavior_risk_policy_check_violations_integration(base_report):
 def test_max_behavior_risk_policy_check_violations_passes(base_report):
     """Test check_violations returns empty list when policy passes."""
     base_report.behavior_checks_summary = BehaviorChecksSummary(
-        total_scenarios_checked=5,
-        total_snapshots_checked=20,
-        total_passed=20,
-        total_failed=0,
-        max_risk_score=0.1
+        total_scenarios_checked=5, total_snapshots_checked=20, total_passed=20, total_failed=0, max_risk_score=0.1
     )
 
     policy = MaxBehaviorRiskPolicy(max_risk_score=0.5)
@@ -233,7 +223,7 @@ def test_minimum_coverage_policy_insufficient_scenarios(base_report):
         total_snapshots_checked=10,
         total_passed=10,
         total_failed=0,
-        max_risk_score=0.0
+        max_risk_score=0.0,
     )
 
     policy = MinimumCoverageBehaviorPolicy(min_scenarios=5)
@@ -251,7 +241,7 @@ def test_minimum_coverage_policy_sufficient_scenarios(base_report):
         total_snapshots_checked=50,
         total_passed=45,
         total_failed=5,
-        max_risk_score=0.3
+        max_risk_score=0.3,
     )
 
     policy = MinimumCoverageBehaviorPolicy(min_scenarios=5)
@@ -269,7 +259,7 @@ def test_minimum_coverage_policy_exact_threshold(base_report):
         total_snapshots_checked=20,
         total_passed=20,
         total_failed=0,
-        max_risk_score=0.0
+        max_risk_score=0.0,
     )
 
     policy = MinimumCoverageBehaviorPolicy(min_scenarios=5)
@@ -300,7 +290,7 @@ def test_zero_regression_policy_perfect_score(base_report):
         total_snapshots_checked=50,
         total_passed=50,
         total_failed=0,
-        max_risk_score=0.0  # Perfect - no risk
+        max_risk_score=0.0,  # Perfect - no risk
     )
 
     policy = ZeroRegressionPolicy()
@@ -318,7 +308,7 @@ def test_zero_regression_policy_one_failure(base_report):
         total_snapshots_checked=50,
         total_passed=49,
         total_failed=1,  # Just one failure
-        max_risk_score=0.2
+        max_risk_score=0.2,
     )
 
     policy = ZeroRegressionPolicy()
@@ -337,7 +327,7 @@ def test_zero_regression_policy_any_risk_score(base_report):
         total_snapshots_checked=50,
         total_passed=50,
         total_failed=0,  # No failures
-        max_risk_score=0.1  # But non-zero risk
+        max_risk_score=0.1,  # But non-zero risk
     )
 
     policy = ZeroRegressionPolicy()
@@ -357,11 +347,7 @@ def test_zero_regression_policy_any_risk_score(base_report):
 def test_multiple_policies_combined(base_report):
     """Test combining multiple policies."""
     base_report.behavior_checks_summary = BehaviorChecksSummary(
-        total_scenarios_checked=10,
-        total_snapshots_checked=50,
-        total_passed=45,
-        total_failed=5,
-        max_risk_score=0.4
+        total_scenarios_checked=10, total_snapshots_checked=50, total_passed=45, total_failed=5, max_risk_score=0.4
     )
 
     # All three policies
@@ -382,11 +368,7 @@ def test_multiple_policies_combined(base_report):
 def test_policy_with_empty_summary_fields(base_report):
     """Test policies handle edge case of zero scenarios checked."""
     base_report.behavior_checks_summary = BehaviorChecksSummary(
-        total_scenarios_checked=0,
-        total_snapshots_checked=0,
-        total_passed=0,
-        total_failed=0,
-        max_risk_score=0.0
+        total_scenarios_checked=0, total_snapshots_checked=0, total_passed=0, total_failed=0, max_risk_score=0.0
     )
 
     # Should fail minimum coverage
@@ -401,20 +383,13 @@ def test_policy_with_empty_summary_fields(base_report):
 
 def test_policy_evaluation_result_structure():
     """Test PolicyEvaluationResult model structure."""
-    result = PolicyEvaluationResult(
-        passed=False,
-        reason="Test reason",
-        severity="high"
-    )
+    result = PolicyEvaluationResult(passed=False, reason="Test reason", severity="high")
 
     assert result.passed is False
     assert result.reason == "Test reason"
     assert result.severity == "high"
 
     # Test without severity
-    result2 = PolicyEvaluationResult(
-        passed=True,
-        reason="All good"
-    )
+    result2 = PolicyEvaluationResult(passed=True, reason="All good")
     assert result2.passed is True
     assert result2.severity is None

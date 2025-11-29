@@ -14,14 +14,15 @@
 """
 JSONL loader for Feniks - loads and validates chunk data from indexer output.
 """
-import json
 import hashlib
+import json
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.types import Chunk, GitInfo, ApiEndpoint, Dependency, Evidence, MigrationSuggestion
+from feniks.core.models.types import (ApiEndpoint, Chunk, Dependency, Evidence,
+                                      GitInfo, MigrationSuggestion)
 from feniks.exceptions import FeniksIngestError
+from feniks.infra.logging import get_logger
 
 log = get_logger("ingest.jsonl_loader")
 
@@ -49,7 +50,7 @@ def generate_stable_id(file_path: str, start_line: int, end_line: int, commit_ha
         identifier = f"{normalized_path}:{start_line}:{end_line}"
 
     # Generate SHA1 hash
-    return hashlib.sha1(identifier.encode('utf-8')).hexdigest()
+    return hashlib.sha1(identifier.encode("utf-8")).hexdigest()
 
 
 def parse_git_info(data: Optional[Dict[str, Any]]) -> Optional[GitInfo]:
@@ -62,7 +63,7 @@ def parse_git_info(data: Optional[Dict[str, Any]]) -> Optional[GitInfo]:
             hash=data.get("hash", ""),
             author=data.get("author", ""),
             date=data.get("date", ""),
-            summary=data.get("summary", "")
+            summary=data.get("summary", ""),
         )
     except Exception as e:
         log.warning(f"Failed to parse git info: {e}")
@@ -75,16 +76,13 @@ def parse_api_endpoint(data: Dict[str, Any]) -> ApiEndpoint:
         url=data.get("url", ""),
         method=data.get("method", "GET"),
         dataKeys=data.get("dataKeys", []),
-        paramKeys=data.get("paramKeys", [])
+        paramKeys=data.get("paramKeys", []),
     )
 
 
 def parse_dependency(data: Dict[str, Any]) -> Dependency:
     """Parse dependency from JSON data."""
-    return Dependency(
-        type=data.get("type", ""),
-        value=data.get("value", "")
-    )
+    return Dependency(type=data.get("type", ""), value=data.get("value", ""))
 
 
 def parse_evidence(data: Dict[str, Any]) -> Evidence:
@@ -95,7 +93,7 @@ def parse_evidence(data: Dict[str, Any]) -> Evidence:
         confidence=data.get("confidence", 0.0),
         file=data.get("file", ""),
         start_line=data.get("start_line", 0),
-        end_line=data.get("end_line", 0)
+        end_line=data.get("end_line", 0),
     )
 
 
@@ -105,10 +103,7 @@ def parse_migration_suggestion(data: Optional[Dict[str, Any]]) -> Optional[Migra
         return None
 
     try:
-        return MigrationSuggestion(
-            target=data.get("target", ""),
-            notes=data.get("notes", "")
-        )
+        return MigrationSuggestion(target=data.get("target", ""), notes=data.get("notes", ""))
     except Exception as e:
         log.warning(f"Failed to parse migration suggestion: {e}")
         return None
@@ -185,16 +180,15 @@ def parse_chunk_from_json(data: Dict[str, Any], normalize_paths: bool = True) ->
             kind=data.get("kind"),
             ast_node_type=data.get("ast_node_type", data.get("nodeType", data.get("astNodeType", ""))),
             dependencies=dependencies,
-            calls_functions=data.get("calls_functions",
-                                    data.get("callsFunctions",
-                                            data.get("metadata", {}).get("calls_functions", []))),
+            calls_functions=data.get(
+                "calls_functions", data.get("callsFunctions", data.get("metadata", {}).get("calls_functions", []))
+            ),
             api_endpoints=api_endpoints,
-            ui_routes=data.get("ui_routes",
-                              data.get("uiRoutes",
-                                      data.get("metadata", {}).get("ui_routes", []))),
-            cyclomatic_complexity=data.get("cyclomatic_complexity",
-                                          data.get("complexity",
-                                                  data.get("metadata", {}).get("cyclomatic_complexity", 0))),
+            ui_routes=data.get("ui_routes", data.get("uiRoutes", data.get("metadata", {}).get("ui_routes", []))),
+            cyclomatic_complexity=data.get(
+                "cyclomatic_complexity",
+                data.get("complexity", data.get("metadata", {}).get("cyclomatic_complexity", 0)),
+            ),
             business_tags=data.get("business_tags", data.get("businessTags", [])),
             git_last_commit=git_info,
             evidence=evidence,
@@ -204,7 +198,7 @@ def parse_chunk_from_json(data: Dict[str, Any], normalize_paths: bool = True) ->
             migration_suggestion=migration_suggestion,
             invariants=data.get("invariants", []),
             io_contract=data.get("io_contract", {}),
-            api_contract_ref=data.get("api_contract_ref")
+            api_contract_ref=data.get("api_contract_ref"),
         )
 
         return chunk
@@ -215,11 +209,7 @@ def parse_chunk_from_json(data: Dict[str, Any], normalize_paths: bool = True) ->
         raise FeniksIngestError(f"Failed to parse chunk: {e}") from e
 
 
-def load_jsonl(
-    jsonl_path: Path,
-    normalize_paths: bool = True,
-    skip_errors: bool = False
-) -> List[Chunk]:
+def load_jsonl(jsonl_path: Path, normalize_paths: bool = True, skip_errors: bool = False) -> List[Chunk]:
     """
     Load chunks from a JSONL file.
 

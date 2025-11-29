@@ -15,8 +15,9 @@
 Tests for ControllerToComponentRecipe.
 """
 import pytest
+
+from feniks.core.models.types import Chunk, Module, SystemModel
 from feniks.core.refactor.recipes.angularjs import ControllerToComponentRecipe
-from feniks.core.models.types import SystemModel, Module, Chunk
 
 
 @pytest.fixture
@@ -58,7 +59,7 @@ def system_model_with_controller(sample_controller):
         content=sample_controller,
         start_line=1,
         end_line=25,
-        language="javascript"
+        language="javascript",
     )
 
     module = Module(
@@ -66,15 +67,10 @@ def system_model_with_controller(sample_controller):
         file_paths=["/src/controllers/orders.controller.js"],
         chunks=[chunk],
         total_lines=25,
-        complexity_score=5.0
+        complexity_score=5.0,
     )
 
-    system_model = SystemModel(
-        project_id="test-project",
-        modules={"myApp": module},
-        total_lines=25,
-        total_chunks=1
-    )
+    system_model = SystemModel(project_id="test-project", modules={"myApp": module}, total_lines=25, total_chunks=1)
 
     return system_model
 
@@ -181,12 +177,7 @@ def test_validate_checks_syntax(system_model_with_controller):
 def test_no_controllers_returns_none():
     """Test that analyze returns None when no controllers found."""
     # Empty system model
-    system_model = SystemModel(
-        project_id="test-project",
-        modules={},
-        total_lines=0,
-        total_chunks=0
-    )
+    system_model = SystemModel(project_id="test-project", modules={}, total_lines=0, total_chunks=0)
 
     recipe = ControllerToComponentRecipe()
     plan = recipe.analyze(system_model)

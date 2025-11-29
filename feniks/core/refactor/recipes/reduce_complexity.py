@@ -14,12 +14,12 @@
 """
 Reduce Complexity Recipe - Reduces cyclomatic complexity in modules.
 """
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from feniks.core.refactor.recipe import (
-    RefactorRecipe, RefactorPlan, RefactorResult, RefactorRisk, FileChange
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
+                                         RefactorRecipe, RefactorResult,
+                                         RefactorRisk)
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.reduce_complexity")
@@ -47,11 +47,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
     def risk_level(self) -> RefactorRisk:
         return RefactorRisk.MEDIUM
 
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         """
         Analyze system model to find high-complexity modules.
 
@@ -99,7 +95,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
             risks=[
                 "May introduce bugs if logic is incorrectly extracted",
                 "Extracted functions may need additional testing",
-                "Changes may affect module interfaces"
+                "Changes may affect module interfaces",
             ],
             risk_level=self.risk_level,
             estimated_changes=len(high_complexity_modules) * 5,  # ~5 changes per module
@@ -107,23 +103,15 @@ class ReduceComplexityRecipe(RefactorRecipe):
                 "Verify all tests pass after refactoring",
                 "Check that complexity metrics improved",
                 "Review extracted functions for correctness",
-                "Ensure no functionality was lost"
+                "Ensure no functionality was lost",
             ],
-            metadata={
-                "complexity_threshold": threshold,
-                "avg_system_complexity": system_model.avg_module_complexity
-            }
+            metadata={"complexity_threshold": threshold, "avg_system_complexity": system_model.avg_module_complexity},
         )
 
         log.info(f"Created refactoring plan for {len(high_complexity_modules)} modules")
         return plan
 
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         """
         Execute complexity reduction refactoring.
 
@@ -137,14 +125,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
         """
         log.info(f"Executing complexity reduction (dry_run={dry_run})")
 
-        result = RefactorResult(
-            plan=plan,
-            success=True,
-            file_changes=[],
-            validation_results={},
-            errors=[],
-            warnings=[]
-        )
+        result = RefactorResult(plan=plan, success=True, file_changes=[], validation_results={}, errors=[], warnings=[])
 
         # Group chunks by file
         chunks_by_file = {}
@@ -178,12 +159,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
         log.info(f"Refactoring completed: {len(result.file_changes)} files changed")
         return result
 
-    def _process_file(
-        self,
-        file_path: str,
-        chunks: List[Chunk],
-        dry_run: bool
-    ) -> Optional[FileChange]:
+    def _process_file(self, file_path: str, chunks: List[Chunk], dry_run: bool) -> Optional[FileChange]:
         """
         Process a single file for complexity reduction.
 
@@ -196,10 +172,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
             FileChange or None if no changes needed
         """
         # Find high-complexity chunks
-        high_complexity_chunks = [
-            c for c in chunks
-            if c.cyclomatic_complexity > 15  # Threshold for single function
-        ]
+        high_complexity_chunks = [c for c in chunks if c.cyclomatic_complexity > 15]  # Threshold for single function
 
         if not high_complexity_chunks:
             return None
@@ -219,7 +192,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
             original_content="",  # Would be loaded from file in real implementation
             modified_content="",  # Would contain actual refactored code
             change_type="modify",
-            line_changes=[]
+            line_changes=[],
         )
 
         # Store suggestions in metadata
@@ -246,7 +219,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
         validations = {
             "has_changes": len(result.file_changes) > 0,
             "no_critical_errors": len(result.errors) == 0,
-            "within_expected_scope": len(result.file_changes) <= result.plan.estimated_changes * 2
+            "within_expected_scope": len(result.file_changes) <= result.plan.estimated_changes * 2,
         }
 
         result.validation_results = validations

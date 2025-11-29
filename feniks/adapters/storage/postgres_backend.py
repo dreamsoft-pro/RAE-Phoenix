@@ -21,23 +21,17 @@ Provides enterprise-grade storage with:
 - Contract versioning
 """
 import json
-from typing import List, Optional
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    BehaviorContract,
-    BehaviorCheckResult
-)
-from feniks.adapters.storage.base import (
-    BehaviorStorageBackend,
-    VersionedStorageMixin,
-    register_storage_backend
-)
+from feniks.adapters.storage.base import (BehaviorStorageBackend,
+                                          VersionedStorageMixin,
+                                          register_storage_backend)
+from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
+                                         BehaviorScenario, BehaviorSnapshot)
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("adapters.storage.postgres")
 
@@ -45,6 +39,7 @@ log = get_logger("adapters.storage.postgres")
 try:
     import psycopg2
     from psycopg2.extras import Json, RealDictCursor
+
     POSTGRES_AVAILABLE = True
 except ImportError:
     POSTGRES_AVAILABLE = False
@@ -144,7 +139,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         database: str = "feniks",
         user: str = "postgres",
         password: str = "",
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize Postgres backend.
@@ -157,17 +152,9 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
             password: Database password
         """
         if not POSTGRES_AVAILABLE:
-            raise FeniksError(
-                "psycopg2 not installed. Install with: pip install psycopg2-binary"
-            )
+            raise FeniksError("psycopg2 not installed. Install with: pip install psycopg2-binary")
 
-        self.connection_params = {
-            "host": host,
-            "port": port,
-            "database": database,
-            "user": user,
-            "password": password
-        }
+        self.connection_params = {"host": host, "port": port, "database": database, "user": user, "password": password}
 
         # Test connection and create schema
         try:
@@ -200,7 +187,8 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO behavior_scenarios
                     (id, project_id, name, category, description, input, success_criteria, metadata, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -211,17 +199,19 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                         success_criteria = EXCLUDED.success_criteria,
                         metadata = EXCLUDED.metadata,
                         updated_at = CURRENT_TIMESTAMP
-                """, (
-                    scenario.id,
-                    scenario.project_id,
-                    scenario.name,
-                    scenario.category,
-                    scenario.description,
-                    Json(scenario.input.model_dump(mode="json")),
-                    Json(scenario.success_criteria.model_dump(mode="json")),
-                    Json(scenario.metadata or {}),
-                    scenario.created_at
-                ))
+                """,
+                    (
+                        scenario.id,
+                        scenario.project_id,
+                        scenario.name,
+                        scenario.category,
+                        scenario.description,
+                        Json(scenario.input.model_dump(mode="json")),
+                        Json(scenario.success_criteria.model_dump(mode="json")),
+                        Json(scenario.metadata or {}),
+                        scenario.created_at,
+                    ),
+                )
             conn.commit()
             log.info(f"Saved scenario: {scenario.id}")
         finally:
@@ -232,9 +222,12 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM behavior_scenarios WHERE id = %s
-                """, (scenario_id,))
+                """,
+                    (scenario_id,),
+                )
                 row = cur.fetchone()
 
                 if row:
@@ -249,14 +242,19 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if project_id:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT * FROM behavior_scenarios WHERE project_id = %s
                         ORDER BY created_at DESC
-                    """, (project_id,))
+                    """,
+                        (project_id,),
+                    )
                 else:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT * FROM behavior_scenarios ORDER BY created_at DESC
-                    """)
+                    """
+                    )
 
                 rows = cur.fetchall()
                 return [BehaviorScenario(**dict(row)) for row in rows]
@@ -268,9 +266,12 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     DELETE FROM behavior_scenarios WHERE id = %s
-                """, (scenario_id,))
+                """,
+                    (scenario_id,),
+                )
                 deleted = cur.rowcount > 0
             conn.commit()
 
@@ -289,7 +290,8 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO behavior_snapshots
                     (id, scenario_id, project_id, environment, observed_http, observed_cli,
                      observed_dom, observed_logs, duration_ms, success, violations,
@@ -305,33 +307,32 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                         violations = EXCLUDED.violations,
                         error_count = EXCLUDED.error_count,
                         metadata = EXCLUDED.metadata
-                """, (
-                    snapshot.id,
-                    snapshot.scenario_id,
-                    snapshot.project_id,
-                    snapshot.environment,
-                    Json(snapshot.observed_http.model_dump(mode="json")) if snapshot.observed_http else None,
-                    Json(snapshot.observed_cli.model_dump(mode="json")) if snapshot.observed_cli else None,
-                    Json(snapshot.observed_dom.model_dump(mode="json")) if snapshot.observed_dom else None,
-                    Json(snapshot.observed_logs.model_dump(mode="json")) if snapshot.observed_logs else None,
-                    snapshot.duration_ms,
-                    snapshot.success,
-                    Json([v.model_dump(mode="json") for v in snapshot.violations]),
-                    snapshot.error_count,
-                    Json(snapshot.metadata or {}),
-                    snapshot.created_at,
-                    snapshot.recorded_by
-                ))
+                """,
+                    (
+                        snapshot.id,
+                        snapshot.scenario_id,
+                        snapshot.project_id,
+                        snapshot.environment,
+                        Json(snapshot.observed_http.model_dump(mode="json")) if snapshot.observed_http else None,
+                        Json(snapshot.observed_cli.model_dump(mode="json")) if snapshot.observed_cli else None,
+                        Json(snapshot.observed_dom.model_dump(mode="json")) if snapshot.observed_dom else None,
+                        Json(snapshot.observed_logs.model_dump(mode="json")) if snapshot.observed_logs else None,
+                        snapshot.duration_ms,
+                        snapshot.success,
+                        Json([v.model_dump(mode="json") for v in snapshot.violations]),
+                        snapshot.error_count,
+                        Json(snapshot.metadata or {}),
+                        snapshot.created_at,
+                        snapshot.recorded_by,
+                    ),
+                )
             conn.commit()
             log.info(f"Saved snapshot: {snapshot.id}")
         finally:
             conn.close()
 
     def load_snapshots(
-        self,
-        scenario_id: str,
-        environment: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: str, environment: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorSnapshot]:
         """Load snapshots for a scenario, optionally filtered by environment."""
         conn = self._get_connection()
@@ -394,16 +395,13 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         """Save a behavior contract (creates new version)."""
         self.save_contract_version(contract)
 
-    def save_contract_version(
-        self,
-        contract: BehaviorContract,
-        version_notes: Optional[str] = None
-    ) -> str:
+    def save_contract_version(self, contract: BehaviorContract, version_notes: Optional[str] = None) -> str:
         """Save a new version of a contract."""
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO behavior_contracts
                     (id, version, scenario_id, project_id, success_criteria, max_duration_ms,
                      created_from_snapshots, confidence_score, created_at, version_notes)
@@ -414,18 +412,20 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                         created_from_snapshots = EXCLUDED.created_from_snapshots,
                         confidence_score = EXCLUDED.confidence_score,
                         version_notes = EXCLUDED.version_notes
-                """, (
-                    contract.id,
-                    contract.version,
-                    contract.scenario_id,
-                    contract.project_id,
-                    Json(contract.success_criteria.model_dump(mode="json")),
-                    contract.max_duration_ms,
-                    contract.created_from_snapshots,
-                    contract.confidence_score,
-                    contract.created_at,
-                    version_notes or contract.version_notes
-                ))
+                """,
+                    (
+                        contract.id,
+                        contract.version,
+                        contract.scenario_id,
+                        contract.project_id,
+                        Json(contract.success_criteria.model_dump(mode="json")),
+                        contract.max_duration_ms,
+                        contract.created_from_snapshots,
+                        contract.confidence_score,
+                        contract.created_at,
+                        version_notes or contract.version_notes,
+                    ),
+                )
             conn.commit()
             log.info(f"Saved contract version: {contract.id} v{contract.version}")
             return contract.version
@@ -444,10 +444,13 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM behavior_contracts
                     WHERE id = %s AND version = %s
-                """, (contract_id, version))
+                """,
+                    (contract_id, version),
+                )
                 row = cur.fetchone()
 
                 if row:
@@ -461,11 +464,14 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM behavior_contracts
                     WHERE id = %s
                     ORDER BY created_at DESC
-                """, (contract_id,))
+                """,
+                    (contract_id,),
+                )
                 rows = cur.fetchall()
 
                 return [
@@ -473,36 +479,38 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                         "version": row["version"],
                         "created_at": row["created_at"],
                         "notes": row["version_notes"],
-                        "contract": BehaviorContract(**dict(row))
+                        "contract": BehaviorContract(**dict(row)),
                     }
                     for row in rows
                 ]
         finally:
             conn.close()
 
-    def load_contracts_for_scenario(
-        self,
-        scenario_id: str,
-        version: Optional[str] = None
-    ) -> List[BehaviorContract]:
+    def load_contracts_for_scenario(self, scenario_id: str, version: Optional[str] = None) -> List[BehaviorContract]:
         """Load all contracts for a scenario, optionally filtered by version."""
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if version:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT * FROM behavior_contracts
                         WHERE scenario_id = %s AND version = %s
                         ORDER BY created_at DESC
-                    """, (scenario_id, version))
+                    """,
+                        (scenario_id, version),
+                    )
                 else:
                     # Get latest version of each contract
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT DISTINCT ON (id) *
                         FROM behavior_contracts
                         WHERE scenario_id = %s
                         ORDER BY id, created_at DESC
-                    """, (scenario_id,))
+                    """,
+                        (scenario_id,),
+                    )
 
                 rows = cur.fetchall()
                 return [BehaviorContract(**dict(row)) for row in rows]
@@ -545,30 +553,31 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO behavior_check_results
                     (snapshot_id, contract_id, contract_version, scenario_id, passed,
                      violations, risk_score, checked_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    result.snapshot_id,
-                    result.contract_id,
-                    "1.0.0",  # Default version if not specified
-                    result.scenario_id,
-                    result.passed,
-                    Json([v.model_dump(mode="json") for v in result.violations]),
-                    result.risk_score,
-                    result.checked_at
-                ))
+                """,
+                    (
+                        result.snapshot_id,
+                        result.contract_id,
+                        "1.0.0",  # Default version if not specified
+                        result.scenario_id,
+                        result.passed,
+                        Json([v.model_dump(mode="json") for v in result.violations]),
+                        result.risk_score,
+                        result.checked_at,
+                    ),
+                )
             conn.commit()
             log.info(f"Saved check result for snapshot: {result.snapshot_id}")
         finally:
             conn.close()
 
     def load_check_results(
-        self,
-        scenario_id: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorCheckResult]:
         """Load check results, optionally filtered by scenario."""
         conn = self._get_connection()

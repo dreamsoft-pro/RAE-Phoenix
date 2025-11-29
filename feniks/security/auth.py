@@ -14,21 +14,23 @@
 """
 Authentication Manager - Handles JWT authentication and user management.
 """
-from typing import Optional, Dict, Any
-from dataclasses import dataclass
-from enum import Enum
-from datetime import datetime, timedelta
-import jwt
 import hashlib
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, Optional
 
-from feniks.infra.logging import get_logger
+import jwt
+
 from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
 
 log = get_logger("security.auth")
 
 
 class UserRole(Enum):
     """User roles for RBAC."""
+
     VIEWER = "viewer"  # Read-only access
     REFACTORER = "refactorer"  # Can generate refactorings
     ADMIN = "admin"  # Full access
@@ -37,6 +39,7 @@ class UserRole(Enum):
 @dataclass
 class User:
     """Represents an authenticated user."""
+
     user_id: str
     username: str
     email: str
@@ -51,11 +54,13 @@ class User:
 
 class AuthenticationError(FeniksError):
     """Exception for authentication failures."""
+
     pass
 
 
 class AuthorizationError(FeniksError):
     """Exception for authorization failures."""
+
     pass
 
 
@@ -70,12 +75,7 @@ class AuthManager:
     - Multi-tenant project access
     """
 
-    def __init__(
-        self,
-        jwt_secret: Optional[str] = None,
-        jwt_algorithm: str = "HS256",
-        token_expiry_hours: int = 24
-    ):
+    def __init__(self, jwt_secret: Optional[str] = None, jwt_algorithm: str = "HS256", token_expiry_hours: int = 24):
         """
         Initialize auth manager.
 
@@ -117,7 +117,7 @@ class AuthManager:
             "role": user.role.value,
             "projects": user.projects,
             "exp": expiry,
-            "iat": datetime.utcnow()
+            "iat": datetime.utcnow(),
         }
 
         token = jwt.encode(payload, self.jwt_secret, algorithm=self.jwt_algorithm)
@@ -142,18 +142,14 @@ class AuthManager:
             if token.startswith("Bearer "):
                 token = token[7:]
 
-            payload = jwt.decode(
-                token,
-                self.jwt_secret,
-                algorithms=[self.jwt_algorithm]
-            )
+            payload = jwt.decode(token, self.jwt_secret, algorithms=[self.jwt_algorithm])
 
             user = User(
                 user_id=payload["user_id"],
                 username=payload["username"],
                 email=payload["email"],
                 role=UserRole(payload["role"]),
-                projects=payload.get("projects", [])
+                projects=payload.get("projects", []),
             )
 
             log.debug(f"Validated token for user: {user.username}")
@@ -227,12 +223,7 @@ class AuthManager:
         # Try API key
         return self.validate_api_key(credentials)
 
-    def check_permission(
-        self,
-        user: User,
-        operation: str,
-        project_id: Optional[str] = None
-    ) -> bool:
+    def check_permission(self, user: User, operation: str, project_id: Optional[str] = None) -> bool:
         """
         Check if user has permission for operation.
 
@@ -280,10 +271,7 @@ class AuthManager:
 _auth_manager: Optional[AuthManager] = None
 
 
-def get_auth_manager(
-    jwt_secret: Optional[str] = None,
-    jwt_algorithm: str = "HS256"
-) -> AuthManager:
+def get_auth_manager(jwt_secret: Optional[str] = None, jwt_algorithm: str = "HS256") -> AuthManager:
     """
     Get global auth manager instance.
 
@@ -296,8 +284,5 @@ def get_auth_manager(
     """
     global _auth_manager
     if _auth_manager is None:
-        _auth_manager = AuthManager(
-            jwt_secret=jwt_secret,
-            jwt_algorithm=jwt_algorithm
-        )
+        _auth_manager = AuthManager(jwt_secret=jwt_secret, jwt_algorithm=jwt_algorithm)
     return _auth_manager

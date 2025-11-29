@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Set
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set
+
 
 @dataclass
 class GitInfo:
@@ -23,10 +25,12 @@ class GitInfo:
     date: str
     summary: str
 
+
 @dataclass
 class MigrationSuggestion:
     target: str
     notes: str
+
 
 @dataclass
 class Evidence:
@@ -36,6 +40,7 @@ class Evidence:
     file: str
     start_line: int
     end_line: int
+
 
 @dataclass
 class ApiEndpoint:
@@ -60,12 +65,12 @@ class Chunk:
     text: str
     chunk_name: str
     language: str
-    
+
     # --- Wzbogacone Metadane ---
     module: Optional[str] = None
-    kind: Optional[str] = None # service, controller, directive, filter, route, template
+    kind: Optional[str] = None  # service, controller, directive, filter, route, template
     ast_node_type: Optional[str] = None
-    
+
     # Relacje
     dependencies: List[Dependency] = field(default_factory=list)
     calls_functions: List[str] = field(default_factory=list)
@@ -90,8 +95,10 @@ class Chunk:
 
 # --- System Model Types (Iteration 3) ---
 
+
 class ModuleType(Enum):
     """Type of module in the system."""
+
     FRONTEND = "frontend"
     BACKEND = "backend"
     CORE = "core"
@@ -103,6 +110,7 @@ class ModuleType(Enum):
 @dataclass
 class ModuleDependency:
     """Represents a dependency relationship between modules."""
+
     source: str  # Source module name
     target: str  # Target module name
     dependency_type: str  # injection, import, call, etc.
@@ -113,6 +121,7 @@ class ModuleDependency:
 @dataclass
 class Module:
     """Represents a module/component in the system."""
+
     name: str
     module_type: ModuleType
     file_paths: List[str] = field(default_factory=list)
@@ -144,6 +153,7 @@ class Module:
 @dataclass
 class Capability:
     """Represents a system capability detected from code analysis."""
+
     name: str
     description: str
     capability_type: str  # feature, integration, pattern, etc.
@@ -162,6 +172,7 @@ class Capability:
 @dataclass
 class SystemModel:
     """Complete model of the analyzed system."""
+
     project_id: str
     timestamp: str
 
@@ -192,33 +203,38 @@ class SystemModel:
 
 # --- Meta-Reflection Types (Iteration 4) ---
 
+
 class ReflectionLevel(Enum):
     """Level of reflection."""
+
     OBSERVATION = 0  # Pure observations from data
-    REFLECTION = 1   # Conclusions and insights
+    REFLECTION = 1  # Conclusions and insights
     META_REFLECTION = 2  # Reflections about reflections/processes
 
 
 class ReflectionScope(Enum):
     """Scope of the reflection."""
+
     CODEBASE = "codebase"  # Entire codebase
-    MODULE = "module"       # Single module
-    SYSTEM = "system"       # System architecture
-    PATTERN = "pattern"     # Code pattern
+    MODULE = "module"  # Single module
+    SYSTEM = "system"  # System architecture
+    PATTERN = "pattern"  # Code pattern
     TECHNICAL_DEBT = "technical_debt"  # Technical debt
 
 
 class ReflectionImpact(Enum):
     """Impact level of the reflection."""
+
     CRITICAL = "critical"  # Requires immediate attention
     REFACTOR_RECOMMENDED = "refactor-recommended"  # Should be addressed
-    MONITOR = "monitor"    # Keep an eye on it
+    MONITOR = "monitor"  # Keep an eye on it
     INFORMATIONAL = "informational"  # Just FYI
 
 
 @dataclass
 class ReflectionEvidence:
     """Evidence supporting a meta-reflection."""
+
     type: str  # metric, pattern, analysis, etc.
     source: str  # Where the evidence comes from
     value: Any  # The actual evidence value
@@ -235,6 +251,7 @@ class MetaReflection:
     - 1 (REFLECTION): Insights and conclusions
     - 2 (META_REFLECTION): Reflections about the quality of code/architecture
     """
+
     id: str
     timestamp: str
     project_id: str

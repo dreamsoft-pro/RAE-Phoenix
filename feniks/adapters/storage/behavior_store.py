@@ -17,19 +17,16 @@ Behavior Storage - Storage layer for BehaviorScenarios, Snapshots, and Contracts
 Provides file-based storage (JSONL) with future extensibility to Postgres/Qdrant.
 """
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.behavior import (
-    BehaviorScenario,
-    BehaviorSnapshot,
-    BehaviorContract,
-    BehaviorCheckResult
-)
+from feniks.adapters.storage.base import (BehaviorStorageBackend,
+                                          register_storage_backend)
+from feniks.core.models.behavior import (BehaviorCheckResult, BehaviorContract,
+                                         BehaviorScenario, BehaviorSnapshot)
 from feniks.exceptions import FeniksError
-from feniks.adapters.storage.base import BehaviorStorageBackend, register_storage_backend
+from feniks.infra.logging import get_logger
 
 log = get_logger("adapters.storage.behavior")
 
@@ -133,10 +130,7 @@ class BehaviorStore(BehaviorStorageBackend):
         log.info(f"Saved snapshot: {snapshot.id} (scenario={snapshot.scenario_id}, env={snapshot.environment})")
 
     def load_snapshots(
-        self,
-        scenario_id: str,
-        environment: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: str, environment: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorSnapshot]:
         """Load all snapshots for a scenario, optionally filtered by environment."""
         snapshots = []
@@ -234,11 +228,7 @@ class BehaviorStore(BehaviorStorageBackend):
         log.warning(f"Contract not found: {contract_id}")
         return None
 
-    def load_contracts_for_scenario(
-        self,
-        scenario_id: str,
-        version: Optional[str] = None
-    ) -> List[BehaviorContract]:
+    def load_contracts_for_scenario(self, scenario_id: str, version: Optional[str] = None) -> List[BehaviorContract]:
         """Load all contracts for a scenario, optionally filtered by version."""
         contracts = []
         scenario_dir = self.contracts_dir / scenario_id
@@ -309,9 +299,7 @@ class BehaviorStore(BehaviorStorageBackend):
         log.info(f"Saved check result for snapshot: {result.snapshot_id}")
 
     def load_check_results(
-        self,
-        scenario_id: Optional[str] = None,
-        limit: Optional[int] = None
+        self, scenario_id: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorCheckResult]:
         """Load check results, optionally filtered by scenario."""
         results = []

@@ -18,22 +18,25 @@ Handles code ingestion, analysis, and refactoring workflows.
 """
 import argparse
 import sys
-import uvicorn
 from pathlib import Path
 
-from feniks.infra.logging import get_logger
-from feniks.config.settings import settings
-from feniks.exceptions import FeniksError
-from feniks.core.evaluation.pipeline import run_analysis, AnalysisPipeline
-from feniks.core.refactor.refactor_engine import RefactorEngine
-from feniks.infra.metrics import get_metrics_collector
-from feniks.core.policies.cost import get_cost_controller
-from feniks.infra.tracing import trace, span
+import uvicorn
+
 from feniks.adapters.ingest.jsonl_loader import load_jsonl_chunks
-from feniks.adapters.storage.qdrant import upsert_points, ensure_collection
-from feniks.adapters.llm.embedding import get_embedding_model, create_dense_embeddings, build_tfidf
-from feniks.apps.cli.behavior import register_behavior_commands
+from feniks.adapters.llm.embedding import (build_tfidf,
+                                           create_dense_embeddings,
+                                           get_embedding_model)
+from feniks.adapters.storage.qdrant import ensure_collection, upsert_points
 from feniks.apps.cli.angular import register_angular_commands
+from feniks.apps.cli.behavior import register_behavior_commands
+from feniks.config.settings import settings
+from feniks.core.evaluation.pipeline import AnalysisPipeline, run_analysis
+from feniks.core.policies.cost import get_cost_controller
+from feniks.core.refactor.refactor_engine import RefactorEngine
+from feniks.exceptions import FeniksError
+from feniks.infra.logging import get_logger
+from feniks.infra.metrics import get_metrics_collector
+from feniks.infra.tracing import span, trace
 
 log = get_logger("cli")
 
@@ -59,11 +62,11 @@ def handle_ingest(args):
     log.info(f"Reset collection: {args.reset}")
 
     # Re-implement run_ingest logic inline or import it if available (it was previously imported from feniks.core.ingest_pipeline which might have been moved/removed)
-    # Assuming run_ingest logic needs to be here or imported from adapter/ingest if available. 
+    # Assuming run_ingest logic needs to be here or imported from adapter/ingest if available.
     # Based on previous moves, ingest logic was moved to adapters/ingest. Let's check imports.
     # The original file imported run_ingest from feniks.core.ingest_pipeline.
-    # In Phase 1, we moved files. Let's assume basic ingestion logic is handled by adapters now or re-implement simplified version here for stability. 
-    
+    # In Phase 1, we moved files. Let's assume basic ingestion logic is handled by adapters now or re-implement simplified version here for stability.
+
     try:
         # Validate JSONL path
         jsonl_path = Path(args.jsonl_path)
@@ -71,23 +74,24 @@ def handle_ingest(args):
             raise FeniksError(f"JSONL file not found: {jsonl_path}")
 
         # Load chunks
-        chunks = list(load_jsonl_chunks(jsonl_path)) # Simplified
+        chunks = list(load_jsonl_chunks(jsonl_path))  # Simplified
         log.info(f"Loaded: {len(chunks)} chunks")
-        
+
         # Embeddings
         model = get_embedding_model(settings.embedding_model)
         dense_embs = create_dense_embeddings(model, chunks)
         tfidf_vec, tfidf_matrix = build_tfidf(chunks)
-        
+
         # Qdrant
         from qdrant_client import QdrantClient
+
         client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
         ensure_collection(client, args.collection, dense_embs.shape[1], args.reset)
         upsert_points(client, args.collection, chunks, dense_embs, tfidf_matrix, tfidf_vec.vocabulary_)
-        
+
         log.info("=== Ingestion Complete ===")
         log.info(f"Ingested: {len(chunks)} chunks")
-        
+
     except Exception as e:
         log.error(f"Ingestion failed: {e}")
         raise FeniksError(f"Ingestion failed: {e}")
@@ -101,7 +105,7 @@ def handle_analyze(args):
     log.info(f"Collection: {args.collection}")
 
     # Override RAE setting if specified
-    if hasattr(args, 'rae_enabled') and args.rae_enabled is not None:
+    if hasattr(args, "rae_enabled") and args.rae_enabled is not None:
         settings.rae_enabled = args.rae_enabled
         log.info(f"RAE integration: {'enabled' if args.rae_enabled else 'disabled'} (overridden)")
     else:
@@ -117,7 +121,7 @@ def handle_analyze(args):
         collection_name=args.collection,
         output_path=output_path,
         meta_reflections_output=meta_reflections_output,
-        limit=args.limit
+        limit=args.limit,
     )
 
     # Print summary
@@ -168,8 +172,8 @@ def handle_refactor(args):
         log.info(f"Loaded {len(chunks)} chunks")
 
         # Build system model
-        from feniks.core.reflection.system_model import build_system_model
         from feniks.core.reflection.capabilities import CapabilityDetector
+        from feniks.core.reflection.system_model import build_system_model
 
         system_model = build_system_model(chunks, args.project_id)
         detector = CapabilityDetector()
@@ -194,7 +198,7 @@ def handle_refactor(args):
             chunks=chunks,
             target=target,
             dry_run=args.dry_run,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
         if not result:
@@ -221,9 +225,9 @@ def handle_refactor(args):
                 log.warning(f"    - {warning}")
 
         # Print summary
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(f"Refactoring: {result.plan.recipe_name}")
-        print("="*80)
+        print("=" * 80)
         print(f"Status: {'✓ Success' if result.success else '✗ Failed'}")
         print(f"Risk: {result.plan.risk_level.value.upper()}")
         print(f"\nRationale: {result.plan.rationale}")
@@ -240,7 +244,7 @@ def handle_refactor(args):
         print("\nNext steps:")
         for step in result.plan.validation_steps[:3]:
             print(f"  - {step}")
-        print("="*80)
+        print("=" * 80)
 
         return 0 if result.success else 1
 
@@ -260,16 +264,16 @@ def handle_metrics(args):
     metrics = metrics_collector.get_metrics()
 
     # Print summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("Feniks Metrics Summary")
-    print("="*80)
+    print("=" * 80)
     print(f"Uptime: {metrics['uptime_seconds']:.1f}s")
     print(f"Total Projects: {metrics['system']['total_projects']}")
     print(f"Total Operations: {metrics['system']['total_operations']}")
     print()
 
     # Ingests
-    ingests = metrics['system']['ingests']
+    ingests = metrics["system"]["ingests"]
     print("Ingests:")
     print(f"  Total: {ingests['total']}")
     print(f"  Successful: {ingests['successful']}")
@@ -279,7 +283,7 @@ def handle_metrics(args):
     print()
 
     # Analyses
-    analyses = metrics['system']['analyses']
+    analyses = metrics["system"]["analyses"]
     print("Analyses:")
     print(f"  Total: {analyses['total']}")
     print(f"  Successful: {analyses['successful']}")
@@ -289,7 +293,7 @@ def handle_metrics(args):
     print()
 
     # Refactorings
-    refactorings = metrics['system']['refactorings']
+    refactorings = metrics["system"]["refactorings"]
     print("Refactorings:")
     print(f"  Total: {refactorings['total']}")
     print(f"  Successful: {refactorings['successful']}")
@@ -334,8 +338,9 @@ def handle_metrics(args):
             print(f"  Total Spent: {cost_report.get('total_spent', 0):.2f}")
             print(f"  Projects: {len(cost_report.get('projects', {}))}")
 
-    print("="*80)
+    print("=" * 80)
     return 0
+
 
 @trace("cli_compare_sessions")
 def handle_compare_sessions(args):
@@ -345,10 +350,12 @@ def handle_compare_sessions(args):
     print(f"Comparison report generated for {args.session_a} and {args.session_b}")
     print("Status: Not Implemented (Coming in Phase 7)")
 
+
 def handle_serve_api(args):
     """Start the REST API server."""
     log.info(f"Starting Feniks API on {args.host}:{args.port}")
     uvicorn.run("feniks.apps.api.main:app", host=args.host, port=args.port, reload=args.reload)
+
 
 def main():
     """Main CLI entry point."""
@@ -358,152 +365,66 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="Show version information"
-    )
+    parser.add_argument("--version", action="store_true", help="Show version information")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Ingest command (Iteration 2)
-    ingest_parser = subparsers.add_parser(
-        "ingest",
-        help="Ingest code from indexers into knowledge base"
-    )
+    ingest_parser = subparsers.add_parser("ingest", help="Ingest code from indexers into knowledge base")
+    ingest_parser.add_argument("--jsonl-path", type=str, required=True, help="Path to the indexer JSONL output file")
     ingest_parser.add_argument(
-        "--jsonl-path",
-        type=str,
-        required=True,
-        help="Path to the indexer JSONL output file"
+        "--collection", type=str, default="code_chunks", help="Qdrant collection name (default: code_chunks)"
     )
+    ingest_parser.add_argument("--reset", action="store_true", help="Reset the collection before ingestion")
+    ingest_parser.add_argument("--include", type=str, help="Comma-separated include patterns (e.g., '*.js,src/**')")
     ingest_parser.add_argument(
-        "--collection",
-        type=str,
-        default="code_chunks",
-        help="Qdrant collection name (default: code_chunks)"
+        "--exclude", type=str, help="Comma-separated exclude patterns (e.g., '*.test.js,*.spec.js')"
     )
-    ingest_parser.add_argument(
-        "--reset",
-        action="store_true",
-        help="Reset the collection before ingestion"
-    )
-    ingest_parser.add_argument(
-        "--include",
-        type=str,
-        help="Comma-separated include patterns (e.g., '*.js,src/**')"
-    )
-    ingest_parser.add_argument(
-        "--exclude",
-        type=str,
-        help="Comma-separated exclude patterns (e.g., '*.test.js,*.spec.js')"
-    )
-    ingest_parser.add_argument(
-        "--skip-errors",
-        action="store_true",
-        help="Skip invalid chunks instead of failing"
-    )
+    ingest_parser.add_argument("--skip-errors", action="store_true", help="Skip invalid chunks instead of failing")
     ingest_parser.set_defaults(func=handle_ingest)
 
     # Analyze command (Iteration 3)
-    analyze_parser = subparsers.add_parser(
-        "analyze",
-        help="Analyze code and generate system model"
-    )
+    analyze_parser = subparsers.add_parser("analyze", help="Analyze code and generate system model")
+    analyze_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
     analyze_parser.add_argument(
-        "--project-id",
-        type=str,
-        required=True,
-        help="Project identifier"
+        "--collection", type=str, default="code_chunks", help="Qdrant collection name (default: code_chunks)"
     )
+    analyze_parser.add_argument("--output", type=str, help="Output path for report (e.g., report.txt)")
+    analyze_parser.add_argument("--limit", type=int, help="Limit number of chunks to analyze (for testing)")
     analyze_parser.add_argument(
-        "--collection",
-        type=str,
-        default="code_chunks",
-        help="Qdrant collection name (default: code_chunks)"
-    )
-    analyze_parser.add_argument(
-        "--output",
-        type=str,
-        help="Output path for report (e.g., report.txt)"
-    )
-    analyze_parser.add_argument(
-        "--limit",
-        type=int,
-        help="Limit number of chunks to analyze (for testing)"
-    )
-    analyze_parser.add_argument(
-        "--meta-reflections",
-        type=str,
-        help="Output path for meta-reflections JSONL (e.g., reflections.jsonl)"
+        "--meta-reflections", type=str, help="Output path for meta-reflections JSONL (e.g., reflections.jsonl)"
     )
     analyze_parser.add_argument(
         "--rae-enabled",
-        type=lambda x: x.lower() in ['true', '1', 'yes'],
+        type=lambda x: x.lower() in ["true", "1", "yes"],
         default=None,
-        help="Enable/disable RAE integration (overrides config)"
+        help="Enable/disable RAE integration (overrides config)",
     )
     analyze_parser.set_defaults(func=handle_analyze)
 
     # Refactor command (Iteration 6)
-    refactor_parser = subparsers.add_parser(
-        "refactor",
-        help="Execute refactoring workflows"
+    refactor_parser = subparsers.add_parser("refactor", help="Execute refactoring workflows")
+    refactor_parser.add_argument("--list-recipes", action="store_true", help="List available refactoring recipes")
+    refactor_parser.add_argument(
+        "--recipe", type=str, help="Refactoring recipe name (e.g., reduce_complexity, extract_function)"
+    )
+    refactor_parser.add_argument("--project-id", type=str, help="Project identifier")
+    refactor_parser.add_argument(
+        "--collection", type=str, default="code_chunks", help="Qdrant collection name (default: code_chunks)"
+    )
+    refactor_parser.add_argument("--target-module", type=str, help="Target specific module for refactoring")
+    refactor_parser.add_argument(
+        "--output", type=str, help="Output directory for patches and reports (default: output/refactor)"
     )
     refactor_parser.add_argument(
-        "--list-recipes",
-        action="store_true",
-        help="List available refactoring recipes"
-    )
-    refactor_parser.add_argument(
-        "--recipe",
-        type=str,
-        help="Refactoring recipe name (e.g., reduce_complexity, extract_function)"
-    )
-    refactor_parser.add_argument(
-        "--project-id",
-        type=str,
-        help="Project identifier"
-    )
-    refactor_parser.add_argument(
-        "--collection",
-        type=str,
-        default="code_chunks",
-        help="Qdrant collection name (default: code_chunks)"
-    )
-    refactor_parser.add_argument(
-        "--target-module",
-        type=str,
-        help="Target specific module for refactoring"
-    )
-    refactor_parser.add_argument(
-        "--output",
-        type=str,
-        help="Output directory for patches and reports (default: output/refactor)"
-    )
-    refactor_parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        default=True,
-        help="Perform dry run without applying changes (default: True)"
+        "--dry-run", action="store_true", default=True, help="Perform dry run without applying changes (default: True)"
     )
     refactor_parser.set_defaults(func=handle_refactor)
 
     # Metrics command (Iteration 7 - Enterprise)
-    metrics_parser = subparsers.add_parser(
-        "metrics",
-        help="View system metrics and cost reports"
-    )
-    metrics_parser.add_argument(
-        "--project-id",
-        type=str,
-        help="Show metrics for specific project"
-    )
-    metrics_parser.add_argument(
-        "--export",
-        type=str,
-        help="Export metrics to JSON file (e.g., metrics.json)"
-    )
+    metrics_parser = subparsers.add_parser("metrics", help="View system metrics and cost reports")
+    metrics_parser.add_argument("--project-id", type=str, help="Show metrics for specific project")
+    metrics_parser.add_argument("--export", type=str, help="Export metrics to JSON file (e.g., metrics.json)")
     metrics_parser.set_defaults(func=handle_metrics)
 
     # Compare Sessions (New)

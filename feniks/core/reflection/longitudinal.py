@@ -14,28 +14,29 @@
 """
 Longitudinal Analysis Loop - analyzes trends across multiple sessions over time.
 """
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-import uuid
 import statistics
+import uuid
 from collections import Counter
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from feniks.infra.logging import get_logger
-from feniks.core.models.domain import SessionSummary
-from feniks.core.models.types import MetaReflection, ReflectionLevel, ReflectionScope, ReflectionImpact, ReflectionEvidence
 from feniks.core.models.behavior import BehaviorCheckResult
+from feniks.core.models.domain import SessionSummary
+from feniks.core.models.types import (MetaReflection, ReflectionEvidence,
+                                      ReflectionImpact, ReflectionLevel,
+                                      ReflectionScope)
+from feniks.infra.logging import get_logger
 
 log = get_logger("core.reflection.longitudinal")
+
 
 class LongitudinalAnalyzer:
     """
     Analyzes trends across multiple sessions (Longitudinal).
     """
-    
+
     def analyze_trends(
-        self,
-        sessions: List[SessionSummary],
-        behavior_checks: Optional[List[BehaviorCheckResult]] = None
+        self, sessions: List[SessionSummary], behavior_checks: Optional[List[BehaviorCheckResult]] = None
     ) -> List[MetaReflection]:
         """
         Analyze multiple sessions to detect trends.
@@ -75,9 +76,9 @@ class LongitudinalAnalyzer:
     def _analyze_success_rate(self, sessions: List[SessionSummary]) -> Optional[MetaReflection]:
         success_count = sum(1 for s in sessions if s.success)
         rate = success_count / len(sessions)
-        
-        if rate < 0.7: # Below 70% success rate
-             return MetaReflection(
+
+        if rate < 0.7:  # Below 70% success rate
+            return MetaReflection(
                 id=f"long-success-{uuid.uuid4()}",
                 timestamp=datetime.now().isoformat(),
                 project_id="longitudinal",
@@ -86,10 +87,8 @@ class LongitudinalAnalyzer:
                 impact=ReflectionImpact.CRITICAL,
                 title="Low Global Success Rate",
                 content=f"Global success rate is {rate:.1%} across {len(sessions)} sessions.",
-                evidence=[
-                    ReflectionEvidence(type="metric", source="session_history", value=rate)
-                ],
-                recommendations=["Conduct deep dive into failed sessions", "Review recent changes to agent logic"]
+                evidence=[ReflectionEvidence(type="metric", source="session_history", value=rate)],
+                recommendations=["Conduct deep dive into failed sessions", "Review recent changes to agent logic"],
             )
         return None
 
@@ -97,13 +96,13 @@ class LongitudinalAnalyzer:
         costs = [s.cost_profile.cost_usd for s in sessions if s.cost_profile]
         if not costs or len(costs) < 5:
             return None
-            
+
         # Simple linear trend check (comparing avg of first half vs last half)
         mid = len(costs) // 2
         first_half_avg = statistics.mean(costs[:mid])
         last_half_avg = statistics.mean(costs[mid:])
-        
-        if last_half_avg > first_half_avg * 1.2: # 20% increase
+
+        if last_half_avg > first_half_avg * 1.2:  # 20% increase
             return MetaReflection(
                 id=f"long-cost-inc-{uuid.uuid4()}",
                 timestamp=datetime.now().isoformat(),
@@ -113,10 +112,8 @@ class LongitudinalAnalyzer:
                 impact=ReflectionImpact.MONITOR,
                 title="Rising Cost Trend",
                 content=f"Average session cost increased from ${first_half_avg:.3f} to ${last_half_avg:.3f} (+{((last_half_avg/first_half_avg)-1)*100:.1f}%)",
-                evidence=[
-                    ReflectionEvidence(type="trend", source="cost_history", value=last_half_avg)
-                ],
-                recommendations=["Audit token usage", "Check for prompt bloating"]
+                evidence=[ReflectionEvidence(type="trend", source="cost_history", value=last_half_avg)],
+                recommendations=["Audit token usage", "Check for prompt bloating"],
             )
         return None
 
@@ -147,28 +144,24 @@ class LongitudinalAnalyzer:
 
         # Detect declining pass rate (> 15% decrease)
         if first_pass_rate - last_pass_rate > 0.15:
-            reflections.append(MetaReflection(
-                id=f"long-behavior-decline-{uuid.uuid4()}",
-                timestamp=datetime.now().isoformat(),
-                project_id="longitudinal",
-                level=ReflectionLevel.META_REFLECTION,
-                scope=ReflectionScope.SYSTEM,
-                impact=ReflectionImpact.CRITICAL,
-                title="Declining Behavior Check Pass Rate",
-                content=f"Pass rate declined from {first_pass_rate:.1%} to {last_pass_rate:.1%} (Δ-{(first_pass_rate-last_pass_rate)*100:.1f}%)",
-                evidence=[
-                    ReflectionEvidence(
-                        type="trend",
-                        source="behavior_checks",
-                        value=last_pass_rate
-                    )
-                ],
-                recommendations=[
-                    "Halt refactoring efforts until regression root cause is identified",
-                    "Review recent code changes for unintended behavioral modifications",
-                    "Expand behavior contract coverage to catch more edge cases"
-                ]
-            ))
+            reflections.append(
+                MetaReflection(
+                    id=f"long-behavior-decline-{uuid.uuid4()}",
+                    timestamp=datetime.now().isoformat(),
+                    project_id="longitudinal",
+                    level=ReflectionLevel.META_REFLECTION,
+                    scope=ReflectionScope.SYSTEM,
+                    impact=ReflectionImpact.CRITICAL,
+                    title="Declining Behavior Check Pass Rate",
+                    content=f"Pass rate declined from {first_pass_rate:.1%} to {last_pass_rate:.1%} (Δ-{(first_pass_rate-last_pass_rate)*100:.1f}%)",
+                    evidence=[ReflectionEvidence(type="trend", source="behavior_checks", value=last_pass_rate)],
+                    recommendations=[
+                        "Halt refactoring efforts until regression root cause is identified",
+                        "Review recent code changes for unintended behavioral modifications",
+                        "Expand behavior contract coverage to catch more edge cases",
+                    ],
+                )
+            )
 
         # 2. Analyze Risk Score Trend
         first_avg_risk = statistics.mean(c.risk_score for c in first_half)
@@ -176,28 +169,24 @@ class LongitudinalAnalyzer:
 
         # Detect rising risk (> 25% increase)
         if last_avg_risk > first_avg_risk * 1.25:
-            reflections.append(MetaReflection(
-                id=f"long-behavior-risk-{uuid.uuid4()}",
-                timestamp=datetime.now().isoformat(),
-                project_id="longitudinal",
-                level=ReflectionLevel.REFLECTION,
-                scope=ReflectionScope.TECHNICAL_DEBT,
-                impact=ReflectionImpact.CRITICAL,
-                title="Rising Behavior Risk Scores",
-                content=f"Average risk score increased from {first_avg_risk:.2f} to {last_avg_risk:.2f} (+{((last_avg_risk/first_avg_risk)-1)*100:.1f}%)",
-                evidence=[
-                    ReflectionEvidence(
-                        type="trend",
-                        source="behavior_risk",
-                        value=last_avg_risk
-                    )
-                ],
-                recommendations=[
-                    "Investigate severity escalation in violations",
-                    "Check if refactoring is introducing high-risk changes",
-                    "Consider rolling back recent changes"
-                ]
-            ))
+            reflections.append(
+                MetaReflection(
+                    id=f"long-behavior-risk-{uuid.uuid4()}",
+                    timestamp=datetime.now().isoformat(),
+                    project_id="longitudinal",
+                    level=ReflectionLevel.REFLECTION,
+                    scope=ReflectionScope.TECHNICAL_DEBT,
+                    impact=ReflectionImpact.CRITICAL,
+                    title="Rising Behavior Risk Scores",
+                    content=f"Average risk score increased from {first_avg_risk:.2f} to {last_avg_risk:.2f} (+{((last_avg_risk/first_avg_risk)-1)*100:.1f}%)",
+                    evidence=[ReflectionEvidence(type="trend", source="behavior_risk", value=last_avg_risk)],
+                    recommendations=[
+                        "Investigate severity escalation in violations",
+                        "Check if refactoring is introducing high-risk changes",
+                        "Consider rolling back recent changes",
+                    ],
+                )
+            )
 
         # 3. Analyze Violation Pattern Trends
         first_violations = []
@@ -214,28 +203,26 @@ class LongitudinalAnalyzer:
             # Detect emerging violation types (new in last half)
             emerging = set(last_codes.keys()) - set(first_codes.keys())
             if emerging:
-                reflections.append(MetaReflection(
-                    id=f"long-behavior-emerging-{uuid.uuid4()}",
-                    timestamp=datetime.now().isoformat(),
-                    project_id="longitudinal",
-                    level=ReflectionLevel.REFLECTION,
-                    scope=ReflectionScope.PATTERN,
-                    impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-                    title="Emerging Behavior Violation Patterns",
-                    content=f"Detected {len(emerging)} new violation types in recent checks: {', '.join(list(emerging)[:3])}",
-                    evidence=[
-                        ReflectionEvidence(
-                            type="pattern",
-                            source="behavior_violations",
-                            value=list(emerging)
-                        )
-                    ],
-                    recommendations=[
-                        "Investigate what code changes introduced new violation types",
-                        "Update behavior contracts if new patterns are expected",
-                        "Implement preventive measures for emerging violations"
-                    ]
-                ))
+                reflections.append(
+                    MetaReflection(
+                        id=f"long-behavior-emerging-{uuid.uuid4()}",
+                        timestamp=datetime.now().isoformat(),
+                        project_id="longitudinal",
+                        level=ReflectionLevel.REFLECTION,
+                        scope=ReflectionScope.PATTERN,
+                        impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                        title="Emerging Behavior Violation Patterns",
+                        content=f"Detected {len(emerging)} new violation types in recent checks: {', '.join(list(emerging)[:3])}",
+                        evidence=[
+                            ReflectionEvidence(type="pattern", source="behavior_violations", value=list(emerging))
+                        ],
+                        recommendations=[
+                            "Investigate what code changes introduced new violation types",
+                            "Update behavior contracts if new patterns are expected",
+                            "Implement preventive measures for emerging violations",
+                        ],
+                    )
+                )
 
             # Detect escalating violation types (frequency increased >50%)
             escalating = []
@@ -247,28 +234,26 @@ class LongitudinalAnalyzer:
 
             if escalating:
                 top_escalation = max(escalating, key=lambda x: x[2] / x[1])
-                reflections.append(MetaReflection(
-                    id=f"long-behavior-escalate-{uuid.uuid4()}",
-                    timestamp=datetime.now().isoformat(),
-                    project_id="longitudinal",
-                    level=ReflectionLevel.REFLECTION,
-                    scope=ReflectionScope.PATTERN,
-                    impact=ReflectionImpact.REFACTOR_RECOMMENDED,
-                    title="Escalating Behavior Violation Frequency",
-                    content=f"Violation '{top_escalation[0]}' frequency increased from {top_escalation[1]} to {top_escalation[2]} (+{((top_escalation[2]/top_escalation[1])-1)*100:.0f}%)",
-                    evidence=[
-                        ReflectionEvidence(
-                            type="trend",
-                            source="behavior_violations",
-                            value=top_escalation[2]
-                        )
-                    ],
-                    recommendations=[
-                        f"Focus on resolving {top_escalation[0]} violations as priority",
-                        "Check if recent changes amplified existing issues",
-                        "Implement automated checks to prevent recurrence"
-                    ]
-                ))
+                reflections.append(
+                    MetaReflection(
+                        id=f"long-behavior-escalate-{uuid.uuid4()}",
+                        timestamp=datetime.now().isoformat(),
+                        project_id="longitudinal",
+                        level=ReflectionLevel.REFLECTION,
+                        scope=ReflectionScope.PATTERN,
+                        impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+                        title="Escalating Behavior Violation Frequency",
+                        content=f"Violation '{top_escalation[0]}' frequency increased from {top_escalation[1]} to {top_escalation[2]} (+{((top_escalation[2]/top_escalation[1])-1)*100:.0f}%)",
+                        evidence=[
+                            ReflectionEvidence(type="trend", source="behavior_violations", value=top_escalation[2])
+                        ],
+                        recommendations=[
+                            f"Focus on resolving {top_escalation[0]} violations as priority",
+                            "Check if recent changes amplified existing issues",
+                            "Implement automated checks to prevent recurrence",
+                        ],
+                    )
+                )
 
         log.debug(f"Behavior trend analysis generated {len(reflections)} reflections from {len(checks)} checks")
         return reflections

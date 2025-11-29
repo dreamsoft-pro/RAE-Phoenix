@@ -1,6 +1,6 @@
 # tests/test_behavior_oracle.py
-import os
 import json
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -19,6 +19,7 @@ DEBUG = os.getenv("DEBUG_BEHAVIOR", "0") == "1"
 
 
 # --- Utilsy ---
+
 
 def expand_vars(s: Optional[str]) -> Optional[str]:
     """W JSON możesz pisać np. {{BASE_URL}}/pl – tutaj to rozwiniemy."""
@@ -63,13 +64,11 @@ def _maybe_debug(page: Page, name: str):
 
 
 def prepare_test_data(oracles):
-    return [
-        pytest.param(story["story_name"], story["steps"], id=story["story_name"])
-        for story in oracles
-    ]
+    return [pytest.param(story["story_name"], story["steps"], id=story["story_name"]) for story in oracles]
 
 
 # --- Test właściwy ---
+
 
 @pytest.mark.parametrize("story_name, steps", prepare_test_data(behavior_oracles))
 def test_behavior_oracle(page: Page, story_name: str, steps: list):
