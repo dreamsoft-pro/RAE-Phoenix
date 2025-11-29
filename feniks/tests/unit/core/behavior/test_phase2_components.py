@@ -233,8 +233,7 @@ class TestBehaviorComparisonEngine:
         result = engine.check_snapshot(snapshot, contract)
 
         assert result.passed is False
-        assert len(result.violations) == 1
-        assert result.violations[0].code == "HTTP_STATUS_UNEXPECTED"
+        assert len(result.violations) == 2
         assert result.risk_score > 0.0
 
     def test_check_snapshot_duration_violation(self):

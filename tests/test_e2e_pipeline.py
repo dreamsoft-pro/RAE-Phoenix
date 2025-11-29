@@ -21,6 +21,10 @@ def test_full_end_to_end_pipeline(monkeypatch):
     An end-to-end test that runs the full data processing pipeline on the actual
     frontend-master data and verifies the outcome in a real Qdrant instance.
     """
+    # Check if frontend-master exists
+    if not (settings.project_root / "frontend-master").exists():
+        pytest.skip("frontend-master directory not found, skipping E2E test")
+
     # 1. Setup: Define a unique collection name for this test run
     collection_name = f"test-collection-{uuid.uuid4()}"
 

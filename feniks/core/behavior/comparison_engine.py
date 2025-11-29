@@ -223,7 +223,7 @@ class BehaviorComparisonEngine:
         observed_text = set(observed.present_text_snippets)
         for text in contract.must_have_text_snippets:
             if text not in observed_text:
-                 violations.append(
+                violations.append(
                     BehaviorViolation(
                         code="DOM_TEXT_MISSING",
                         message=f"Required text snippet not found: {text}",
