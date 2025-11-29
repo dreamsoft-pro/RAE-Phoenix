@@ -26,6 +26,8 @@ npm-debug.log*
 
 # Logs
 **/*.log
+logs_51027744171/
+logs_*/
 
 # IDE and tools
 .claude/
