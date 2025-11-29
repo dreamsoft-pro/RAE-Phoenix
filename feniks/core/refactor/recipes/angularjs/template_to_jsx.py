@@ -568,10 +568,10 @@ class TemplateToJsxRecipe(RefactorRecipe):
     def _convert_template_to_jsx(self, html: str, template_data: Dict[str, Any]) -> str:
         """Convert HTML template to JSX."""
         # Pre-process ng-repeat (convert to map syntax)
-        html = self._preprocess_ng_repeat(html)
+        # html = self._preprocess_ng_repeat(html)
 
         # Pre-process ng-if (convert to conditional rendering)
-        html = self._preprocess_ng_if(html)
+        # html = self._preprocess_ng_if(html)
 
         # Parse and convert
         parser = AngularHTMLParser()

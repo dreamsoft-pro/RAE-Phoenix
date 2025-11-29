@@ -199,6 +199,9 @@ class BehaviorScenario(BaseModel):
     # What success means
     success_criteria: BehaviorSuccessCriteria
 
+    # Metadata
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
     # Audit metadata
     created_at: datetime
     created_by: Optional[str] = None  # user/agent ID

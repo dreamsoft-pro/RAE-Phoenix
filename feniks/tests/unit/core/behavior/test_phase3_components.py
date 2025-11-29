@@ -32,6 +32,7 @@ from feniks.core.models.behavior import (
     BehaviorContract,
     BehaviorScenario,
     BehaviorSnapshot,
+    CLICommand,
     ScenarioInput,
     SuccessCriteria,
 )
@@ -99,7 +100,7 @@ class TestScenarioLibrary:
             category="cli",
             description="CLI test",
             environment="legacy",
-            input=ScenarioInput(cli_command="echo test"),
+            input=ScenarioInput(cli_command=CLICommand(command="echo test")),
             success_criteria=SuccessCriteria(),
             created_at=datetime.now(),
         )
@@ -258,6 +259,8 @@ class TestStorageAbstraction:
                 project_id="test",
                 name="Test",
                 category="api",
+                description="Test desc",
+                environment="legacy",
                 input=ScenarioInput(),
                 success_criteria=SuccessCriteria(),
                 created_at=datetime.now(),

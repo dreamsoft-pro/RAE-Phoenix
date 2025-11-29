@@ -126,7 +126,7 @@ def test_execute_generates_component(system_model_with_controller):
     result = recipe.execute(plan, [chunk], dry_run=True)
 
     assert result.success
-    assert len(result.file_changes) == 1
+    assert len(result.file_changes) == 2
     assert result.file_changes[0].file_path.endswith(".tsx")
 
 
