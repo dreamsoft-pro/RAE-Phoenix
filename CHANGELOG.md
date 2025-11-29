@@ -1,5 +1,49 @@
 # Changelog
 
+## [Unreleased] - 2025-11-29
+
+### Added
+- add CI bridge script for local log analysis
+- implement governance, observability, and angular enhancements
+- implement JS/TS/Angular migration engine
+- implement PHP enterprise tools integration
+- implement Python refactoring pipeline
+- integrate AngularJS recipes into main recipe registry
+- add Behavior Guard integration for AngularJS migrations
+- add Scope to Hooks recipe
+- add Routing to App Router recipe
+- add Template to JSX recipe
+- add Directive to Component/Hook recipe
+- add Controller to Component recipe for AngularJS migration
+- add comprehensive tests for Phase 3 components
+- add Grafana dashboard configurations
+- add shared scenario library infrastructure
+- add Qdrant storage backend with semantic search
+- add Postgres storage backend with versioning
+- add storage abstraction layer and update file backend
+- add UI runner with Playwright browser automation
+- add comprehensive tests for Phase 2 components
+- add policy threshold parametrization via settings
+- integrate behavior checks with Longitudinal reflection loop
+- integrate behavior checks with Post-Mortem reflection loop
+
+### Fixed
+- resolve remaining ruff errors and unused variables
+- resolve remaining ruff issues and formatting
+- resolve ruff naming conventions and bare excepts
+- add tool.isort configuration to pyproject.toml
+- reformat codebase with black and isort
+- resolve test failures and linting issues
+
+### Changed
+- register new engines and fix angular recipes
+
+### Documentation
+- update README with AngularJS migration features
+- add comprehensive AngularJS migration documentation
+- update documentation for Phase 3 - Enterprise Ready
+- update documentation for Phase 2 - Deep Integration
+
 All notable changes to the Feniks project are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
