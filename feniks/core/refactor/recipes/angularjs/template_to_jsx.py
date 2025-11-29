@@ -24,15 +24,15 @@ Handles:
 - ng-bind → text interpolation
 - Filters → utility functions
 """
-from typing import List, Dict, Any, Optional, Tuple
 import re
-from html.parser import HTMLParser
 from dataclasses import dataclass
+from html.parser import HTMLParser
+from typing import Any, Dict, List, Optional, Tuple
 
-from feniks.core.refactor.recipe import (
-    RefactorRecipe, RefactorPlan, RefactorResult, RefactorRisk, FileChange
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
+                                         RefactorRecipe, RefactorResult,
+                                         RefactorRisk)
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.template_to_jsx")
@@ -41,6 +41,7 @@ log = get_logger("refactor.recipes.angularjs.template_to_jsx")
 @dataclass
 class TemplateMetadata:
     """Metadata extracted from an AngularJS template."""
+
     file_path: str
     raw_html: str
     interpolations: List[str]
@@ -71,7 +72,7 @@ class AngularHTMLParser(HTMLParser):
 
         for attr_name, attr_value in attrs:
             # Collect AngularJS directives
-            if attr_name.startswith('ng-'):
+            if attr_name.startswith("ng-"):
                 ng_directives[attr_name] = attr_value
                 if attr_name not in self.directives_found:
                     self.directives_found[attr_name] = []
@@ -85,7 +86,7 @@ class AngularHTMLParser(HTMLParser):
         jsx_attrs.extend(self._process_ng_directives(ng_directives))
 
         # Build tag
-        attrs_str = ' '.join(jsx_attrs)
+        attrs_str = " ".join(jsx_attrs)
         if attrs_str:
             self.jsx_output.append(f"{indent}<{tag} {attrs_str}>")
         else:
@@ -121,11 +122,11 @@ class AngularHTMLParser(HTMLParser):
         """Convert HTML attribute name to JSX."""
         # Common conversions
         conversions = {
-            'class': 'className',
-            'for': 'htmlFor',
-            'readonly': 'readOnly',
-            'maxlength': 'maxLength',
-            'tabindex': 'tabIndex',
+            "class": "className",
+            "for": "htmlFor",
+            "readonly": "readOnly",
+            "maxlength": "maxLength",
+            "tabindex": "tabIndex",
         }
         return conversions.get(attr_name, attr_name)
 
@@ -134,50 +135,50 @@ class AngularHTMLParser(HTMLParser):
         jsx_attrs = []
 
         for directive, value in directives.items():
-            if directive == 'ng-click':
+            if directive == "ng-click":
                 # ng-click="vm.save()" → onClick={() => vm.save()}
-                jsx_attrs.append(f'onClick={{() => {value}}}')
+                jsx_attrs.append(f"onClick={{() => {value}}}")
 
-            elif directive == 'ng-submit':
+            elif directive == "ng-submit":
                 # ng-submit="vm.submit()" → onSubmit={(e) => { e.preventDefault(); vm.submit(); }}
-                jsx_attrs.append(f'onSubmit={{(e) => {{ e.preventDefault(); {value}; }}}}')
+                jsx_attrs.append(f"onSubmit={{(e) => {{ e.preventDefault(); {value}; }}}}")
 
-            elif directive == 'ng-change':
-                jsx_attrs.append(f'onChange={{() => {value}}}')
+            elif directive == "ng-change":
+                jsx_attrs.append(f"onChange={{() => {value}}}")
 
-            elif directive == 'ng-if':
+            elif directive == "ng-if":
                 # ng-if handled at element level (conditional rendering)
                 jsx_attrs.append(f'{{/* TODO: ng-if="{value}" - use conditional rendering */}}')
 
-            elif directive == 'ng-show':
+            elif directive == "ng-show":
                 # ng-show="expr" → style={{ display: expr ? 'block' : 'none' }}
                 jsx_attrs.append(f'style={{{{ display: {value} ? "block" : "none" }}}}')
 
-            elif directive == 'ng-hide':
+            elif directive == "ng-hide":
                 jsx_attrs.append(f'style={{{{ display: {value} ? "none" : "block" }}}}')
 
-            elif directive == 'ng-class':
+            elif directive == "ng-class":
                 # ng-class="{ active: vm.isActive }" → className={vm.isActive ? 'active' : ''}
                 jsx_attrs.append(f'{{/* TODO: ng-class="{value}" - convert to className logic */}}')
 
-            elif directive == 'ng-model':
+            elif directive == "ng-model":
                 # ng-model="vm.name" → value={vm.name} onChange={(e) => handleModelChange('vm.name', e.target.value)}
-                jsx_attrs.append(f'value={{{value}}}')
+                jsx_attrs.append(f"value={{{value}}}")
                 jsx_attrs.append(f"onChange={{(e) => handleModelChange('{value}', e.target.value)}}")
 
-            elif directive == 'ng-disabled':
-                jsx_attrs.append(f'disabled={{{value}}}')
+            elif directive == "ng-disabled":
+                jsx_attrs.append(f"disabled={{{value}}}")
 
-            elif directive == 'ng-checked':
-                jsx_attrs.append(f'checked={{{value}}}')
+            elif directive == "ng-checked":
+                jsx_attrs.append(f"checked={{{value}}}")
 
-            elif directive == 'ng-href':
-                jsx_attrs.append(f'href={{{value}}}')
+            elif directive == "ng-href":
+                jsx_attrs.append(f"href={{{value}}}")
 
-            elif directive == 'ng-src':
-                jsx_attrs.append(f'src={{{value}}}')
+            elif directive == "ng-src":
+                jsx_attrs.append(f"src={{{value}}}")
 
-            elif directive == 'ng-bind':
+            elif directive == "ng-bind":
                 # ng-bind="vm.text" → {vm.text}
                 jsx_attrs.append(f'{{/* TODO: ng-bind="{value}" - use interpolation */}}')
 
@@ -190,18 +191,18 @@ class AngularHTMLParser(HTMLParser):
     def _convert_interpolation(self, text: str) -> str:
         """Convert {{ expression }} to {expression}."""
         # Find all {{ }} patterns
-        pattern = r'\{\{\s*(.+?)\s*\}\}'
+        pattern = r"\{\{\s*(.+?)\s*\}\}"
 
         def replace_interpolation(match):
             expr = match.group(1)
 
             # Check for filters: {{ value | filterName:arg }}
-            if '|' in expr:
+            if "|" in expr:
                 self._extract_filters(expr)
                 # Convert filter to function call
-                return '{' + self._convert_filter(expr) + '}'
+                return "{" + self._convert_filter(expr) + "}"
             else:
-                return '{' + expr + '}'
+                return "{" + expr + "}"
 
         converted = re.sub(pattern, replace_interpolation, text)
         return converted
@@ -209,45 +210,45 @@ class AngularHTMLParser(HTMLParser):
     def _extract_filters(self, expr: str):
         """Extract filter names from expression."""
         # {{ value | filterName:arg1:arg2 }}
-        parts = expr.split('|')
+        parts = expr.split("|")
         if len(parts) > 1:
             for filter_part in parts[1:]:
-                filter_name = filter_part.split(':')[0].strip()
+                filter_name = filter_part.split(":")[0].strip()
                 if filter_name not in self.filters_found:
                     self.filters_found.append(filter_name)
 
     def _convert_filter(self, expr: str) -> str:
         """Convert filter expression to function call."""
         # {{ amount | currency:'PLN' }} → formatCurrency(amount, 'PLN')
-        parts = expr.split('|')
+        parts = expr.split("|")
         value = parts[0].strip()
 
         if len(parts) == 1:
             return value
 
         filter_expr = parts[1].strip()
-        filter_parts = filter_expr.split(':')
+        filter_parts = filter_expr.split(":")
         filter_name = filter_parts[0].strip()
         filter_args = [value] + [arg.strip() for arg in filter_parts[1:]]
 
         # Map common filters
         filter_mapping = {
-            'currency': 'formatCurrency',
-            'date': 'formatDate',
-            'number': 'formatNumber',
-            'lowercase': 'toLowerCase',
-            'uppercase': 'toUpperCase',
-            'json': 'JSON.stringify',
+            "currency": "formatCurrency",
+            "date": "formatDate",
+            "number": "formatNumber",
+            "lowercase": "toLowerCase",
+            "uppercase": "toUpperCase",
+            "json": "JSON.stringify",
         }
 
-        function_name = filter_mapping.get(filter_name, f'apply{filter_name.capitalize()}')
-        args_str = ', '.join(filter_args)
+        function_name = filter_mapping.get(filter_name, f"apply{filter_name.capitalize()}")
+        args_str = ", ".join(filter_args)
 
-        return f'{function_name}({args_str})'
+        return f"{function_name}({args_str})"
 
     def get_jsx(self) -> str:
         """Get the generated JSX."""
-        return '\n'.join(self.jsx_output)
+        return "\n".join(self.jsx_output)
 
 
 class TemplateToJsxRecipe(RefactorRecipe):
@@ -289,11 +290,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
     def risk_level(self) -> RefactorRisk:
         return RefactorRisk.MEDIUM
 
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         """
         Analyze the system to find AngularJS templates.
 
@@ -351,7 +348,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                 "Check all directives are converted",
                 "Validate filter functions exist",
                 "Test component rendering",
-                "Review ng-repeat conversions"
+                "Review ng-repeat conversions",
             ],
             metadata={
                 "templates": [
@@ -359,23 +356,18 @@ class TemplateToJsxRecipe(RefactorRecipe):
                         "path": m.file_path,
                         "complexity": m.complexity_score,
                         "directives": list(m.directives.keys()),
-                        "filters": m.filters
+                        "filters": m.filters,
                     }
                     for m in template_metadata
                 ],
-                "all_filters": list(all_filters)
-            }
+                "all_filters": list(all_filters),
+            },
         )
 
         log.info(f"Created refactoring plan for {len(template_metadata)} templates")
         return plan
 
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         """
         Execute the template conversion.
 
@@ -411,7 +403,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                     file_path=output_path,
                     original_content=template_chunk.text,
                     modified_content=jsx_code,
-                    change_type="create"
+                    change_type="create",
                 )
                 result.file_changes.append(file_change)
 
@@ -423,10 +415,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                 filter_path = "legacy/filters/index.ts"
 
                 filter_change = FileChange(
-                    file_path=filter_path,
-                    original_content="",
-                    modified_content=filter_code,
-                    change_type="create"
+                    file_path=filter_path, original_content="", modified_content=filter_code, change_type="create"
                 )
                 result.file_changes.append(filter_change)
 
@@ -455,7 +444,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
         # Check JSX syntax
         for file_change in result.file_changes:
-            if file_change.file_path.endswith('.tsx') or file_change.file_path.endswith('.jsx'):
+            if file_change.file_path.endswith(".tsx") or file_change.file_path.endswith(".jsx"):
                 syntax_valid = self._validate_jsx_syntax(file_change.modified_content)
                 validation_results[f"syntax_{file_change.file_path}"] = syntax_valid
 
@@ -465,18 +454,14 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
     # Helper methods
 
-    def _find_templates(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]]
-    ) -> List[Chunk]:
+    def _find_templates(self, system_model: SystemModel, target: Optional[Dict[str, Any]]) -> List[Chunk]:
         """Find HTML template files."""
         templates = []
 
         for module_name, module in system_model.modules.items():
             for chunk in module.chunks:
                 # Check if it's an HTML file
-                if chunk.file_path.endswith('.html'):
+                if chunk.file_path.endswith(".html"):
                     if target and "template_path" in target:
                         if chunk.file_path != target["template_path"]:
                             continue
@@ -488,12 +473,21 @@ class TemplateToJsxRecipe(RefactorRecipe):
         """Extract metadata from a template."""
         try:
             # Find interpolations
-            interpolations = re.findall(r'\{\{(.+?)\}\}', chunk.text)
+            interpolations = re.findall(r"\{\{(.+?)\}\}", chunk.text)
 
             # Find directives
             directives = {}
-            for directive in ['ng-repeat', 'ng-if', 'ng-show', 'ng-hide', 'ng-click',
-                              'ng-model', 'ng-class', 'ng-style', 'ng-bind']:
+            for directive in [
+                "ng-repeat",
+                "ng-if",
+                "ng-show",
+                "ng-hide",
+                "ng-click",
+                "ng-model",
+                "ng-class",
+                "ng-style",
+                "ng-bind",
+            ]:
                 matches = re.findall(rf'{directive}="([^"]*)"', chunk.text)
                 if matches:
                     directives[directive] = matches
@@ -501,25 +495,21 @@ class TemplateToJsxRecipe(RefactorRecipe):
             # Find filters
             filters = []
             for interpolation in interpolations:
-                if '|' in interpolation:
-                    filter_matches = re.findall(r'\|\s*(\w+)', interpolation)
+                if "|" in interpolation:
+                    filter_matches = re.findall(r"\|\s*(\w+)", interpolation)
                     filters.extend(filter_matches)
 
             # Detect controller reference (vm, $ctrl, $scope)
             controller_ref = None
-            if 'vm.' in chunk.text:
-                controller_ref = 'vm'
-            elif '$ctrl.' in chunk.text:
-                controller_ref = '$ctrl'
-            elif '$scope.' in chunk.text:
-                controller_ref = '$scope'
+            if "vm." in chunk.text:
+                controller_ref = "vm"
+            elif "$ctrl." in chunk.text:
+                controller_ref = "$ctrl"
+            elif "$scope." in chunk.text:
+                controller_ref = "$scope"
 
             # Calculate complexity
-            complexity_score = (
-                len(interpolations) +
-                len(directives) * 2 +
-                len(filters) * 3
-            )
+            complexity_score = len(interpolations) + len(directives) * 2 + len(filters) * 3
 
             return TemplateMetadata(
                 file_path=chunk.file_path,
@@ -528,7 +518,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
                 directives=directives,
                 filters=list(set(filters)),
                 controller_ref=controller_ref,
-                complexity_score=complexity_score
+                complexity_score=complexity_score,
             )
 
         except Exception as e:
@@ -543,17 +533,19 @@ class TemplateToJsxRecipe(RefactorRecipe):
             if template.complexity_score > 50:
                 risks.append(f"Template {template.file_path} is highly complex (score: {template.complexity_score})")
 
-            if 'ng-repeat' in template.directives:
+            if "ng-repeat" in template.directives:
                 risks.append(f"Template {template.file_path} uses ng-repeat (requires key handling)")
 
             if len(template.filters) > 3:
                 risks.append(f"Template {template.file_path} uses many filters: {', '.join(template.filters)}")
 
-        risks.extend([
-            "ng-model requires manual state management setup",
-            "Custom filters need implementation",
-            "Complex ng-class expressions may need refactoring"
-        ])
+        risks.extend(
+            [
+                "ng-model requires manual state management setup",
+                "Custom filters need implementation",
+                "Complex ng-class expressions may need refactoring",
+            ]
+        )
 
         return risks
 
@@ -593,7 +585,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
             jsx = self._fallback_conversion(html)
 
         # Wrap in fragment if needed
-        if jsx.count('<') > 1:
+        if jsx.count("<") > 1:
             jsx = f"<>\n{jsx}\n</>"
 
         return jsx
@@ -609,28 +601,28 @@ class TemplateToJsxRecipe(RefactorRecipe):
             ng_repeat_value = match.group(2)
 
             # Parse ng-repeat: "item in items track by item.id"
-            repeat_parts = ng_repeat_value.split(' in ')
+            repeat_parts = ng_repeat_value.split(" in ")
             if len(repeat_parts) != 2:
                 return full_tag  # Can't parse, leave as is
 
             item_var = repeat_parts[0].strip()
-            items_expr = repeat_parts[1].split(' track by ')[0].strip()
+            items_expr = repeat_parts[1].split(" track by ")[0].strip()
             track_by = None
 
-            if ' track by ' in repeat_parts[1]:
-                track_by = repeat_parts[1].split(' track by ')[1].strip()
+            if " track by " in repeat_parts[1]:
+                track_by = repeat_parts[1].split(" track by ")[1].strip()
 
             # Generate key
-            key_expr = track_by if track_by else f'index'
+            key_expr = track_by if track_by else f"index"
 
             # Build map syntax
-            map_start = f'{{{items_expr}.map(({item_var}, index) => ('
-            map_end = '))}}'
+            map_start = f"{{{items_expr}.map(({item_var}, index) => ("
+            map_end = "))}}"
 
             # Replace the opening tag
-            new_tag = full_tag.replace(f'ng-repeat="{ng_repeat_value}"', f'key={{{key_expr}}}')
+            new_tag = full_tag.replace(f'ng-repeat="{ng_repeat_value}"', f"key={{{key_expr}}}")
 
-            return f'{map_start}\n{new_tag}'
+            return f"{map_start}\n{new_tag}"
 
         # This is a simplified version - full implementation would need proper HTML parsing
         pattern = r'<(\w+)[^>]*ng-repeat="([^"]+)"[^>]*>'
@@ -652,7 +644,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
             condition = match.group(3)
             after_attrs = match.group(4)
 
-            return f'{{{condition} && <{tag_name}{before_attrs}{after_attrs}>'
+            return f"{{{condition} && <{tag_name}{before_attrs}{after_attrs}>"
 
         converted = re.sub(pattern, replace_if, html)
 
@@ -663,20 +655,20 @@ class TemplateToJsxRecipe(RefactorRecipe):
         converted = html
 
         # Convert interpolations
-        converted = re.sub(r'\{\{\s*(.+?)\s*\}\}', r'{\1}', converted)
+        converted = re.sub(r"\{\{\s*(.+?)\s*\}\}", r"{\1}", converted)
 
         # Convert class to className
-        converted = re.sub(r'\bclass=', 'className=', converted)
+        converted = re.sub(r"\bclass=", "className=", converted)
 
         # Convert common attributes
-        converted = re.sub(r'\bfor=', 'htmlFor=', converted)
+        converted = re.sub(r"\bfor=", "htmlFor=", converted)
 
         return converted
 
     def _get_jsx_path(self, html_path: str) -> str:
         """Get the output path for JSX file."""
         # Replace .html with .tsx
-        return html_path.replace('.html', '.tsx')
+        return html_path.replace(".html", ".tsx")
 
     def _generate_filter_stubs(self, filters: List[str]) -> str:
         """Generate stub functions for filters."""
@@ -684,42 +676,50 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
         for filter_name in sorted(filters):
             # Common filters
-            if filter_name == 'currency':
-                stubs.append("""export function formatCurrency(value: number, currency: string = 'USD'): string {
+            if filter_name == "currency":
+                stubs.append(
+                    """export function formatCurrency(value: number, currency: string = 'USD'): string {
   // TODO: Implement currency formatting
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
-}""")
-            elif filter_name == 'date':
-                stubs.append("""export function formatDate(value: Date | string, format: string = 'yyyy-MM-dd'): string {
+}"""
+                )
+            elif filter_name == "date":
+                stubs.append(
+                    """export function formatDate(value: Date | string, format: string = 'yyyy-MM-dd'): string {
   // TODO: Implement date formatting (consider date-fns or dayjs)
   return new Date(value).toISOString().split('T')[0];
-}""")
-            elif filter_name == 'number':
-                stubs.append("""export function formatNumber(value: number, decimals: number = 2): string {
+}"""
+                )
+            elif filter_name == "number":
+                stubs.append(
+                    """export function formatNumber(value: number, decimals: number = 2): string {
   return value.toFixed(decimals);
-}""")
+}"""
+                )
             else:
                 # Custom filter
-                function_name = f'apply{filter_name.capitalize()}'
-                stubs.append(f"""export function {function_name}(value: any, ...args: any[]): any {{
+                function_name = f"apply{filter_name.capitalize()}"
+                stubs.append(
+                    f"""export function {function_name}(value: any, ...args: any[]): any {{
   // TODO: Implement custom filter '{filter_name}'
   console.warn('Filter {filter_name} not yet implemented');
   return value;
-}}""")
+}}"""
+                )
 
         header = """// Generated by Feniks - AngularJS Filters
 // TODO: Review and implement filter functions
 
 """
 
-        return header + '\n\n'.join(stubs)
+        return header + "\n\n".join(stubs)
 
     def _validate_jsx_syntax(self, content: str) -> bool:
         """Basic JSX syntax validation."""
         # Check balanced brackets
-        if content.count('{') != content.count('}'):
+        if content.count("{") != content.count("}"):
             return False
-        if content.count('<') != content.count('>'):
+        if content.count("<") != content.count(">"):
             return False
 
         return True

@@ -23,16 +23,16 @@ Handles:
 - Redirects → redirect() calls
 - Query parameters → searchParams
 """
-from typing import List, Dict, Any, Optional
 import re
-from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from feniks.core.refactor.recipe import (
-    RefactorRecipe, RefactorPlan, RefactorResult, RefactorRisk, FileChange
-)
-from feniks.core.models.types import SystemModel, Module, Chunk
+from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.refactor.recipe import (FileChange, RefactorPlan,
+                                         RefactorRecipe, RefactorResult,
+                                         RefactorRisk)
 from feniks.infra.logging import get_logger
 
 log = get_logger("refactor.recipes.angularjs.routing_to_app_router")
@@ -40,6 +40,7 @@ log = get_logger("refactor.recipes.angularjs.routing_to_app_router")
 
 class RouterType(Enum):
     """Types of AngularJS routers."""
+
     NG_ROUTE = "ngRoute"  # $routeProvider
     UI_ROUTER = "ui-router"  # $stateProvider
 
@@ -47,6 +48,7 @@ class RouterType(Enum):
 @dataclass
 class RouteDefinition:
     """Represents an AngularJS route definition."""
+
     path: str  # Original path (/orders/:id)
     name: Optional[str]  # State name (for ui-router)
     controller: Optional[str]
@@ -62,6 +64,7 @@ class RouteDefinition:
 @dataclass
 class RoutingMetadata:
     """Metadata extracted from routing configuration."""
+
     router_type: RouterType
     routes: List[RouteDefinition]
     default_route: Optional[str]
@@ -107,11 +110,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
     def risk_level(self) -> RefactorRisk:
         return RefactorRisk.MEDIUM
 
-    def analyze(
-        self,
-        system_model: SystemModel,
-        target: Optional[Dict[str, Any]] = None
-    ) -> Optional[RefactorPlan]:
+    def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         """
         Analyze the system to find routing configuration.
 
@@ -157,7 +156,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
                 "Check route parameter handling",
                 "Validate nested route structure",
                 "Test navigation between routes",
-                "Review middleware for redirects"
+                "Review middleware for redirects",
             ],
             metadata={
                 "router_type": routing_metadata.router_type.value,
@@ -168,24 +167,19 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
                         "controller": r.controller,
                         "template": r.template_url or r.template,
                         "parent": r.parent,
-                        "redirect_to": r.redirect_to
+                        "redirect_to": r.redirect_to,
                     }
                     for r in routing_metadata.routes
                 ],
                 "default_route": routing_metadata.default_route,
-                "otherwise_route": routing_metadata.otherwise_route
-            }
+                "otherwise_route": routing_metadata.otherwise_route,
+            },
         )
 
         log.info(f"Created refactoring plan for {len(routing_metadata.routes)} routes")
         return plan
 
-    def execute(
-        self,
-        plan: RefactorPlan,
-        chunks: List[Chunk],
-        dry_run: bool = True
-    ) -> RefactorResult:
+    def execute(self, plan: RefactorPlan, chunks: List[Chunk], dry_run: bool = True) -> RefactorResult:
         """
         Execute the routing migration.
 
@@ -205,7 +199,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
             # Identify parents
             all_routes = plan.metadata["routes"]
             parent_names = {r["parent"] for r in all_routes if r.get("parent")}
-            
+
             # Generate route structure
             route_mapping = {}
 
@@ -216,32 +210,29 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
 
                 # Convert path to Next.js structure
                 next_path = self._convert_path_to_next(route_data["path"])
-                
+
                 # Determine if this is a layout (parent route)
                 is_layout = route_data.get("name") in parent_names
-                
+
                 # Generate page.tsx (Leaf or Index)
                 page_code = self._generate_page_component(route_data, plan)
                 page_file_path = f"{self.target_dir}{next_path}/page.tsx"
 
                 file_change = FileChange(
-                    file_path=page_file_path,
-                    original_content="",
-                    modified_content=page_code,
-                    change_type="create"
+                    file_path=page_file_path, original_content="", modified_content=page_code, change_type="create"
                 )
                 result.file_changes.append(file_change)
-                
+
                 # Generate layout.tsx if parent
                 if is_layout:
                     layout_code = self._generate_layout_component(route_data, plan)
                     layout_file_path = f"{self.target_dir}{next_path}/layout.tsx"
-                    
+
                     layout_change = FileChange(
                         file_path=layout_file_path,
                         original_content="",
                         modified_content=layout_code,
-                        change_type="create"
+                        change_type="create",
                     )
                     result.file_changes.append(layout_change)
                     log.info(f"Generated layout: {layout_file_path}")
@@ -250,7 +241,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
                     "nextPath": next_path,
                     "file": page_file_path,
                     "controller": route_data.get("controller"),
-                    "template": route_data.get("template")
+                    "template": route_data.get("template"),
                 }
 
                 log.info(f"Generated route: {page_file_path}")
@@ -264,7 +255,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
                     file_path=middleware_path,
                     original_content="",
                     modified_content=middleware_code,
-                    change_type="create"
+                    change_type="create",
                 )
                 result.file_changes.append(middleware_change)
 
@@ -284,7 +275,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
         """Generate layout.tsx for nested routes."""
         path = route_data["path"]
         component_name = self._path_to_component_name(path).replace("Page", "Layout")
-        
+
         # Resolve generation similar to page
         data_fetching_funcs = ""
         data_fetching_calls = ""
@@ -327,12 +318,12 @@ export default async function {component_name}({{ children }}: {{ children: Reac
 
         # Check all routes have page.tsx
         expected_count = len([r for r in result.plan.metadata["routes"] if not r["redirect_to"]])
-        actual_page_count = len([fc for fc in result.file_changes if fc.file_path.endswith('page.tsx')])
+        actual_page_count = len([fc for fc in result.file_changes if fc.file_path.endswith("page.tsx")])
         validation_results["all_pages_generated"] = actual_page_count == expected_count
 
         # Check syntax
         for file_change in result.file_changes:
-            if file_change.file_path.endswith('.tsx'):
+            if file_change.file_path.endswith(".tsx"):
                 syntax_valid = self._validate_syntax(file_change.modified_content)
                 validation_results[f"syntax_{Path(file_change.file_path).name}"] = syntax_valid
 
@@ -356,10 +347,10 @@ export default async function {component_name}({{ children }}: {{ children: Reac
     def _is_routing_chunk(self, chunk: Chunk) -> bool:
         """Check if chunk contains routing configuration."""
         patterns = [
-            r'\$routeProvider',
-            r'\$stateProvider',
-            r'\.config\s*\(\s*\[.*?routeProvider',
-            r'\.config\s*\(\s*\[.*?stateProvider'
+            r"\$routeProvider",
+            r"\$stateProvider",
+            r"\.config\s*\(\s*\[.*?routeProvider",
+            r"\.config\s*\(\s*\[.*?stateProvider",
         ]
 
         for pattern in patterns:
@@ -377,7 +368,7 @@ export default async function {component_name}({{ children }}: {{ children: Reac
 
         for chunk in chunks:
             # Detect router type
-            if '$stateProvider' in chunk.content:
+            if "$stateProvider" in chunk.content:
                 router_type = RouterType.UI_ROUTER
                 routes = self._extract_ui_router_routes(chunk.content)
             else:
@@ -394,10 +385,7 @@ export default async function {component_name}({{ children }}: {{ children: Reac
             return None
 
         return RoutingMetadata(
-            router_type=router_type,
-            routes=all_routes,
-            default_route=default_route,
-            otherwise_route=otherwise_route
+            router_type=router_type, routes=all_routes, default_route=default_route, otherwise_route=otherwise_route
         )
 
     def _extract_ng_route_routes(self, content: str) -> List[RouteDefinition]:
@@ -431,31 +419,33 @@ export default async function {component_name}({{ children }}: {{ children: Reac
             redirect_match = re.search(r'redirectTo\s*:\s*["\']([^"\']+)["\']', config)
             redirect_to = redirect_match.group(1) if redirect_match else None
 
-            routes.append(RouteDefinition(
-                path=path,
-                name=None,
-                controller=controller,
-                controller_as=controller_as,
-                template_url=template_url,
-                template=template,
-                resolve={},
-                parent=None,
-                is_default=False,
-                redirect_to=redirect_to
-            ))
+            routes.append(
+                RouteDefinition(
+                    path=path,
+                    name=None,
+                    controller=controller,
+                    controller_as=controller_as,
+                    template_url=template_url,
+                    template=template,
+                    resolve={},
+                    parent=None,
+                    is_default=False,
+                    redirect_to=redirect_to,
+                )
+            )
 
         return routes
 
     def _convert_path_to_next(self, angular_path: str) -> str:
         """Convert AngularJS path to Next.js path."""
         # Remove leading slash
-        path = angular_path.lstrip('/')
+        path = angular_path.lstrip("/")
 
         # Convert :param to [param]
-        path = re.sub(r':(\w+)', r'[\1]', path)
+        path = re.sub(r":(\w+)", r"[\1]", path)
 
         # Handle optional parameters (ui-router)
-        path = path.replace('?', '')
+        path = path.replace("?", "")
 
         # Add leading slash
         return f"/{path}" if path else ""
@@ -474,7 +464,7 @@ export default async function {component_name}({{ children }}: {{ children: Reac
 
             # Extract url
             url_match = re.search(r'url\s*:\s*["\']([^"\']+)["\']', config)
-            url = url_match.group(1) if url_match else f'/{state_name}'
+            url = url_match.group(1) if url_match else f"/{state_name}"
 
             # Extract controller
             controller_match = re.search(r'controller\s*:\s*["\']([^"\']+)["\']', config)
@@ -493,45 +483,47 @@ export default async function {component_name}({{ children }}: {{ children: Reac
             parent = parent_match.group(1) if parent_match else None
 
             # Check if state name has dot (nested)
-            if '.' in state_name and not parent:
-                parent = state_name.rsplit('.', 1)[0]
+            if "." in state_name and not parent:
+                parent = state_name.rsplit(".", 1)[0]
 
             # Extract resolve
             resolve = {}
             # Try to find resolve block. Logic: find 'resolve:', then capture inside braces.
             # This is hard with regex. Simplified assumption: resolve block doesn't contain 'resolve:' string inside.
-            resolve_match = re.search(r'resolve\s*:\s*\{', config)
+            resolve_match = re.search(r"resolve\s*:\s*\{", config)
             if resolve_match:
                 start = resolve_match.end()
                 # Basic brace counting
                 brace_count = 1
                 end = start
                 for i, char in enumerate(config[start:]):
-                    if char == '{':
+                    if char == "{":
                         brace_count += 1
-                    elif char == '}':
+                    elif char == "}":
                         brace_count -= 1
                     if brace_count == 0:
                         end = start + i
                         break
-                
+
                 resolve_block = config[start:end]
                 # Find keys
-                for res_item in re.finditer(r'(\w+)\s*:', resolve_block):
+                for res_item in re.finditer(r"(\w+)\s*:", resolve_block):
                     resolve[res_item.group(1)] = "data_fetch_stub"
 
-            routes.append(RouteDefinition(
-                path=url,
-                name=state_name,
-                controller=controller,
-                controller_as=controller_as,
-                template_url=template_url,
-                template=None,
-                resolve=resolve,
-                parent=parent,
-                is_default=False,
-                redirect_to=None
-            ))
+            routes.append(
+                RouteDefinition(
+                    path=url,
+                    name=state_name,
+                    controller=controller,
+                    controller_as=controller_as,
+                    template_url=template_url,
+                    template=None,
+                    resolve=resolve,
+                    parent=parent,
+                    is_default=False,
+                    redirect_to=None,
+                )
+            )
 
         return routes
 
@@ -544,7 +536,7 @@ export default async function {component_name}({{ children }}: {{ children: Reac
         component_name = self._path_to_component_name(path)
 
         # Check if has parameters
-        has_params = '[' in self._convert_path_to_next(path)
+        has_params = "[" in self._convert_path_to_next(path)
 
         # Generate params interface
         params_interface = self._generate_params_interface(path) if has_params else ""
@@ -552,7 +544,7 @@ export default async function {component_name}({{ children }}: {{ children: Reac
         # Generate Data Fetching from Resolve
         data_fetching_funcs = ""
         data_fetching_calls = ""
-        
+
         resolve_map = route_data.get("resolve", {})
         if resolve_map:
             for key, _ in resolve_map.items():
@@ -600,12 +592,12 @@ export default async function {component_name}({{ params }}: {component_name}Pro
     def _generate_params_interface(self, path: str) -> str:
         """Generate TypeScript interface for route params."""
         # Extract parameter names
-        params = re.findall(r':(\w+)', path)
+        params = re.findall(r":(\w+)", path)
 
         if not params:
             return ""
 
-        params_str = '\n'.join([f"  {param}: string;" for param in params])
+        params_str = "\n".join([f"  {param}: string;" for param in params])
 
         return f"""interface PageProps {{
   params: {{
@@ -619,11 +611,11 @@ type {self._path_to_component_name(path)}Props = PageProps;
     def _path_to_component_name(self, path: str) -> str:
         """Convert path to component name."""
         # Remove leading slash and parameters
-        clean_path = re.sub(r'[/:?\[\]]', ' ', path).strip()
+        clean_path = re.sub(r"[/:?\[\]]", " ", path).strip()
         # Convert to PascalCase
         parts = clean_path.split()
-        component_name = ''.join(word.capitalize() for word in parts if word)
-        return component_name + 'Page' if component_name else 'HomePage'
+        component_name = "".join(word.capitalize() for word in parts if word)
+        return component_name + "Page" if component_name else "HomePage"
 
     def _generate_middleware(self, plan: RefactorPlan) -> str:
         """Generate Next.js middleware for redirects."""
@@ -666,13 +658,13 @@ export const config = {{
 
     def _validate_syntax(self, content: str) -> bool:
         """Basic syntax validation."""
-        if content.count('{') != content.count('}'):
+        if content.count("{") != content.count("}"):
             return False
-        if content.count('(') != content.count(')'):
+        if content.count("(") != content.count(")"):
             return False
 
         # Check for export default
-        if 'export default' not in content:
+        if "export default" not in content:
             return False
 
         return True

@@ -17,6 +17,7 @@ from typing import Any
 # Define a generic ASTNode type for type hinting
 ASTNode = Any
 
+
 class BaseLanguagePlugin(ABC):
     """
     Abstract base class for language-specific plugins.
@@ -50,11 +51,13 @@ class BaseLanguagePlugin(ABC):
 
         :param pattern: The pattern to match.
         :param ast: The root node of the AST to search in.
+        """
         pass
 
 
-import esprima
 import escodegen
+import esprima
+
 
 class JavaScriptPlugin(BaseLanguagePlugin):
     """
@@ -66,7 +69,7 @@ class JavaScriptPlugin(BaseLanguagePlugin):
         Parses JavaScript code into an AST using esprima.
         """
         try:
-            return esprima.parseScript(content, options={'loc': True, 'tolerant': True})
+            return esprima.parseScript(content, options={"loc": True, "tolerant": True})
         except esprima.Error as e:
             # Here you might want to log the error or handle it as needed
             raise ValueError(f"Failed to parse JavaScript content: {e}")
@@ -85,6 +88,7 @@ class JavaScriptPlugin(BaseLanguagePlugin):
         matcher.visit(ast)
         return matcher.get_matches()
 
+
 def _is_node_match(node, pattern_dict: dict) -> bool:
     """Recursively checks if an AST node matches a pattern dictionary."""
     if not node or not isinstance(pattern_dict, dict):
@@ -93,7 +97,7 @@ def _is_node_match(node, pattern_dict: dict) -> bool:
     for key, pattern_value in pattern_dict.items():
         if not hasattr(node, key):
             return False
-        
+
         node_value = getattr(node, key)
 
         if isinstance(pattern_value, dict):
@@ -109,6 +113,7 @@ def _is_node_match(node, pattern_dict: dict) -> bool:
             if node_value != pattern_value:
                 return False
     return True
+
 
 class AstMatcher:
     """Traverses an AST to find all nodes that match the given pattern."""
@@ -126,14 +131,33 @@ class AstMatcher:
                 self.visit(item)
             return
 
-        if not hasattr(node, 'type'):
+        if not hasattr(node, "type"):
             return
 
         if _is_node_match(node, self.pattern):
             self.matches.append(node)
 
         # Manually traverse known properties that can contain child nodes
-        for prop in ['body', 'expression', 'callee', 'object', 'property', 'arguments', 'declarations', 'init', 'update', 'test', 'consequent', 'alternate', 'left', 'right', 'elements', 'id', 'params', 'argument']:
+        for prop in [
+            "body",
+            "expression",
+            "callee",
+            "object",
+            "property",
+            "arguments",
+            "declarations",
+            "init",
+            "update",
+            "test",
+            "consequent",
+            "alternate",
+            "left",
+            "right",
+            "elements",
+            "id",
+            "params",
+            "argument",
+        ]:
             if hasattr(node, prop):
                 child = getattr(node, prop)
                 self.visit(child)
