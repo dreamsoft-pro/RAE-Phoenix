@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-if TYPE_CHECKING:
-    from feniks.core.models.behavior import BehaviorChecksSummary, BehaviorViolation
+from feniks.core.models.behavior import BehaviorChecksSummary, BehaviorViolation
 
 
 class ReasoningTrace(BaseModel):
@@ -57,13 +56,9 @@ class FeniksReport(BaseModel):
     recommendations: List[str] = Field(default_factory=list, description="List of recommendations")
 
     # Behavior checks (Legacy Behavior Guard integration)
-    behavior_checks_summary: Optional["BehaviorChecksSummary"] = Field(
+    behavior_checks_summary: Optional[BehaviorChecksSummary] = Field(
         None, description="Summary of behavior checks performed (pass/fail, risk scores)"
     )
-    behavior_violations: List["BehaviorViolation"] = Field(
+    behavior_violations: List[BehaviorViolation] = Field(
         default_factory=list, description="List of behavior contract violations detected"
     )
-
-
-# Rebuild model to resolve forward references
-FeniksReport.model_rebuild()
