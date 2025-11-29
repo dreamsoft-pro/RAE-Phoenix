@@ -63,3 +63,7 @@ class FeniksReport(BaseModel):
     behavior_violations: List["BehaviorViolation"] = Field(
         default_factory=list, description="List of behavior contract violations detected"
     )
+
+
+# Rebuild model to resolve forward references
+FeniksReport.model_rebuild()

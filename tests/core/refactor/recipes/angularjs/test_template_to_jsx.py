@@ -57,7 +57,7 @@ def system_model_with_template(sample_template):
     chunk = Chunk(
         id="chunk1",
         file_path="/src/views/orders.html",
-        content=sample_template,
+        text=sample_template,
         start_line=1,
         end_line=27,
         language="html",
@@ -67,7 +67,7 @@ def system_model_with_template(sample_template):
         name="views", file_paths=["/src/views/orders.html"], chunks=[chunk], total_lines=27, complexity_score=8.0
     )
 
-    system_model = SystemModel(project_id="test-project", modules={"views": module}, total_lines=27, total_chunks=1)
+    system_model = SystemModel(project_id="test-project", modules={"views": module}, total_chunks=1)
 
     return system_model
 
@@ -181,7 +181,7 @@ def test_validate_checks_jsx_syntax(system_model_with_template):
 def test_no_templates_returns_none():
     """Test that analyze returns None when no templates found."""
     # Empty system model
-    system_model = SystemModel(project_id="test-project", modules={}, total_lines=0, total_chunks=0)
+    system_model = SystemModel(project_id="test-project", modules={}, total_chunks=0)
 
     recipe = TemplateToJsxRecipe()
     plan = recipe.analyze(system_model)
