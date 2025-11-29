@@ -67,7 +67,7 @@ def system_model_with_template(sample_template):
     )
 
     module = Module(
-        name="views", file_paths=["/src/views/orders.html"], chunks=[chunk], total_lines=27, complexity_score=8.0
+        name="views", file_paths=["/src/views/orders.html"], chunks=[chunk], total_lines=27, total_complexity=8
     )
 
     system_model = SystemModel(

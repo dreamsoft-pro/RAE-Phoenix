@@ -70,7 +70,7 @@ def system_model_with_controller(sample_controller):
         file_paths=["/src/controllers/orders.controller.js"],
         chunks=[chunk],
         total_lines=25,
-        complexity_score=5.0,
+        total_complexity=5,
     )
 
     system_model = SystemModel(
