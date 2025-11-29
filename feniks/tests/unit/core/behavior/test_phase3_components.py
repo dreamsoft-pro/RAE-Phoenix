@@ -306,7 +306,7 @@ class TestStorageAbstraction:
             # Create multiple contract versions
             for version in ["1.0.0", "1.1.0", "2.0.0"]:
                 contract = BehaviorContract(
-                    id="contract-1",
+                    id=f"contract-1-{version}",
                     version=version,
                     scenario_id="scenario-1",
                     project_id="test",

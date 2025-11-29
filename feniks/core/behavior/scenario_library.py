@@ -85,6 +85,7 @@ class ScenarioLibrary:
             name=scenario.name,
             category=scenario.category,
             description=description or scenario.description,
+            environment=scenario.environment,
             input=scenario.input,
             success_criteria=scenario.success_criteria,
             metadata={
@@ -198,6 +199,7 @@ class ScenarioLibrary:
             name=customize.get("name") if customize else library_scenario.name,
             category=library_scenario.category,
             description=customize.get("description") if customize else library_scenario.description,
+            environment=library_scenario.environment,
             input=library_scenario.input,
             success_criteria=library_scenario.success_criteria,
             metadata={

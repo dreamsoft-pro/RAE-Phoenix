@@ -18,7 +18,7 @@ from datetime import datetime
 
 import pytest
 
-from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.models.types import Chunk, Module, ModuleType, SystemModel
 from feniks.core.refactor.recipes.angularjs import TemplateToJsxRecipe
 
 
@@ -67,7 +67,12 @@ def system_model_with_template(sample_template):
     )
 
     module = Module(
-        name="views", file_paths=["/src/views/orders.html"], chunks=[chunk], total_lines=27, total_complexity=8
+        name="views",
+        module_type=ModuleType.FRONTEND,
+        file_paths=["/src/views/orders.html"],
+        chunks=[chunk],
+        total_lines=27,
+        total_complexity=8,
     )
 
     system_model = SystemModel(

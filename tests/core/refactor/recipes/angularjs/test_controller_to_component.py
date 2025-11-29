@@ -18,7 +18,7 @@ from datetime import datetime
 
 import pytest
 
-from feniks.core.models.types import Chunk, Module, SystemModel
+from feniks.core.models.types import Chunk, Module, ModuleType, SystemModel
 from feniks.core.refactor.recipes.angularjs import ControllerToComponentRecipe
 
 
@@ -67,6 +67,7 @@ def system_model_with_controller(sample_controller):
 
     module = Module(
         name="myApp",
+        module_type=ModuleType.FRONTEND,
         file_paths=["/src/controllers/orders.controller.js"],
         chunks=[chunk],
         total_lines=25,

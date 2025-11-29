@@ -83,6 +83,7 @@ def test_budget_alert_threshold_warning(mock_get_controller, enforcer):
     mock_budget.utilization = 85.0  # 85% wykorzystania
     mock_controller.get_budget.return_value = mock_budget
     mock_get_controller.return_value = mock_controller
+    enforcer.controller = mock_controller  # Explicitly inject mock
 
     reflections = enforcer.check_budget_health("test-project")
 
@@ -99,6 +100,7 @@ def test_budget_alert_threshold_critical(mock_get_controller, enforcer):
     mock_budget.utilization = 96.0  # 96% wykorzystania
     mock_controller.get_budget.return_value = mock_budget
     mock_get_controller.return_value = mock_controller
+    enforcer.controller = mock_controller  # Explicitly inject mock
 
     reflections = enforcer.check_budget_health("test-project")
 
@@ -113,6 +115,7 @@ def test_budget_health_no_budget(mock_get_controller, enforcer):
     mock_controller = MagicMock()
     mock_controller.get_budget.return_value = None
     mock_get_controller.return_value = mock_controller
+    enforcer.controller = mock_controller  # Explicitly inject mock
 
     reflections = enforcer.check_budget_health("no-budget-project")
 
