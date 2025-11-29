@@ -25,11 +25,9 @@ from typing import List, Optional, Set
 from feniks.core.models.behavior import (
     BehaviorContract,
     BehaviorSnapshot,
-    CLISuccessCriteria,
-    DOMSuccessCriteria,
-    HTTPSuccessCriteria,
-    LogSuccessCriteria,
-    SuccessCriteria,
+    DOMContract,
+    HTTPContract,
+    LogContract,
 )
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
@@ -97,8 +95,10 @@ class ContractGenerator:
 
         log.info(f"Generating contract from {len(snapshots)} snapshots (scenario={scenario_id})")
 
-        # Derive success criteria
-        success_criteria = self._derive_success_criteria(snapshots)
+        # Derive contracts
+        http_contract = self._derive_http_contract(snapshots)
+        dom_contract = self._derive_dom_contract(snapshots)
+        log_contract = self._derive_log_contract(snapshots)
 
         # Calculate duration threshold
         durations = [s.duration_ms for s in snapshots if s.duration_ms]
@@ -113,7 +113,9 @@ class ContractGenerator:
             scenario_id=scenario_id,
             project_id=project_id,
             version=version,
-            success_criteria=success_criteria,
+            http_contract=http_contract,
+            dom_contract=dom_contract,
+            log_contract=log_contract,
             max_duration_ms_p95=max_duration_ms,
             created_at=datetime.now(),
             derived_from_snapshot_ids=[s.id for s in snapshots],
@@ -123,143 +125,98 @@ class ContractGenerator:
         log.info(f"Contract generated: {contract.id} (confidence={contract.confidence_score:.2f})")
         return contract
 
-    def _derive_success_criteria(self, snapshots: List[BehaviorSnapshot]) -> SuccessCriteria:
-        """Derive success criteria from snapshots."""
-        criteria = SuccessCriteria()
-
-        # HTTP criteria
+    def _derive_http_contract(self, snapshots: List[BehaviorSnapshot]) -> Optional[HTTPContract]:
+        """Derive HTTP contract."""
         http_snapshots = [s for s in snapshots if s.observed_http]
-        if http_snapshots:
-            criteria.http = self._derive_http_criteria(http_snapshots)
+        if not http_snapshots:
+            return None
 
-        # CLI criteria
-        cli_snapshots = [s for s in snapshots if s.observed_cli]
-        if cli_snapshots:
-            criteria.cli = self._derive_cli_criteria(cli_snapshots)
-
-        # DOM criteria
-        dom_snapshots = [s for s in snapshots if s.observed_dom]
-        if dom_snapshots:
-            criteria.dom = self._derive_dom_criteria(dom_snapshots)
-
-        # Log criteria
-        log_snapshots = [s for s in snapshots if s.observed_logs]
-        if log_snapshots:
-            criteria.logs = self._derive_log_criteria(log_snapshots)
-
-        return criteria
-
-    def _derive_http_criteria(self, snapshots: List[BehaviorSnapshot]) -> HTTPSuccessCriteria:
-        """Derive HTTP success criteria."""
         # Collect status codes
-        status_codes = [s.observed_http.status_code for s in snapshots]
+        status_codes = [s.observed_http.status_code for s in http_snapshots]
         status_counter = Counter(status_codes)
 
         # Include status codes above confidence threshold
         total = len(status_codes)
-        expected_status_codes = [
+        required_status_codes = [
             code for code, count in status_counter.items() if count / total >= self.confidence_threshold
         ]
 
         # If no codes meet threshold, take most common
-        if not expected_status_codes:
-            expected_status_codes = [status_counter.most_common(1)[0][0]]
+        if not required_status_codes and status_counter:
+            required_status_codes = [status_counter.most_common(1)[0][0]]
 
-        log.debug(f"HTTP expected status codes: {expected_status_codes} (from {status_counter})")
+        log.debug(f"HTTP required status codes: {required_status_codes} (from {status_counter})")
 
         # Extract common JSON paths
-        json_paths = self._extract_common_json_paths(snapshots)
+        json_paths = self._extract_common_json_paths(http_snapshots)
 
-        return HTTPSuccessCriteria(
-            expected_status_codes=expected_status_codes,
+        return HTTPContract(
+            required_status_codes=required_status_codes,
+            allowed_status_codes=sorted(list(status_counter.keys())),  # Allow any seen status code
             forbidden_status_codes=[],  # User can customize
-            must_contain_json_paths=json_paths,
-            must_not_contain_json_paths=[],
-            must_contain_header_patterns=[],
-            must_not_contain_header_patterns=[],
+            required_json_paths=json_paths,
+            forbidden_json_paths=[],
         )
 
-    def _derive_cli_criteria(self, snapshots: List[BehaviorSnapshot]) -> CLISuccessCriteria:
-        """Derive CLI success criteria."""
-        # Collect exit codes
-        exit_codes = [s.observed_cli.exit_code for s in snapshots]
-        exit_counter = Counter(exit_codes)
+    def _derive_dom_contract(self, snapshots: List[BehaviorSnapshot]) -> Optional[DOMContract]:
+        """Derive DOM contract."""
+        dom_snapshots = [s for s in snapshots if s.observed_dom]
+        if not dom_snapshots:
+            return None
 
-        # Include exit codes above confidence threshold
-        total = len(exit_codes)
-        expected_exit_codes = [
-            code for code, count in exit_counter.items() if count / total >= self.confidence_threshold
-        ]
-
-        # If no codes meet threshold, take most common
-        if not expected_exit_codes:
-            expected_exit_codes = [exit_counter.most_common(1)[0][0]]
-
-        log.debug(f"CLI expected exit codes: {expected_exit_codes} (from {exit_counter})")
-
-        # Extract common stdout patterns
-        stdout_patterns = self._extract_common_patterns(
-            [s.observed_cli.stdout for s in snapshots if s.observed_cli.stdout]
-        )
-
-        return CLISuccessCriteria(
-            expected_exit_codes=expected_exit_codes,
-            forbidden_exit_codes=[],
-            must_contain_stdout_patterns=stdout_patterns,
-            must_not_contain_stdout_patterns=[],
-            must_contain_stderr_patterns=[],
-            must_not_contain_stderr_patterns=[],
-        )
-
-    def _derive_dom_criteria(self, snapshots: List[BehaviorSnapshot]) -> DOMSuccessCriteria:
-        """Derive DOM success criteria."""
         # Extract common selectors from all snapshots
         all_selectors: Set[str] = set()
 
-        for snapshot in snapshots:
-            if snapshot.observed_dom and snapshot.observed_dom.elements:
-                for element in snapshot.observed_dom.elements:
-                    if element.selector:
-                        all_selectors.add(element.selector)
+        for snapshot in dom_snapshots:
+            if snapshot.observed_dom and snapshot.observed_dom.present_selectors:
+                for selector in snapshot.observed_dom.present_selectors:
+                    all_selectors.add(selector)
 
         # Count selector occurrences across snapshots
         selector_counts = Counter()
-        for snapshot in snapshots:
-            if snapshot.observed_dom and snapshot.observed_dom.elements:
-                snapshot_selectors = {e.selector for e in snapshot.observed_dom.elements if e.selector}
-                for selector in snapshot_selectors:
+        for snapshot in dom_snapshots:
+            if snapshot.observed_dom and snapshot.observed_dom.present_selectors:
+                for selector in snapshot.observed_dom.present_selectors:
                     selector_counts[selector] += 1
 
         # Include selectors above confidence threshold
-        total = len(snapshots)
-        required_selectors = [
+        total = len(dom_snapshots)
+        must_have_selectors = [
             selector for selector, count in selector_counts.items() if count / total >= self.confidence_threshold
         ]
 
-        log.debug(f"DOM required selectors: {len(required_selectors)} (from {len(all_selectors)} total)")
+        log.debug(f"DOM must-have selectors: {len(must_have_selectors)} (from {len(all_selectors)} total)")
 
-        return DOMSuccessCriteria(
-            must_exist_selectors=required_selectors,
-            must_not_exist_selectors=[],
-            must_be_visible_selectors=[],
-            must_contain_text_patterns=[],
+        return DOMContract(
+            must_have_selectors=must_have_selectors,
+            must_not_have_selectors=[],
+            must_have_text_snippets=[],
+            must_not_have_text_snippets=[],
         )
 
-    def _derive_log_criteria(self, snapshots: List[BehaviorSnapshot]) -> LogSuccessCriteria:
-        """Derive log success criteria."""
+    def _derive_log_contract(self, snapshots: List[BehaviorSnapshot]) -> Optional[LogContract]:
+        """Derive log contract."""
+        log_snapshots = [s for s in snapshots if s.observed_logs]
+        if not log_snapshots:
+            return None
+
         # Extract common log patterns
         all_logs = []
-        for snapshot in snapshots:
+        for snapshot in log_snapshots:
             if snapshot.observed_logs and snapshot.observed_logs.lines:
                 all_logs.extend(snapshot.observed_logs.lines)
 
         # Identify error patterns (heuristic)
-        error_patterns = self._identify_error_patterns(all_logs)
+        # In a contract, we usually define what is FORBIDDEN (errors)
+        # We don't auto-generate forbidden patterns from successful snapshots usually,
+        # unless we see them in failed snapshots?
+        # Here we assume the input snapshots are "good" (legacy behavior).
+        # If legacy has errors, maybe we shouldn't forbid them?
+        # For now, we use defaults for forbidden_patterns in LogContract (Exception, ERROR).
 
-        return LogSuccessCriteria(
-            must_contain_patterns=[],  # User can customize
-            must_not_contain_patterns=error_patterns,
-            max_error_count=0,  # No errors expected
+        return LogContract(
+            required_patterns=[],  # Hard to derive meaningful required patterns automatically
+            forbidden_patterns=["Exception", "Traceback", "ERROR"],  # Default forbidden
         )
 
     def _extract_common_json_paths(self, snapshots: List[BehaviorSnapshot]) -> List[str]:
