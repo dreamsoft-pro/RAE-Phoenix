@@ -216,36 +216,36 @@ class ControllerToComponentRecipe(RefactorRecipe):
             r"angular\.module\([^)]+\)\.controller",
         ]
         for pattern in patterns:
-            if re.search(pattern, chunk.content):
+            if re.search(pattern, chunk.text):
                 return True
         return False
 
     def _extract_controller_metadata(self, chunk: Chunk) -> Optional[ControllerMetadata]:
         try:
-            name_match = re.search(r'\.controller\s*\(\s*["\'](\w+)["\']', chunk.content)
+            name_match = re.search(r'\.controller\s*\(\s*["\'](\w+)["\']', chunk.text)
             if not name_match:
                 return None
             controller_name = name_match.group(1)
 
-            module_match = re.search(r'angular\.module\s*\(\s*["\']([^"\\]+)["\\]', chunk.content)
+            module_match = re.search(r'angular\.module\s*\(\s*["\']([^"\\]+)["\\]', chunk.text)
             module_name = module_match.group(1) if module_match else "unknown"
 
-            dependencies = self._extract_dependencies(chunk.content)
-            properties, methods = self._extract_properties_and_methods(chunk.content)
+            dependencies = self._extract_dependencies(chunk.text)
+            properties, methods = self._extract_properties_and_methods(chunk.text)
 
-            match = re.search(r'controllerAs\s*:\s*["\'](\w+)["\\]', chunk.content)
+            match = re.search(r'controllerAs\s*:\s*["\'](\w+)["\\]', chunk.text)
             controller_as = match.group(1) if match else None
 
             uses_scope = "$scope" in dependencies
 
             hooks = []
-            if "$scope.$on('$destroy'" in chunk.content:
+            if "$scope.$on('$destroy'" in chunk.text:
                 hooks.append("$destroy")
-            if "$scope.$on('$init'" in chunk.content:
+            if "$scope.$on('$init'" in chunk.text:
                 hooks.append("$init")
 
             template_path = None
-            match = re.search(r'templateUrl\s*:\s*["\']([^"\\]+)["\\]', chunk.content)
+            match = re.search(r'templateUrl\s*:\s*["\']([^"\\]+)["\\]', chunk.text)
             if match:
                 template_path = match.group(1)
 
@@ -296,7 +296,7 @@ class ControllerToComponentRecipe(RefactorRecipe):
 
     def _find_chunk_by_name(self, chunks: List[Chunk], name: str) -> Optional[Chunk]:
         for chunk in chunks:
-            if f"'{name}'" in chunk.content or f'"{name}"' in chunk.content:
+            if f"'{name}'" in chunk.text or f'"{name}"' in chunk.text:
                 return chunk
         return None
 
