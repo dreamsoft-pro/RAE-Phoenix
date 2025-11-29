@@ -551,7 +551,7 @@ export default async function {component_name}({{ children }}: {{ children: Reac
 async function {func_name}() {{
   // TODO: Implement data fetching for '{key}'
   // This replaces the AngularJS resolve function
-  return {{}}; 
+  return {{}};
 }}
 """
                 data_fetching_calls += f"  const {key} = await {func_name}();\n"

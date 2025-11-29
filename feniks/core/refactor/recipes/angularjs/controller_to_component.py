@@ -412,7 +412,7 @@ export default function {component_name}(props: {component_name}Props) {{
 export class {clean_name} {{
   // TODO: Implement methods found in original service
   constructor() {{}}
-  
+
   async getData() {{
     return Promise.resolve({{}});
   }}

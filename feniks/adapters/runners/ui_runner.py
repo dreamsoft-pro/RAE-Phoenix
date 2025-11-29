@@ -37,7 +37,6 @@ log = get_logger("adapters.runners.ui")
 
 # Playwright import with graceful fallback
 try:
-    from playwright.sync_api import Browser
     from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import Page, sync_playwright
 

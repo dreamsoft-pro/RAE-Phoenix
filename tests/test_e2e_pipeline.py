@@ -10,9 +10,9 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "scripts"))
 
-from feniks_cli import run_build_process
+from feniks_cli import run_build_process  # noqa: E402
 
-from feniks.config.settings import settings
+from feniks.config.settings import settings  # noqa: E402
 
 
 @pytest.mark.e2e
