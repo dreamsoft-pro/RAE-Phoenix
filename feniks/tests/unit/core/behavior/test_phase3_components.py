@@ -284,23 +284,24 @@ class TestStorageAbstraction:
             all_snapshots = backend.load_snapshots("scenario-1")
             assert len(all_snapshots) == 5
 
-            def test_contract_version_filtering(self):
-                """Test contract loading with version filtering."""
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    backend = create_storage_backend("file", storage_dir=tmpdir)
-    
-                    # Create scenario
-                    scenario = BehaviorScenario(
-                        id="scenario-1",
-                        project_id="test",
-                        name="Test",
-                        category="api",
-                        description="Test desc",
-                        environment="legacy",
-                        input=ScenarioInput(),
-                        success_criteria=SuccessCriteria(),
-                        created_at=datetime.now(),
-                    )            backend.save_scenario(scenario)
+    def test_contract_version_filtering(self):
+        """Test contract loading with version filtering."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            backend = create_storage_backend("file", storage_dir=tmpdir)
+
+            # Create scenario
+            scenario = BehaviorScenario(
+                id="scenario-1",
+                project_id="test",
+                name="Test",
+                category="api",
+                description="Test desc",
+                environment="legacy",
+                input=ScenarioInput(),
+                success_criteria=SuccessCriteria(),
+                created_at=datetime.now(),
+            )
+            backend.save_scenario(scenario)
 
             # Create multiple contract versions
             for version in ["1.0.0", "1.1.0", "2.0.0"]:

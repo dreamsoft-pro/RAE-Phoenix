@@ -156,7 +156,7 @@ class TestContractGenerator:
             )
             snapshots.append(snapshot)
 
-        contract = generator.generate_contract(snapshots)
+        # contract = generator.generate_contract(snapshots) # Variable is unused
 
         # Check CLI criteria
         # assert contract.success_criteria.cli is not None # CLI criteria support not fully verified in model

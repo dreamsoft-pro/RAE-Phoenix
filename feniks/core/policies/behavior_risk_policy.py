@@ -155,8 +155,9 @@ class MaxBehaviorRiskPolicy:
                 impact = ReflectionImpact.WARNING
 
             # Create meta-reflection for policy violation
-            from datetime import datetime
             import uuid
+            from datetime import datetime
+
             from feniks.core.models.types import ReflectionLevel, ReflectionScope
 
             reflection = MetaReflection(
