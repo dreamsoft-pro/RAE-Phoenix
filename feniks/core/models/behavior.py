@@ -437,3 +437,6 @@ class BehaviorChecksSummary(BaseModel):
 # Alias for backward compatibility
 ScenarioInput = BehaviorInput
 SuccessCriteria = BehaviorSuccessCriteria
+HTTPSuccessCriteria = HTTPCriteria
+DOMSuccessCriteria = DOMCriteria
+LogSuccessCriteria = LogCriteria
