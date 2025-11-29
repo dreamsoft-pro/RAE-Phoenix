@@ -48,6 +48,7 @@ dev = [
     "isort>=5.12",
     "bandit>=1.7",
     "playwright>=1.40.0",
+    "pytest-playwright>=0.4.0",
     "jsonschema>=4.0.0",
 ]
 observability = [

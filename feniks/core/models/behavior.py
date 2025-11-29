@@ -386,6 +386,7 @@ class BehaviorContract(BaseModel):
 
     # Provenance
     derived_from_snapshot_ids: list[str] = Field(default_factory=list)
+    confidence_score: float = 0.0  # Confidence in the generated contract (0.0-1.0)
     created_at: datetime
     created_by: Optional[str] = None
 
