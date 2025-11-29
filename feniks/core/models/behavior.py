@@ -227,6 +227,17 @@ class ObservedLogs(BaseModel):
     matched_required_patterns: list[str] = Field(default_factory=list)
 
 
+class ObservedCLI(BaseModel):
+    """
+    Observed CLI execution result.
+    """
+
+    command: str
+    exit_code: int
+    stdout: str
+    stderr: str
+
+
 # ============================================================================
 # BehaviorViolation - Specific contract breach
 # ============================================================================
@@ -274,6 +285,7 @@ class BehaviorSnapshot(BaseModel):
     observed_http: Optional[ObservedHTTP] = None
     observed_dom: Optional[ObservedDOM] = None
     observed_logs: Optional[ObservedLogs] = None
+    observed_cli: Optional[ObservedCLI] = None
 
     # Technical metrics
     duration_ms: Optional[int] = None
@@ -406,3 +418,7 @@ class BehaviorChecksSummary(BaseModel):
     total_passed: int
     total_failed: int
     max_risk_score: float = Field(ge=0.0, le=1.0)
+
+
+# Alias for backward compatibility
+ScenarioInput = BehaviorInput
