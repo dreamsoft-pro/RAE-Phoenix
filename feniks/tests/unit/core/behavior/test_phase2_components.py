@@ -31,7 +31,6 @@ from feniks.core.models.behavior import (
     BehaviorSnapshot,
     BehaviorViolation,
     HTTPContract,
-    HTTPSuccessCriteria,
     ObservedCLI,
     ObservedHTTP,
 )
@@ -406,6 +405,12 @@ class TestLongitudinalBehaviorIntegration:
                     checked_at=datetime.now(),
                 )
             )
+
+        reflections = analyzer.analyze_trends(sessions, behavior_checks=checks)
+
+        # Should detect declining pass rate
+        decline_reflections = [r for r in reflections if "Declining" in r.title]
+        assert len(decline_reflections) > 0
 
 
 if __name__ == "__main__":
