@@ -136,6 +136,19 @@ class LogCriteria(BaseModel):
     required_patterns: list[str] = Field(default_factory=list)  # e.g., ["Request successful"]
 
 
+class CLISuccessCriteria(BaseModel):
+    """
+    CLI-level success criteria.
+    """
+
+    expected_exit_codes: list[int] = Field(default_factory=lambda: [0])
+    forbidden_exit_codes: list[int] = Field(default_factory=list)
+    required_stdout_patterns: list[str] = Field(default_factory=list)
+    forbidden_stdout_patterns: list[str] = Field(default_factory=list)
+    required_stderr_patterns: list[str] = Field(default_factory=list)
+    forbidden_stderr_patterns: list[str] = Field(default_factory=list)
+
+
 class BehaviorSuccessCriteria(BaseModel):
     """
     Multi-layered success criteria for a behavior scenario.
@@ -145,6 +158,7 @@ class BehaviorSuccessCriteria(BaseModel):
     http: Optional[HTTPCriteria] = None
     dom: Optional[DOMCriteria] = None
     logs: Optional[LogCriteria] = None
+    cli: Optional[CLISuccessCriteria] = None
 
     # Custom rules for advanced validation (evaluated by Feniks/RAE)
     custom_rules: list[str] = Field(default_factory=list)
@@ -422,3 +436,4 @@ class BehaviorChecksSummary(BaseModel):
 
 # Alias for backward compatibility
 ScenarioInput = BehaviorInput
+SuccessCriteria = BehaviorSuccessCriteria
