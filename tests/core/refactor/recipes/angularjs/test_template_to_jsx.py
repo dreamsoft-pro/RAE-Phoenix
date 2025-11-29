@@ -15,6 +15,7 @@
 Tests for TemplateToJsxRecipe.
 """
 from datetime import datetime
+
 import pytest
 
 from feniks.core.models.types import Chunk, Module, SystemModel
