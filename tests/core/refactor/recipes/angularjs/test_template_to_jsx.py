@@ -70,10 +70,7 @@ def system_model_with_template(sample_template):
     )
 
     system_model = SystemModel(
-        project_id="test-project",
-        timestamp=datetime.now().isoformat(),
-        modules={"views": module},
-        total_chunks=1
+        project_id="test-project", timestamp=datetime.now().isoformat(), modules={"views": module}, total_chunks=1
     )
 
     return system_model
@@ -189,10 +186,7 @@ def test_no_templates_returns_none():
     """Test that analyze returns None when no templates found."""
     # Empty system model
     system_model = SystemModel(
-        project_id="test-project",
-        timestamp=datetime.now().isoformat(),
-        modules={},
-        total_chunks=0
+        project_id="test-project", timestamp=datetime.now().isoformat(), modules={}, total_chunks=0
     )
 
     recipe = TemplateToJsxRecipe()

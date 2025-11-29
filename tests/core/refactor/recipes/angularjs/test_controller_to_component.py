@@ -73,10 +73,7 @@ def system_model_with_controller(sample_controller):
     )
 
     system_model = SystemModel(
-        project_id="test-project",
-        timestamp=datetime.now().isoformat(),
-        modules={"myApp": module},
-        total_chunks=1
+        project_id="test-project", timestamp=datetime.now().isoformat(), modules={"myApp": module}, total_chunks=1
     )
 
     return system_model
@@ -185,10 +182,7 @@ def test_no_controllers_returns_none():
     """Test that analyze returns None when no controllers found."""
     # Empty system model
     system_model = SystemModel(
-        project_id="test-project",
-        timestamp=datetime.now().isoformat(),
-        modules={},
-        total_chunks=0
+        project_id="test-project", timestamp=datetime.now().isoformat(), modules={}, total_chunks=0
     )
 
     recipe = ControllerToComponentRecipe()
