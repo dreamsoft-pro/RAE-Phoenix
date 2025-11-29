@@ -568,7 +568,7 @@ export function useEventBus() {
             lines.append("  useEffect(() => {")
             lines.append(f"    // Original callback: {watch['callback']}")
             lines.append("    // TODO: Implement watcher logic")
-            lines.append("  }, [{dep}]);")
+            lines.append(f"  }}, [{dep}]);")
             lines.append("")
 
         # Return values

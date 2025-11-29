@@ -145,7 +145,6 @@ class CapabilityDetector:
         # Analyze each chunk
         for chunk in chunks:
             chunk_text = chunk.text.lower()
-            chunk_name = chunk.chunk_name.lower()
             module_name = chunk.module or "unknown"
 
             # Check each capability pattern

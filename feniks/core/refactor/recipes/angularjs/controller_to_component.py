@@ -361,7 +361,7 @@ export default function {component_name}(props: {component_name}Props) {{
         decls = []
         for prop, val in metadata.properties.items():
             type_hint = self._infer_type(val)
-            decls.append("  const [{prop}, set{prop.capitalize()}] = useState<{type_hint}>({val});")
+            decls.append(f"  const [{prop}, set{prop.capitalize()}] = useState<{type_hint}>({val});")
         return "\n".join(decls)
 
     def _infer_type(self, value: str) -> str:
@@ -401,7 +401,7 @@ export default function {component_name}(props: {component_name}Props) {{
 
     def _get_component_path(self, metadata: ControllerMetadata) -> str:
         name = self._to_component_name(metadata.name)
-        return f"{self.target_dir}/{{name}}.tsx"
+        return f"{self.target_dir}/{name}.tsx"
 
     def _generate_service_stub(self, service_name: str) -> str:
         """Generate a service stub file."""

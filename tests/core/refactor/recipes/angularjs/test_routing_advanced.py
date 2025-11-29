@@ -1,4 +1,3 @@
-
 from feniks.core.refactor.recipe import RefactorPlan, RefactorRisk
 from feniks.core.refactor.recipes.angularjs.routing_to_app_router import (
     RoutingToAppRouterRecipe,

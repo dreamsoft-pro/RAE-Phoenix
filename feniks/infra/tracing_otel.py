@@ -17,6 +17,7 @@ Provides Trace IDs, Spans, and integration with Jaeger/Zipkin.
 """
 import contextvars
 import functools
+import time
 import uuid
 from contextlib import contextmanager
 from typing import Any, Dict, Optional
@@ -192,12 +193,6 @@ def span(name: str, attributes: Optional[Dict[str, Any]] = None):
             log.warning(f"OpenTelemetry span creation failed: {e}")
 
     # Fallback to custom implementation
-    import time
-
-    from feniks.infra.logging import get_logger
-
-    log = get_logger("infra.tracing")
-
     parent_span = _span_id_ctx.get()
     current_span = f"span-{uuid.uuid4().hex[:8]}"
     trace_id = get_trace_id()

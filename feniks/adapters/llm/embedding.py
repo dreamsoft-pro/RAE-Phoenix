@@ -32,8 +32,8 @@ def build_tfidf(chunks: List[Chunk]) -> Tuple[TfidfVectorizer, Any]:
         min_df=int(os.getenv("FENIKS_TEST_MIN_DF", 2)),
         max_features=50000,
     )
-    X_matrix = vec.fit_transform(corpus)  # csr_matrix
-    return vec, X_matrix
+    matrix_x = vec.fit_transform(corpus)  # csr_matrix
+    return vec, matrix_x
 
 
 def get_embedding_model(name: str) -> SentenceTransformer:

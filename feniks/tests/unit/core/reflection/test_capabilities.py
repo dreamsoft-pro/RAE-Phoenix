@@ -1,4 +1,3 @@
-
 import pytest
 
 from feniks.core.models.types import Chunk, SystemModel

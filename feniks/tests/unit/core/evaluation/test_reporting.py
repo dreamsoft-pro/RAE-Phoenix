@@ -1,4 +1,3 @@
-
 import pytest
 
 from feniks.core.evaluation.reporting import ReportGenerator

@@ -92,8 +92,8 @@ class PostMortemAnalyzer:
 
     def _analyze_cost(self, session: SessionSummary) -> Optional[MetaReflection]:
         # Simple heuristic: Cost > $0.50 is high for a single session (example threshold)
-        COST_THRESHOLD = 0.50
-        if session.cost_profile.cost_usd > COST_THRESHOLD:
+        cost_threshold = 0.50
+        if session.cost_profile.cost_usd > cost_threshold:
             return MetaReflection(
                 id=f"pm-cost-{uuid.uuid4()}",
                 timestamp=datetime.now().isoformat(),

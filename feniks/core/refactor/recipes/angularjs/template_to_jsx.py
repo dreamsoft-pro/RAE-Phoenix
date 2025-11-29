@@ -595,7 +595,6 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
         def replace_repeat(match):
             full_tag = match.group(0)
-            tag_name = match.group(1)
             ng_repeat_value = match.group(2)
 
             # Parse ng-repeat: "item in items track by item.id"
@@ -615,7 +614,6 @@ class TemplateToJsxRecipe(RefactorRecipe):
 
             # Build map syntax
             map_start = f"{{{items_expr}.map(({item_var}, index) => ("
-            map_end = "))}}"
 
             # Replace the opening tag
             new_tag = full_tag.replace(f'ng-repeat="{ng_repeat_value}"', f"key={{{key_expr}}}")
