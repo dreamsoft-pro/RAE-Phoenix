@@ -39,10 +39,14 @@ from typing import Any, List
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from feniks.core.reflection.model import MetaReflection
-
 from feniks.adapters.rae_client.enhanced_client import create_enhanced_rae_client
 from feniks.core.memory.router import FeniksMemoryRouter, RoutingStrategy, create_memory_router
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+)
 from feniks.infra.logging import get_logger
 
 log = get_logger("examples.rae_integration")
@@ -95,11 +99,15 @@ class RAEIntegrationDemo:
 
         # Create a sample reflection
         reflection = MetaReflection(
-            reflection_id="demo_refl_001",
-            timestamp=datetime.now(),
-            insight_type="code_quality",
-            summary="Detected high cyclomatic complexity in authentication module",
-            severity="high",
+            id="demo_refl_001",
+            timestamp=datetime.now().isoformat(),
+            project_id=self.project_id,
+            level=ReflectionLevel.REFLECTION,
+            scope=ReflectionScope.MODULE,
+            impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+            title="High Cyclomatic Complexity in Authentication Module",
+            content="Detected high cyclomatic complexity (score: 42) in authentication module with 350 lines of code. "
+            "This indicates potential maintainability issues.",
             recommendations=[
                 "Extract authentication logic into separate services",
                 "Add unit tests for edge cases",
@@ -110,6 +118,7 @@ class RAEIntegrationDemo:
                 "complexity_score": 42,
                 "lines_of_code": 350,
             },
+            tags=["code-quality", "complexity"],
         )
 
         # Store with memory router - it will intelligently decide where to store
@@ -134,16 +143,20 @@ class RAEIntegrationDemo:
 
         # Create a local reflection
         local_reflection = MetaReflection(
-            reflection_id="demo_refl_002",
-            timestamp=datetime.now(),
-            insight_type="refactoring_opportunity",
-            summary="Large monolithic function should be refactored",
-            severity="medium",
+            id="demo_refl_002",
+            timestamp=datetime.now().isoformat(),
+            project_id=self.project_id,
+            level=ReflectionLevel.REFLECTION,
+            scope=ReflectionScope.PATTERN,
+            impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+            title="Large Monolithic Function Refactoring Opportunity",
+            content="The process_order function contains 250 lines and should be refactored for better maintainability.",
             recommendations=["Consider Extract Method refactoring"],
             metadata={"function": "process_order", "lines": 250, "refactor_type": "extract-method"},
+            tags=["refactoring", "extract-method"],
         )
 
-        log.info(f"Original reflection: {local_reflection.summary}")
+        log.info(f"Original reflection: {local_reflection.title}")
         log.info(f"Original recommendations: {len(local_reflection.recommendations)}")
 
         # Enrich with RAE insights
@@ -153,7 +166,7 @@ class RAEIntegrationDemo:
                 context={"project_id": self.project_id, "tags": ["python", "e-commerce"]},
             )
 
-            log.info(f"\nEnriched reflection: {enriched_reflection.summary}")
+            log.info(f"\nEnriched reflection: {enriched_reflection.title}")
             log.info(f"Enriched recommendations: {len(enriched_reflection.recommendations)}")
             log.info(f"RAE enriched: {enriched_reflection.metadata.get('rae_enriched', False)}")
 

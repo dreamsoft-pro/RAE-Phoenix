@@ -18,10 +18,15 @@ from datetime import datetime
 from unittest.mock import patch
 
 import pytest
-from feniks.core.reflection.model import MetaReflection
 
 from feniks.adapters.rae_client.client import RAEError
 from feniks.adapters.rae_client.enhanced_client import EnhancedRAEClient, create_enhanced_rae_client
+from feniks.core.models.types import (
+    MetaReflection,
+    ReflectionImpact,
+    ReflectionLevel,
+    ReflectionScope,
+)
 
 
 class TestEnhancedRAEClient:
@@ -43,13 +48,17 @@ class TestEnhancedRAEClient:
     def sample_reflection(self):
         """Create sample MetaReflection for testing."""
         return MetaReflection(
-            reflection_id="test_refl_001",
-            timestamp=datetime.now(),
-            insight_type="code_quality",
-            summary="Test reflection summary",
-            severity="high",
+            id="test_refl_001",
+            timestamp=datetime.now().isoformat(),
+            project_id="test_project",
+            level=ReflectionLevel.REFLECTION,
+            scope=ReflectionScope.CODEBASE,
+            impact=ReflectionImpact.REFACTOR_RECOMMENDED,
+            title="Test Reflection",
+            content="Test reflection content about code quality issues",
             recommendations=["Recommendation 1", "Recommendation 2"],
             metadata={"test_key": "test_value", "refactor_type": "extract-method"},
+            tags=["test", "code-quality"],
         )
 
     def test_client_initialization(self, enhanced_client):

@@ -18,7 +18,7 @@ Enables cross-project learning and reflection enrichment.
 from typing import Any, Dict, List, Optional
 
 from feniks.adapters.rae_client.client import RAEClient, RAEError
-from feniks.core.reflection.model import MetaReflection
+from feniks.core.models.types import MetaReflection
 from feniks.infra.logging import get_logger
 
 log = get_logger("integrations.enhanced_rae_client")
@@ -211,7 +211,7 @@ class EnhancedRAEClient(RAEClient):
         Raises:
             RAEError: If enrichment fails
         """
-        log.info(f"Enriching reflection: {local_reflection.reflection_id}")
+        log.info(f"Enriching reflection: {local_reflection.id}")
 
         try:
             # Build enrichment query from reflection content
@@ -228,7 +228,12 @@ class EnhancedRAEClient(RAEClient):
 
             # If this is a refactoring-related reflection, get historical patterns
             refactor_insights = []
-            if "refactor" in local_reflection.insight_type.lower():
+            # Check if reflection is about refactoring (in content, title, or tags)
+            is_refactor = any(
+                "refactor" in str(field).lower()
+                for field in [local_reflection.content, local_reflection.title, local_reflection.tags]
+            )
+            if is_refactor:
                 refactor_type = self._extract_refactor_type(local_reflection)
                 if refactor_type:
                     refactor_insights = self.get_historical_refactorings(
@@ -318,7 +323,7 @@ class EnhancedRAEClient(RAEClient):
             try:
                 enriched.append(self.enrich_reflection(reflection, context))
             except Exception as e:
-                log.warning(f"Failed to enrich reflection {reflection.reflection_id}: {e}")
+                log.warning(f"Failed to enrich reflection {reflection.id}: {e}")
                 enriched.append(reflection)
 
         log.info(f"Batch enrichment complete: {len(enriched)}/{len(reflections)} successful")
@@ -330,13 +335,19 @@ class EnhancedRAEClient(RAEClient):
         """Build semantic query from reflection for RAE search."""
         components = []
 
-        if hasattr(reflection, "insight_type") and reflection.insight_type:
-            components.append(f"Type: {reflection.insight_type}")
+        # Use scope instead of insight_type
+        if reflection.scope:
+            components.append(f"Scope: {reflection.scope.value}")
 
-        if hasattr(reflection, "summary") and reflection.summary:
-            components.append(reflection.summary)
+        # Use title and content instead of summary
+        if reflection.title:
+            components.append(reflection.title)
 
-        if hasattr(reflection, "recommendations") and reflection.recommendations:
+        if reflection.content:
+            # Take first 200 chars of content
+            components.append(reflection.content[:200])
+
+        if reflection.recommendations:
             components.append(f"Context: {' '.join(reflection.recommendations[:2])}")
 
         return " | ".join(components)
@@ -356,15 +367,26 @@ class EnhancedRAEClient(RAEClient):
 
         Creates an enriched copy with additional metadata and recommendations.
         """
-        # Create enriched copy
+        from copy import deepcopy
+
+        # Create enriched copy with correct MetaReflection structure
         enriched = MetaReflection(
-            reflection_id=local_reflection.reflection_id,
+            id=local_reflection.id,
             timestamp=local_reflection.timestamp,
-            insight_type=local_reflection.insight_type,
-            summary=local_reflection.summary,
-            severity=local_reflection.severity,
-            recommendations=local_reflection.recommendations.copy() if local_reflection.recommendations else [],
-            metadata=local_reflection.metadata.copy() if local_reflection.metadata else {},
+            project_id=local_reflection.project_id,
+            level=local_reflection.level,
+            scope=local_reflection.scope,
+            impact=local_reflection.impact,
+            title=local_reflection.title,
+            content=local_reflection.content,
+            evidence=deepcopy(local_reflection.evidence),
+            related_modules=list(local_reflection.related_modules),
+            related_files=list(local_reflection.related_files),
+            recommendations=list(local_reflection.recommendations),
+            origin=local_reflection.origin,
+            tags=list(local_reflection.tags),
+            confidence=local_reflection.confidence,
+            metadata=deepcopy(local_reflection.metadata),
         )
 
         # Add RAE insights to metadata
