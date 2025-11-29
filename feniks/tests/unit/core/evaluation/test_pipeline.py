@@ -100,7 +100,7 @@ def test_scoring_quality_high():
         ),
     ]
 
-    session = SessionSummary(session_id="quality-high", duration=60.0, success=True, reasoning_traces=traces)
+    SessionSummary(session_id="quality-high", duration=60.0, success=True, reasoning_traces=traces)
 
     # Quality score powinien być wysoki (długie myśli, sukces, brak pętli)
     # Dla celów testu zakładamy metrykę: średnia długość myśli / 50
@@ -121,7 +121,7 @@ def test_scoring_quality_low():
         ReasoningTrace(step_id="3", thought="hmm", action="read", result="ok", timestamp="ts3"),
     ]
 
-    session = SessionSummary(session_id="quality-low", duration=30.0, success=False, reasoning_traces=traces)
+    SessionSummary(session_id="quality-low", duration=30.0, success=False, reasoning_traces=traces)
 
     # Quality score powinien być niski
     avg_thought_length = sum(len(t.thought) for t in traces) / len(traces)

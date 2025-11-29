@@ -347,7 +347,7 @@ class TestPhase3Integration:
                 created_at=datetime.now(),
             )
 
-            library_id = library.publish_scenario(scenario, tags=["test"])
+            library.publish_scenario(scenario, tags=["test"])
 
             # Verify published
             published = library.list_public_scenarios()

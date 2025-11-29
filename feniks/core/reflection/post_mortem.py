@@ -102,7 +102,7 @@ class PostMortemAnalyzer:
                 scope=ReflectionScope.TECHNICAL_DEBT,
                 impact=ReflectionImpact.MONITOR,
                 title="High Session Cost",
-                content=f"Session cost ${session.cost_profile.cost_usd:.2f} exceeded threshold ${COST_THRESHOLD:.2f}",
+                content=f"Session cost ${session.cost_profile.cost_usd:.2f} exceeded threshold ${cost_threshold:.2f}",
                 evidence=[
                     ReflectionEvidence(type="metric", source="cost_profile", value=session.cost_profile.cost_usd)
                 ],

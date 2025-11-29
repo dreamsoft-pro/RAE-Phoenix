@@ -14,6 +14,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+import escodegen
+import esprima
+
 # Define a generic ASTNode type for type hinting
 ASTNode = Any
 
@@ -53,10 +56,6 @@ class BaseLanguagePlugin(ABC):
         :param ast: The root node of the AST to search in.
         """
         pass
-
-
-import escodegen
-import esprima
 
 
 class JavaScriptPlugin(BaseLanguagePlugin):
