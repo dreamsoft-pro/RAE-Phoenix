@@ -1,0 +1,2 @@
+[console_scripts]
+feniks = feniks.core.cli:main

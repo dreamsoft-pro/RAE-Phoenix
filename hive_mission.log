@@ -1,0 +1,9 @@
+[FENIKS] Loading recipe from --mission...
+Traceback (most recent call last):
+  File "/mnt/extra_storage/factory/RAE-Feniks/scripts/dispatch_to_hive.py", line 35, in <module>
+    dispatch(sys.argv[1])
+    ~~~~~~~~^^^^^^^^^^^^^
+  File "/mnt/extra_storage/factory/RAE-Feniks/scripts/dispatch_to_hive.py", line 10, in dispatch
+    with open(recipe_path, 'r') as f:
+         ~~~~^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '--mission'

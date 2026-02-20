@@ -1,0 +1,26 @@
+[
+  {
+    "id": "pm-fail-...",
+    "level": "REFLECTION",
+    "scope": "technical_debt",
+    "impact": "critical",
+    "title": "Session Failure Detected",
+    "content": "Session sess-golden-failure-loop-001 marked as failed."
+  },
+  {
+    "id": "pm-loop-...",
+    "level": "META_REFLECTION",
+    "scope": "pattern",
+    "impact": "critical",
+    "title": "Reasoning Loop Detected",
+    "content": "Identical action repeated at step step-2: run_test()"
+  },
+  {
+    "id": "policy-quality-len-...",
+    "level": "REFLECTION",
+    "scope": "pattern",
+    "impact": "refactor-recommended",
+    "title": "Reasoning Steps Too Short",
+    "content": "Found 1 steps with thoughts shorter than 10 chars."
+  }
+]

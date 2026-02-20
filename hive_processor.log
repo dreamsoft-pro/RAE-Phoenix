@@ -1,0 +1,4 @@
+  File "/mnt/extra_storage/factory/RAE-Feniks/hive_processor.py", line 58
+    m = re.search(r"\.factory\(['"](\w+)['"]", source)
+                                  ^
+SyntaxError: closing parenthesis ']' does not match opening parenthesis '('

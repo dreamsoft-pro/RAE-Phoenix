@@ -1,0 +1,41 @@
+[
+  {
+    "story_name": "User Login",
+    "steps": [
+      {
+        "action": "goto",
+        "url": "{{BASE_URL}}/pl"
+      },
+      {
+        "action": "click",
+        "selector": "button.cm-btn-success"
+      },
+      {
+        "action": "click",
+        "selector": "a[href=\"/pl/zaloguj-sie\"]"
+      },
+      {
+        "action": "wait_for_selector",
+        "selector": "form[ng-submit=\"login(credentials)\"]"
+      },
+      {
+        "action": "fill",
+        "selector": "form[ng-submit=\"login(credentials)\"] #user-email",
+        "value": "office@diditalprint.pro"
+      },
+      {
+        "action": "fill",
+        "selector": "form[ng-submit=\"login(credentials)\"] #user-password",
+        "value": "1234"
+      },
+      {
+        "action": "click",
+        "selector": "form[ng-submit=\"login(credentials)\"] button[type=\"submit\"]"
+      },
+      {
+        "action": "wait_for_selector",
+        "selector": "a[ui-sref=\"client-zone-orders\"]"
+      }
+    ]
+  }
+]

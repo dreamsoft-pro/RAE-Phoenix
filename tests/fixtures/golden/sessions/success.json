@@ -1,0 +1,35 @@
+{
+  "session_id": "sess-golden-success-001",
+  "duration": 15.5,
+  "success": true,
+  "cost_profile": {
+    "total_tokens": 1500,
+    "cost_usd": 0.02,
+    "breakdown": {
+      "gpt-4": 0.02
+    }
+  },
+  "reasoning_traces": [
+    {
+      "step_id": "step-1",
+      "thought": "I need to analyze the authentication module to find potential security risks.",
+      "action": "read_file(auth.py)",
+      "result": "File content...",
+      "timestamp": "2025-11-26T10:00:00"
+    },
+    {
+      "step_id": "step-2",
+      "thought": "The password validation regex seems weak. I should check for usage of this validator.",
+      "action": "grep('validate_password', '.')",
+      "result": "Found 3 usages...",
+      "timestamp": "2025-11-26T10:00:05"
+    },
+    {
+      "step_id": "step-3",
+      "thought": "I have confirmed the vulnerability. I will now create a report.",
+      "action": "write_file(report.md)",
+      "result": "Success",
+      "timestamp": "2025-11-26T10:00:15"
+    }
+  ]
+}

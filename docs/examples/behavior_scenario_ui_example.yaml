@@ -1,0 +1,128 @@
+# Example Behavior Scenario - UI Login Flow
+# This file demonstrates how to define a behavior scenario for Legacy Behavior Guard
+
+id: login-scenario-v1
+project_id: my-legacy-app
+category: ui
+name: User Login Flow - Valid Credentials
+description: |
+  Test successful user login with valid admin credentials.
+  Verifies that user can navigate to login page, enter credentials,
+  submit form, and reach dashboard.
+
+environment: legacy
+tags:
+  - authentication
+  - critical
+  - smoke-test
+  - user-flow
+
+# Input: sequence of UI actions
+input:
+  ui_actions:
+    # Step 1: Navigate to login page
+    - action_type: navigate
+      url: /login
+      extra:
+        wait_for: "#login-form"
+        timeout_ms: 5000
+
+    # Step 2: Clear and enter username
+    - action_type: type
+      selector: "#username"
+      text: admin
+      extra:
+        clear_first: true
+
+    # Step 3: Enter password
+    - action_type: type
+      selector: "#password"
+      text: secret123
+      extra:
+        clear_first: true
+
+    # Step 4: Click submit button
+    - action_type: click
+      selector: "#submit-button"
+      extra:
+        wait_for_navigation: true
+        timeout_ms: 10000
+
+    # Step 5: Wait for dashboard to load
+    - action_type: wait
+      extra:
+        wait_for: "#dashboard"
+        timeout_ms: 5000
+
+  # Context: additional execution context
+  context:
+    browser: chromium
+    viewport_width: 1920
+    viewport_height: 1080
+    user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+    locale: en-US
+
+# Success criteria: multi-layered checks
+success_criteria:
+  # HTTP checks (if applicable for SPA)
+  http:
+    expected_status_codes: [200]
+    allowed_status_codes: [200, 201]
+    forbidden_status_codes: [401, 403, 500, 502, 503]
+
+  # DOM checks (critical for UI scenarios)
+  dom:
+    # Elements that MUST be present
+    required_selectors:
+      - "#dashboard"
+      - ".user-profile"
+      - ".navigation-menu"
+      - "[data-testid='welcome-message']"
+
+    # Elements that MUST NOT be present
+    forbidden_selectors:
+      - ".error-message"
+      - ".error-banner"
+      - "#login-failed-alert"
+      - ".loading-spinner"  # Should not be loading anymore
+
+    # Text that MUST be visible
+    required_text_snippets:
+      - "Welcome"
+      - "Dashboard"
+      - "admin"  # Username should appear somewhere
+
+    # Text that MUST NOT be visible
+    forbidden_text_snippets:
+      - "Invalid credentials"
+      - "Login failed"
+      - "Error"
+      - "Access denied"
+
+  # Log checks (server-side or browser console)
+  logs:
+    # Patterns that MUST NOT appear in logs
+    forbidden_patterns:
+      - "ERROR"
+      - "Exception"
+      - "Traceback"
+      - "CRITICAL"
+      - "Authentication failed"
+      - "Database connection error"
+      - "Uncaught"
+
+    # Patterns that SHOULD appear (optional)
+    required_patterns:
+      - "User authenticated successfully"
+      # Uncomment if your app logs this:
+      # - "Session created"
+
+  # Custom rules (evaluated by Feniks/RAE - advanced)
+  custom_rules:
+    - "response_time_p95 < 2000ms"  # 95th percentile under 2s
+    - "no_js_errors_in_console"
+    - "csrf_token_present"
+
+# Metadata
+created_at: 2025-11-26T20:00:00Z
+created_by: admin-user

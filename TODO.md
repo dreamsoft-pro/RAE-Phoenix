@@ -1,0 +1,62 @@
+# Project TODOs
+
+> Auto-generated from source code scanning.
+
+- [ ] **refactor_agent.py:122**: Apply changes to the file using the selected plugin
+- [ ] **docs_automator.py:4**: .md based on git history and code scanning.
+- [ ] **docs_automator.py:15**: .md", "README.md"]
+- [ ] **docs_automator.py:99**: comments."""
+- [ ] **docs_automator.py:100**: .md"
+- [ ] **docs_automator.py:111**: " in line
+- [ ] **docs_automator.py:113**: ")[-1].strip(": ").strip()
+- [ ] **docs_automator.py:118**: s\n\n> Auto-generated from source code scanning.\n\n"
+- [ ] **docs_automator.py:122**: s found in code."
+- [ ] **reduce_complexity.py:182**: Refactor {chunk.chunk_name} (complexity: {chunk.cyclomatic_complexity})\n"
+- [ ] **extract_function.py:193**: Consider extracting from {chunk.chunk_name}\n"
+- [ ] **template_to_jsx.py:149**: ng-if="{value}" - use conditional rendering */}}')
+- [ ] **template_to_jsx.py:160**: ng-class="{value}" - convert to className logic */}}')
+- [ ] **template_to_jsx.py:181**: ng-bind="{value}" - use interpolation */}}')
+- [ ] **template_to_jsx.py:185**: {directive}="{value}" */}}')
+- [ ] **template_to_jsx.py:678**: Implement currency formatting
+- [ ] **template_to_jsx.py:685**: Implement date formatting (consider date-fns or dayjs)
+- [ ] **template_to_jsx.py:700**: Implement custom filter '{filter_name}'
+- [ ] **template_to_jsx.py:707**: Review and implement filter functions
+- [ ] **directive_to_component.py:497**: Review and adjust the generated code
+- [ ] **directive_to_component.py:498**: Test directive behavior
+- [ ] **directive_to_component.py:523**: Review and adjust the generated code
+- [ ] **directive_to_component.py:528**: Add options based on directive attributes
+- [ ] **directive_to_component.py:540**: Implement directive behavior from link function
+- [ ] **directive_to_component.py:563**: Implement directive logic
+- [ ] **directive_to_component.py:601**: Add props")
+- [ ] **directive_to_component.py:635**: Implement link function logic
+- [ ] **directive_to_component.py:649**: Convert template to JSX */}}
+- [ ] **directive_to_component.py:656**: Add JSX based on directive behavior */}
+- [ ] **controller_to_component.py:413**: Implement methods found in original service
+- [ ] **routing_to_app_router.py:296**: Render parent template content here */}}
+- [ ] **routing_to_app_router.py:552**: Implement data fetching for '{key}'
+- [ ] **routing_to_app_router.py:575**: Replace with migrated controller component
+- [ ] **routing_to_app_router.py:582**: Import and render migrated component, passing data as props */}}
+- [ ] **routing_to_app_router.py:636**: Add additional route guards and redirects here
+- [ ] **scope_to_hooks.py:506**: Implement event listener logic
+- [ ] **scope_to_hooks.py:511**: Implement event emit logic
+- [ ] **scope_to_hooks.py:570**: Implement watcher logic")
+- [ ] **angular.py:395**: comments in generated code
+- [ ] **angular.py:417**: s**: Service implementations, ng-model patterns, route guards
+- [ ] **angular.py:444**: )")
+- [ ] **behavior.py:53**: Implement actual scenario execution
+- [ ] **behavior.py:117**: Validate and parse as BehaviorSnapshot
+- [ ] **behavior.py:144**: Implement actual contract generation logic
+- [ ] **behavior.py:237**: Implement actual comparison logic
+- [ ] **behavior.py:321**: Validate against BehaviorScenario model
+- [ ] **behavior.py:322**: Store in database/file system
+- [ ] **migrate.py:6**: app to a Next.js application.
+- [ ] **migrate.py:264**: Demo
+- [ ] **migrate.py:292**: comments)
+- [ ] **migrate.py:316**: items to finish the migration.
+- [ ] **migrate.py:335**: )")
+- [ ] **app.js:2**: Application
+- [ ] **app.js:60**: App';
+- [ ] **TodoService.js:2**: data operations
+- [ ] **TodoService.js:14**: app', completed: true, priority: 'high', createdAt: '2025-01-16' },
+- [ ] **TodoController.js:2**: list
+- [ ] **TodoFilters.js:2**: app

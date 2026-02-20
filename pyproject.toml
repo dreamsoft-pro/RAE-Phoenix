@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "feniks"
+version = "0.1.0"
+description = "RAE-Feniks - Enterprise-grade code analysis, meta-reflection, and refactoring engine"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Grzegorz Leśniowski"}
+]
+keywords = ["code-analysis", "refactoring", "rae", "meta-reflection", "ast"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=0.19",
+    "qdrant-client>=1.7",
+    "sentence-transformers>=2.2",
+    "scikit-learn>=1.0",
+    "numpy>=1.21",
+    "PyJWT>=2.8",
+    "requests>=2.28",
+    "fastapi>=0.104",
+    "uvicorn>=0.24",
+    "slowapi>=0.1.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+    "black>=23.0",
+    "mypy>=1.0",
+    "isort>=5.12",
+    "bandit>=1.7",
+    "playwright>=1.40.0",
+    "pytest-playwright>=0.4.0",
+    "jsonschema>=4.0.0",
+]
+observability = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-jaeger>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "prometheus-client>=0.18.0",
+]
+security = [
+    "passlib[bcrypt]>=1.7.4",
+]
+
+[project.scripts]
+feniks = "feniks.core.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["feniks*"]
+exclude = ["tests*", "scripts*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.black]
+line-length = 120
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.isort]
+profile = "black"
+line_length = 120

@@ -1,0 +1,115 @@
+<div class="todo-list-container">
+    <!-- Header with Stats -->
+    <div class="stats-panel">
+        <div class="stat-item">
+            <span class="stat-label">Total:</span>
+            <span class="stat-value">{{ vm.stats.total }}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Active:</span>
+            <span class="stat-value">{{ vm.stats.active }}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Completed:</span>
+            <span class="stat-value">{{ vm.stats.completed }}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">High Priority:</span>
+            <span class="stat-value">{{ vm.stats.highPriority }}</span>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-message" ng-if="vm.error">
+        {{ vm.error }}
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading" ng-if="vm.loading">
+        <p>Loading todos...</p>
+    </div>
+
+    <!-- New Todo Form -->
+    <div class="new-todo-form" ng-if="!vm.loading">
+        <h2>Add New Todo</h2>
+        <form ng-submit="vm.createTodo()">
+            <div class="form-group">
+                <input
+                    type="text"
+                    ng-model="vm.newTodo.title"
+                    placeholder="What needs to be done?"
+                    class="todo-input"
+                    required>
+            </div>
+            <div class="form-group">
+                <label>Priority:</label>
+                <select ng-model="vm.newTodo.priority" class="priority-select">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Todo</button>
+        </form>
+    </div>
+
+    <!-- Todo List -->
+    <div class="todos-list" ng-if="!vm.loading">
+        <div class="list-header">
+            <h2>
+                <span ng-if="vm.filterMode === 'all'">All Todos</span>
+                <span ng-if="vm.filterMode === 'active'">Active Todos</span>
+                <span ng-if="vm.filterMode === 'completed'">Completed Todos</span>
+            </h2>
+            <button
+                ng-if="vm.stats.completed > 0"
+                ng-click="vm.clearCompleted()"
+                class="btn btn-secondary">
+                Clear Completed
+            </button>
+        </div>
+
+        <div ng-if="vm.filteredTodos.length === 0" class="empty-state">
+            <p>No todos to display.</p>
+        </div>
+
+        <ul class="todo-items">
+            <li ng-repeat="todo in vm.filteredTodos track by todo.id"
+                class="todo-item"
+                ng-class="{'completed': todo.completed, 'high-priority': todo.priority === 'high'}">
+
+                <div class="todo-content">
+                    <input
+                        type="checkbox"
+                        ng-model="todo.completed"
+                        ng-change="vm.toggleComplete(todo)"
+                        class="todo-checkbox">
+
+                    <div class="todo-details" ng-click="vm.viewTodoDetail(todo)">
+                        <span class="todo-title">{{ todo.title }}</span>
+                        <span class="todo-meta">
+                            {{ todo.priority | priorityLabel }}
+                            |
+                            {{ todo.createdAt | dateFormat }}
+                            |
+                            {{ todo | todoStatus }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="todo-actions">
+                    <button
+                        ng-click="vm.editTodo(todo)"
+                        class="btn btn-small btn-edit">
+                        Edit
+                    </button>
+                    <button
+                        ng-click="vm.deleteTodo(todo)"
+                        class="btn btn-small btn-danger">
+                        Delete
+                    </button>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
