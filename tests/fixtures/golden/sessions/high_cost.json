@@ -1,0 +1,36 @@
+{
+  "session_id": "golden-high-cost",
+  "duration": 600.0,
+  "success": true,
+  "reasoning_traces": [
+    {
+      "step_id": "1",
+      "thought": "I will analyze the complex requirements for this large-scale refactoring task",
+      "action": "analyze_requirements",
+      "result": "completed",
+      "timestamp": "2025-11-26T12:00:00"
+    },
+    {
+      "step_id": "2",
+      "thought": "Based on the analysis, I need to read multiple large files to understand the current architecture",
+      "action": "read_files",
+      "result": "completed",
+      "timestamp": "2025-11-26T12:05:00"
+    },
+    {
+      "step_id": "3",
+      "thought": "I will now generate comprehensive refactoring recommendations with detailed explanations",
+      "action": "generate_recommendations",
+      "result": "completed",
+      "timestamp": "2025-11-26T12:08:00"
+    }
+  ],
+  "cost_profile": {
+    "total_tokens": 150000,
+    "cost_usd": 2.5,
+    "breakdown": {
+      "input": 1.0,
+      "output": 1.5
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "session_id": "golden-warning",
+  "duration": 120.0,
+  "success": true,
+  "reasoning_traces": [
+    {
+      "step_id": "1",
+      "thought": "short",
+      "action": "read_file",
+      "result": "ok",
+      "timestamp": "2025-11-26T12:00:00"
+    },
+    {
+      "step_id": "2",
+      "thought": "This is a slightly longer thought but still borderline acceptable",
+      "action": "analyze",
+      "result": "ok",
+      "timestamp": "2025-11-26T12:00:30"
+    },
+    {
+      "step_id": "3",
+      "thought": "ok",
+      "action": "write_changes",
+      "result": "ok",
+      "timestamp": "2025-11-26T12:01:00"
+    }
+  ],
+  "cost_profile": {
+    "total_tokens": 5000,
+    "cost_usd": 0.15,
+    "breakdown": {
+      "input": 0.05,
+      "output": 0.10
+    }
+  }
+}

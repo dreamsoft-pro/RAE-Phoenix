@@ -1,0 +1,110 @@
+# Example Behavior Scenario - API Order Creation
+# This file demonstrates how to define a behavior scenario for REST API testing
+
+id: api-create-order-v1
+project_id: my-legacy-api
+category: api
+name: Create Order - Valid Product
+description: |
+  Test order creation endpoint with valid product ID and quantity.
+  Verifies that API accepts request, creates order in database,
+  and returns proper response with order ID.
+
+environment: legacy
+tags:
+  - api
+  - orders
+  - critical
+  - smoke-test
+  - post-request
+
+# Input: API request specification
+input:
+  api_request:
+    method: POST
+    url: /api/v1/orders
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      X-Request-ID: test-order-creation-001
+      X-Idempotency-Key: "{{ uuid4 }}"  # Generate unique key per execution
+
+    body:
+      product_id: 12345
+      quantity: 2
+      customer_id: 67890
+      shipping_address:
+        street: "123 Main St"
+        city: "Springfield"
+        state: "IL"
+        zip: "62701"
+        country: "US"
+      payment_method: credit_card
+      notes: "Test order - do not ship"
+
+  # Context: additional execution context
+  context:
+    base_url: https://api.legacy-app.example.com
+    timeout_seconds: 30
+    follow_redirects: false
+    verify_ssl: true
+
+# Success criteria: multi-layered checks
+success_criteria:
+  # HTTP checks (critical for API scenarios)
+  http:
+    expected_status_codes: [201]  # Created
+    allowed_status_codes: [200, 201, 202]  # OK, Created, Accepted
+    forbidden_status_codes: [400, 401, 403, 404, 500, 502, 503]
+
+    # JSONPath checks for response body structure
+    must_contain_json_paths:
+      - "$.order_id"  # Must have order_id in response
+      - "$.status"    # Must have status field
+      - "$.created_at"  # Must have timestamp
+      - "$.total_amount"  # Must calculate total
+      - "$.customer_id"  # Should echo customer_id
+      - "$.items[0].product_id"  # Items array with product_id
+
+    # JSONPath patterns that MUST NOT be present
+    must_not_contain_json_paths:
+      - "$.error"  # No error field in successful response
+      - "$.errors"  # No errors array
+      - "$.internal_debug_info"  # Should not leak debug info
+
+  # DOM checks (not applicable for pure API)
+  dom: null
+
+  # Log checks (server-side logs if available)
+  logs:
+    # Patterns that MUST NOT appear in logs
+    forbidden_patterns:
+      - "ERROR"
+      - "Exception"
+      - "Traceback"
+      - "CRITICAL"
+      - "SQL syntax error"
+      - "Connection refused"
+      - "Timeout"
+      - "NullPointerException"
+      - "undefined method"
+
+    # Patterns that SHOULD appear (optional)
+    required_patterns:
+      - "Order created successfully"
+      # Uncomment if your API logs these:
+      # - "Payment authorized"
+      # - "Inventory updated"
+
+  # Custom rules (evaluated by Feniks/RAE - advanced)
+  custom_rules:
+    - "response_time < 1000ms"  # Response under 1 second
+    - "order_id_format_valid"  # Check if order_id matches expected format (e.g., ORD-*)
+    - "total_amount_calculated_correctly"  # Verify price calculation
+    - "inventory_check_passed"  # Verify inventory was checked
+    - "no_sql_injection_attempts"  # Security check
+
+# Metadata
+created_at: 2025-11-26T20:00:00Z
+created_by: api-test-admin

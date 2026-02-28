@@ -1,0 +1,16 @@
+name: angularjs-service-to-ts-function
+description: |
+  Refactors a simple AngularJS service (or factory) that returns an object 
+  with methods into a set of exported TypeScript functions.
+  This recipe is suitable for services that are stateless and do not rely 
+  on AngularJS's dependency injection for other services.
+type: migration
+tags: [angularjs, typescript, refactoring, service]
+
+actions:
+  - type: ast_transform
+    description: "Transforms the AngularJS factory into exported TypeScript functions."
+    pattern:
+      type: ast_match
+      node: function_call
+      callee_name: "angular.module.*.factory"

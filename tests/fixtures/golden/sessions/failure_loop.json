@@ -1,0 +1,42 @@
+{
+  "session_id": "sess-golden-failure-loop-001",
+  "duration": 45.0,
+  "success": false,
+  "cost_profile": {
+    "total_tokens": 5000,
+    "cost_usd": 0.15,
+    "breakdown": {
+      "gpt-4": 0.15
+    }
+  },
+  "reasoning_traces": [
+    {
+      "step_id": "step-1",
+      "thought": "I will try to fix the bug.",
+      "action": "run_test()",
+      "result": "Failed",
+      "timestamp": "2025-11-26T11:00:00"
+    },
+    {
+      "step_id": "step-2",
+      "thought": "Test failed. I will try running it again.",
+      "action": "run_test()",
+      "result": "Failed",
+      "timestamp": "2025-11-26T11:00:10"
+    },
+    {
+      "step_id": "step-3",
+      "thought": "Still failing. Running again.",
+      "action": "run_test()",
+      "result": "Failed",
+      "timestamp": "2025-11-26T11:00:20"
+    },
+    {
+      "step_id": "step-4",
+      "thought": "",
+      "action": "run_test()",
+      "result": "Failed",
+      "timestamp": "2025-11-26T11:00:30"
+    }
+  ]
+}

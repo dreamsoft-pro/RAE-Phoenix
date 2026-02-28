@@ -1,0 +1,64 @@
+{
+  "/en": {
+    "description": "Homepage",
+    "assertions": [
+      {
+        "selector": "nav.navbar",
+        "type": "visible",
+        "description": "Main navigation bar should be visible"
+      },
+      {
+        "selector": "a.navbar-brand",
+        "type": "visible",
+        "description": "Logo should be visible"
+      },
+      {
+        "selector": "a[ui-sref='cart']",
+        "type": "visible",
+        "description": "Cart link should be visible"
+      },
+      {
+        "selector": "a[ui-sref='login']",
+        "type": "visible",
+        "description": "Login link should be visible"
+      },
+      {
+        "selector": "div#content-main",
+        "type": "visible",
+        "description": "Main content container should be visible"
+      },
+      {
+        "selector": "#content-main .btn-group-vertical",
+        "type": "count",
+        "expected": 8,
+        "description": "There should be 7 main category button groups"
+      },
+      {
+        "selector": "#content-main h1.page-header",
+        "type": "contains_text",
+        "expected": "promotions",
+        "description": "The first header in the main content should be 'promotions'"
+      }
+    ]
+  },
+  "/en/client/my-zone/orders": {
+    "description": "My Orders page (requires login)",
+    "login": {
+      "user": "office@digitalprint.pro",
+      "pass": "1234"
+    },
+    "assertions": [
+      {
+        "selector": "h1.page-header",
+        "type": "visible",
+        "description": "Main header on My Orders page should be visible"
+      },
+      {
+        "selector": "h1.page-header",
+        "type": "contains_text",
+        "expected": "My zone",
+        "description": "Main header should be 'My zone'"
+      }
+    ]
+  }
+}

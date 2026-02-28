@@ -1,0 +1,13 @@
+**/node_modules/**
+**/bower_components/**
+**/dist/**
+**/build/**
+**/vendor/**
+**/.cache/**
+**/tmp/**
+**/.git/**
+**/*.min.js
+**/*.map
+**/*.spec.js
+**/*.test.js
+**/*.d.ts

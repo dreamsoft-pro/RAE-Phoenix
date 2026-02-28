@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html ng-app="todoApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AngularJS 1.3 TODO App - Legacy</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.20/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.20/angular-route.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Legacy TODO Application</h1>
+            <p class="subtitle">AngularJS 1.3.20 - Ready for Migration</p>
+        </header>
+
+        <nav>
+            <a href="#!/todos">All Todos</a>
+            <a href="#!/todos/active">Active</a>
+            <a href="#!/todos/completed">Completed</a>
+        </nav>
+
+        <main ng-view></main>
+
+        <footer>
+            <p>Feniks Demo - AngularJS Migration Example</p>
+        </footer>
+    </div>
+
+    <!-- Application Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/services/TodoService.js"></script>
+    <script src="js/controllers/TodoController.js"></script>
+    <script src="js/filters/TodoFilters.js"></script>
+</body>
+</html>

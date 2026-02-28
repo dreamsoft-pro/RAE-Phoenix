@@ -1,0 +1,13 @@
+
+name: angularjs-factory-to-ts-functions
+description: |
+  Refactors a simple AngularJS factory that returns an object with methods 
+  into a set of exported TypeScript functions.
+  This recipe is suitable for services that are stateless and do not rely 
+  on AngularJS's dependency injection for other services.
+type: migration
+tags: [angularjs, typescript, refactoring, factory]
+
+actions:
+  - type: ast_transform
+    description: "Extracts the factory function body and converts its returned methods into exported functions."

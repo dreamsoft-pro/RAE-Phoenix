@@ -1,0 +1,22 @@
+{
+  "name": "angularjs-todo-legacy",
+  "version": "1.0.0",
+  "description": "Legacy AngularJS 1.3 TODO application for Feniks migration demo",
+  "main": "index.html",
+  "scripts": {
+    "serve": "python -m http.server 8080",
+    "serve-node": "npx http-server -p 8080 -o"
+  },
+  "keywords": [
+    "angularjs",
+    "legacy",
+    "todo",
+    "feniks",
+    "migration"
+  ],
+  "author": "Feniks Team",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
