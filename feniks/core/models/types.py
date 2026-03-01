@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
-
+from typing import Any, Dict, List, Optional, Set, Literal
+from pydantic import BaseModel, Field
 
 @dataclass
 class GitInfo:
@@ -276,3 +276,46 @@ class MetaReflection:
     tags: List[str] = field(default_factory=list)
     confidence: float = 1.0
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+# --- Operational Types ---
+
+class OperationalMode(str, Enum):
+    """
+    Defines how Feniks operates on code.
+    """
+    REFACTOR = "refactor"  # Legacy preservation & regression protection
+    CREATE = "create"      # Green-field development from requirements
+    AUDIT = "audit"        # Pure analysis without modification
+
+class TargetLanguage(str, Enum):
+    """
+    Supported languages for refactoring and creation.
+    """
+    PYTHON = "python"
+    PHP = "php"
+    TYPESCRIPT = "typescript"
+    JAVASCRIPT = "javascript"
+    GENERIC = "generic"
+
+class ComplianceLevel(str, Enum):
+    """
+    Enforcement levels for ISO standards.
+    """
+    STRICT = "strict"      # Block on any violation (ISO 42001)
+    ADVISORY = "warning"   # Log violation but proceed
+    NONE = "none"
+
+class OperationalState(BaseModel):
+    """
+    Global state of the Feniks engine for a specific task.
+    Ensures ISO 27001 traceability.
+    """
+    mode: OperationalMode
+    language: TargetLanguage
+    trace_id: str = Field(..., description="OpenTelemetry Trace ID for audit")
+    agent_id: str = Field(..., description="ID of the agent/user responsible")
+    compliance: ComplianceLevel = ComplianceLevel.STRICT
+    
+    # ISO 42001 Provenance tracking
+    provenance_link: Optional[str] = Field(None, description="Link to source memory in RAE")
+

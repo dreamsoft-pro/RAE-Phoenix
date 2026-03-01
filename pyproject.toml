@@ -28,7 +28,6 @@ dependencies = [
     "pydantic-settings>=2.0",
     "python-dotenv>=0.19",
     "qdrant-client>=1.7",
-    "sentence-transformers>=2.2",
     "scikit-learn>=1.0",
     "numpy>=1.21",
     "PyJWT>=2.8",
@@ -36,6 +35,8 @@ dependencies = [
     "fastapi>=0.104",
     "uvicorn>=0.24",
     "slowapi>=0.1.9",
+    "onnxruntime>=1.16",
+    "tokenizers>=0.15",
 ]
 
 [project.optional-dependencies]

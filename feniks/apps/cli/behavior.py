@@ -20,11 +20,18 @@ of legacy systems without traditional tests.
 import json
 from datetime import datetime
 from pathlib import Path
-
 import yaml
+import uuid
 
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
+from feniks.core.models.behavior import BehaviorScenario, BehaviorInput, CLICommand, BehaviorSuccessCriteria, CLISuccessCriteria
+from feniks.core.models.types import OperationalState, OperationalMode, TargetLanguage, ComplianceLevel
+
+# Import runners
+from feniks.adapters.runners.cli_runner import CLIRunner
+from feniks.adapters.runners.python_runner import PythonRunner
+from feniks.adapters.runners.php_runner import PHPRunner
 
 log = get_logger("cli.behavior")
 
@@ -32,72 +39,81 @@ log = get_logger("cli.behavior")
 def handle_behavior_record(args):
     """
     Record behavior snapshots for a scenario.
-
-    Executes a behavior scenario and captures snapshots (HTTP responses,
-    DOM state, logs) for legacy system behavior analysis.
-
-    Args:
-        args.project_id: Project identifier
-        args.scenario_id: Scenario ID to execute
-        args.environment: Environment (legacy/candidate/staging/production)
-        args.output: Output JSONL file for snapshots
-        args.count: Number of times to execute scenario (default: 1)
+    Executes a behavior scenario and captures snapshots.
     """
     log.info("=== Behavior Record ===")
     log.info(f"Project: {args.project_id}")
     log.info(f"Scenario: {args.scenario_id}")
     log.info(f"Environment: {args.environment}")
     log.info(f"Output: {args.output}")
-    log.info(f"Executions: {args.count}")
+    log.info(f"Language: {args.language}")
+    
+    # 1. Setup Operational State
+    state = OperationalState(
+        mode=OperationalMode.AUDIT,
+        language=TargetLanguage(args.language),
+        trace_id=f"trace-{uuid.uuid4().hex[:8]}",
+        agent_id="cli-user",
+        compliance=ComplianceLevel.ADVISORY
+    )
 
-    # TODO: Implement actual scenario execution
-    # This is a placeholder for the MVP - real implementation would:
-    # 1. Load scenario from database/file
-    # 2. Execute scenario (UI via Playwright, API via requests, CLI via subprocess)
-    # 3. Capture observations (HTTP, DOM, logs)
-    # 4. Create BehaviorSnapshot
-    # 5. Save to JSONL
+    # 2. Select Runner
+    if state.language == TargetLanguage.PYTHON:
+        runner = PythonRunner(state)
+    elif state.language == TargetLanguage.PHP:
+        runner = PHPRunner(state)
+    else:
+        # Fallback to generic CLI runner
+        runner = CLIRunner()
 
-    log.warning("Behavior recording not yet implemented - this is a placeholder")
-    log.info("To implement:")
-    log.info("  1. Load BehaviorScenario from storage")
-    log.info("  2. Execute scenario runner (UI/API/CLI)")
-    log.info("  3. Capture observations")
-    log.info("  4. Save BehaviorSnapshot to JSONL")
+    # 3. Load or Mock Scenario
+    # In a full DB implementation, we would fetch by args.scenario_id.
+    # For now, we construct a generic scenario from CLI args if it's missing.
+    scenario = BehaviorScenario(
+        id=args.scenario_id,
+        project_id=args.project_id,
+        category="cli",
+        name=f"Auto-generated for {args.scenario_id}",
+        description="CLI execution test",
+        environment=args.environment,
+        input=BehaviorInput(
+            cli_command=CLICommand(command=args.command_to_run if hasattr(args, 'command_to_run') and args.command_to_run else "echo", args=["test"])
+        ),
+        success_criteria=BehaviorSuccessCriteria(
+            cli=CLISuccessCriteria(expected_exit_codes=[0])
+        ),
+        created_at=datetime.now()
+    )
 
-    # Create placeholder output
+    # 4. Execute
+    snapshots = []
+    for i in range(args.count):
+        log.info(f"Execution {i+1}/{args.count}")
+        snap = runner.execute_scenario(scenario, environment=args.environment)
+        snapshots.append(snap.model_dump())
+
+    # 5. Save Output
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    placeholder_snapshot = {
-        "id": f"snapshot-{args.scenario_id}-{datetime.now().isoformat()}",
-        "scenario_id": args.scenario_id,
-        "project_id": args.project_id,
-        "environment": args.environment,
-        "success": True,
-        "created_at": datetime.now().isoformat(),
-        "note": "PLACEHOLDER - implement actual scenario execution",
-    }
-
     with output_path.open("w") as f:
-        f.write(json.dumps(placeholder_snapshot) + "\n")
+        for snap_dict in snapshots:
+            # handle datetime serialization
+            snap_dict['created_at'] = snap_dict['created_at'].isoformat()
+            f.write(json.dumps(snap_dict) + "\n")
 
-    log.info(f"Placeholder snapshot saved to {output_path}")
+    log.info(f"Saved {len(snapshots)} snapshot(s) to {output_path}")
     log.info("=== Record Complete ===")
 
+
+from feniks.core.behavior.contract_generator import ContractGenerator
+from feniks.core.models.behavior import BehaviorSnapshot
 
 def handle_behavior_build_contracts(args):
     """
     Build behavior contracts from recorded snapshots.
-
     Analyzes multiple BehaviorSnapshots to derive generalized
     BehaviorContracts that define expected system behavior.
-
-    Args:
-        args.project_id: Project identifier
-        args.input: Input JSONL file with snapshots
-        args.output: Output JSONL file for contracts
-        args.min_snapshots: Minimum snapshots required per scenario (default: 3)
     """
     log.info("=== Build Behavior Contracts ===")
     log.info(f"Project: {args.project_id}")
@@ -110,26 +126,27 @@ def handle_behavior_build_contracts(args):
         raise FeniksError(f"Input file not found: {input_path}")
 
     # Load snapshots
-    snapshots = []
+    snapshots_data = []
     with input_path.open("r") as f:
         for line in f:
-            snapshot_data = json.loads(line)
-            # TODO: Validate and parse as BehaviorSnapshot
-            snapshots.append(snapshot_data)
+            snapshots_data.append(json.loads(line))
 
-    log.info(f"Loaded {len(snapshots)} snapshot(s)")
+    log.info(f"Loaded {len(snapshots_data)} snapshot(s)")
 
     # Group by scenario_id
     scenarios_map = {}
-    for snapshot in snapshots:
-        scenario_id = snapshot.get("scenario_id")
+    for data in snapshots_data:
+        scenario_id = data.get("scenario_id")
         if scenario_id not in scenarios_map:
             scenarios_map[scenario_id] = []
-        scenarios_map[scenario_id].append(snapshot)
+        # Re-construct snapshot object
+        # Note: simplistic parsing for now
+        scenarios_map[scenario_id].append(BehaviorSnapshot(**data))
 
     log.info(f"Found {len(scenarios_map)} unique scenario(s)")
 
     # Build contracts
+    generator = ContractGenerator()
     contracts = []
     for scenario_id, scenario_snapshots in scenarios_map.items():
         if len(scenario_snapshots) < args.min_snapshots:
@@ -140,50 +157,36 @@ def handle_behavior_build_contracts(args):
             continue
 
         log.info(f"Building contract for scenario {scenario_id} from {len(scenario_snapshots)} snapshot(s)")
-
-        # TODO: Implement actual contract generation logic
-        # This would analyze snapshots to find:
-        # - Common HTTP status codes
-        # - Required DOM elements
-        # - Forbidden log patterns
-        # - Performance thresholds (p95, p99)
-
-        contract = {
-            "id": f"contract-{scenario_id}-{datetime.now().isoformat()}",
-            "scenario_id": scenario_id,
-            "project_id": args.project_id,
-            "version": "1.0.0",
-            "derived_from_snapshot_ids": [s["id"] for s in scenario_snapshots],
-            "created_at": datetime.now().isoformat(),
-            "note": "PLACEHOLDER - implement actual contract generation",
-        }
-        contracts.append(contract)
+        
+        contract = generator.generate_from_snapshots(
+            project_id=args.project_id,
+            scenario_id=scenario_id,
+            snapshots=scenario_snapshots
+        )
+        contracts.append(contract.model_dump())
 
     # Save contracts
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with output_path.open("w") as f:
-        for contract in contracts:
-            f.write(json.dumps(contract) + "\n")
+        for contract_dict in contracts:
+            # Handle datetime
+            contract_dict['created_at'] = contract_dict['created_at'].isoformat()
+            f.write(json.dumps(contract_dict) + "\n")
 
     log.info(f"Saved {len(contracts)} contract(s) to {output_path}")
     log.info("=== Build Contracts Complete ===")
 
 
-def handle_behavior_check(args):
+from feniks.core.behavior.contract_engine import ContractEngine
+from feniks.core.models.behavior import BehaviorContract
+
+async def handle_behavior_check(args):
     """
     Check new system behavior against contracts.
-
     Compares BehaviorSnapshots from candidate system against
     BehaviorContracts to detect regressions.
-
-    Args:
-        args.project_id: Project identifier
-        args.contracts: Input JSONL file with contracts
-        args.snapshots: Input JSONL file with candidate snapshots
-        args.output: Output JSONL file for check results
-        args.fail_on_violations: Exit with error code if violations found
     """
     log.info("=== Behavior Check ===")
     log.info(f"Project: {args.project_id}")
@@ -191,87 +194,71 @@ def handle_behavior_check(args):
     log.info(f"Snapshots: {args.snapshots}")
     log.info(f"Output: {args.output}")
 
-    # Load contracts
+    # 1. Setup Engine
+    state = OperationalState(
+        mode=OperationalMode.REFACTOR,
+        language=TargetLanguage.GENERIC,
+        trace_id=f"trace-{uuid.uuid4().hex[:8]}",
+        agent_id="cli-user",
+        compliance=ComplianceLevel.STRICT
+    )
+    engine = ContractEngine(state)
+
+    # 2. Load contracts
     contracts_path = Path(args.contracts)
     if not contracts_path.exists():
         raise FeniksError(f"Contracts file not found: {contracts_path}")
 
-    contracts = []
+    contracts_list = []
     with contracts_path.open("r") as f:
         for line in f:
-            contract_data = json.loads(line)
-            contracts.append(contract_data)
+            contracts_list.append(BehaviorContract(**json.loads(line)))
 
-    log.info(f"Loaded {len(contracts)} contract(s)")
+    log.info(f"Loaded {len(contracts_list)} contract(s)")
+    contracts_map = {c.scenario_id: c for c in contracts_list}
 
-    # Load snapshots
+    # 3. Load snapshots
     snapshots_path = Path(args.snapshots)
     if not snapshots_path.exists():
         raise FeniksError(f"Snapshots file not found: {snapshots_path}")
 
-    snapshots = []
+    snapshots_list = []
     with snapshots_path.open("r") as f:
         for line in f:
-            snapshot_data = json.loads(line)
-            snapshots.append(snapshot_data)
+            snapshots_list.append(BehaviorSnapshot(**json.loads(line)))
 
-    log.info(f"Loaded {len(snapshots)} snapshot(s)")
+    log.info(f"Loaded {len(snapshots_list)} snapshot(s)")
 
-    # Build scenario_id -> contract mapping
-    contracts_map = {c["scenario_id"]: c for c in contracts}
-
-    # Check each snapshot
+    # 4. Check
     check_results = []
     total_passed = 0
     total_failed = 0
     max_risk = 0.0
 
-    for snapshot in snapshots:
-        scenario_id = snapshot.get("scenario_id")
-        contract = contracts_map.get(scenario_id)
-
+    for snap in snapshots_list:
+        contract = contracts_map.get(snap.scenario_id)
         if not contract:
-            log.warning(f"No contract found for scenario {scenario_id}, skipping")
+            log.warning(f"No contract found for scenario {snap.scenario_id}, skipping")
             continue
 
-        # TODO: Implement actual comparison logic
-        # This would:
-        # 1. Compare HTTP status codes
-        # 2. Check DOM elements presence/absence
-        # 3. Match log patterns
-        # 4. Calculate risk score based on violations
+        result = await engine.validate_candidate(contract, snap)
+        check_results.append(result.model_dump())
 
-        # Placeholder check (always passes)
-        passed = snapshot.get("success", True)
-        risk_score = 0.0 if passed else 0.5
-
-        check_result = {
-            "snapshot_id": snapshot["id"],
-            "contract_id": contract["id"],
-            "project_id": args.project_id,
-            "passed": passed,
-            "violations": [],
-            "risk_score": risk_score,
-            "checked_at": datetime.now().isoformat(),
-            "note": "PLACEHOLDER - implement actual behavior comparison",
-        }
-
-        check_results.append(check_result)
-
-        if passed:
+        if result.passed:
             total_passed += 1
         else:
             total_failed += 1
+        
+        max_risk = max(max_risk, result.risk_score)
 
-        max_risk = max(max_risk, risk_score)
-
-    # Save results
+    # 5. Save results
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with output_path.open("w") as f:
-        for result in check_results:
-            f.write(json.dumps(result) + "\n")
+        for res_dict in check_results:
+            res_dict['checked_at'] = res_dict['checked_at'].isoformat()
+            f.write(json.dumps(res_dict) + "\n")
 
     log.info(f"Saved {len(check_results)} check result(s) to {output_path}")
 
@@ -289,7 +276,6 @@ def handle_behavior_check(args):
     else:
         log.info("LOW RISK: Behavior within acceptable limits")
 
-    # Fail if violations and flag set
     if args.fail_on_violations and total_failed > 0:
         raise FeniksError(f"{total_failed} behavior check(s) failed")
 
@@ -368,6 +354,14 @@ def register_behavior_commands(subparsers):
     )
     record_parser.add_argument("--output", type=str, required=True, help="Output JSONL file for snapshots")
     record_parser.add_argument("--count", type=int, default=1, help="Number of times to execute scenario (default: 1)")
+    record_parser.add_argument(
+        "--language", 
+        type=str, 
+        choices=["python", "php", "typescript", "javascript", "generic"], 
+        default="generic", 
+        help="Target language for the runner"
+    )
+    record_parser.add_argument("--command-to-run", type=str, help="Explicit command to execute (e.g. 'pytest -v')")
     record_parser.set_defaults(func=handle_behavior_record)
 
     # behavior build-contracts

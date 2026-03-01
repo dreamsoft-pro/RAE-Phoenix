@@ -30,6 +30,13 @@ from feniks.infra.logging import get_logger
 log = get_logger("refactor.engine")
 
 
+from feniks.core.models.behavior import BehaviorScenario, BehaviorContract
+from feniks.core.behavior.contract_engine import ContractEngine
+from feniks.core.models.types import OperationalState, OperationalMode, ComplianceLevel, TargetLanguage
+from feniks.adapters.runners.python_runner import PythonRunner
+from feniks.adapters.runners.ui_runner import UIRunner
+import uuid
+
 class RefactorEngine:
     """
     Engine for executing refactoring workflows.
@@ -39,16 +46,76 @@ class RefactorEngine:
     - Analysis and planning
     - Execution (dry-run or actual)
     - Patch generation
-    - Validation
+    - Validation (Behavioral & Static)
     - Audit trail generation
     """
 
-    def __init__(self):
+    def __init__(self, state: Optional[OperationalState] = None):
         """Initialize the refactor engine."""
         self.recipes: Dict[str, RefactorRecipe] = {}
         self.patch_generator = PatchGenerator()
         self._register_builtin_recipes()
-        log.info("RefactorEngine initialized")
+        
+        # Setup Default State if not provided
+        self.state = state or OperationalState(
+            mode=OperationalMode.REFACTOR,
+            language=TargetLanguage.GENERIC,
+            trace_id=f"trace-{uuid.uuid4().hex[:8]}",
+            agent_id="system-engine",
+            compliance=ComplianceLevel.STRICT
+        )
+        self.contract_engine = ContractEngine(self.state)
+        log.info("RefactorEngine initialized with Contract Guard")
+
+    async def validate_behavior(
+        self, 
+        result: RefactorResult, 
+        scenarios: List[BehaviorScenario],
+        contracts: List[BehaviorContract]
+    ) -> RefactorResult:
+        """
+        Performs behavioral validation of the refactored code.
+        """
+        log.info(f"Starting behavioral validation for {len(scenarios)} scenarios")
+        
+        # 1. Select Runner
+        if self.state.language == TargetLanguage.PYTHON:
+            runner = PythonRunner(self.state)
+        elif self.state.language == TargetLanguage.JAVASCRIPT or self.state.language == TargetLanguage.TYPESCRIPT:
+            runner = UIRunner(self.state)
+        else:
+            return result # Generic runner not fully implemented for behavior
+
+        contracts_map = {c.scenario_id: c for c in contracts}
+        
+        all_passed = True
+        total_risk = 0.0
+        
+        for scenario in scenarios:
+            contract = contracts_map.get(scenario.id)
+            if not contract:
+                continue
+                
+            # Execute on candidate (new code)
+            candidate_snap = runner.execute_scenario(scenario, environment="candidate")
+            
+            # Validate
+            check_result = await self.contract_engine.validate_candidate(contract, candidate_snap)
+            result.behavior_check_results.append(check_result.model_dump())
+            
+            if not check_result.passed:
+                all_passed = False
+            
+            total_risk = max(total_risk, check_result.risk_score)
+
+        result.behavior_risk_score = total_risk
+        
+        # ISO 42001 Guard: If risk is too high, mark as failure regardless of static analysis
+        if total_risk >= 0.7:
+            result.success = False
+            result.errors.append(f"Behavioral regression detected! Max Risk Score: {total_risk}")
+            
+        return result
 
     def _register_builtin_recipes(self):
         """Register built-in refactoring recipes."""
