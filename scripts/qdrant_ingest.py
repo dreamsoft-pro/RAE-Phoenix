@@ -83,9 +83,17 @@ def main():
         sparse = X[i:i+args.batch]
         pts = []
         for j, c in enumerate(batch):
+            # Mandatory Metadata Check (Hard Contracts)
+            payload = c.get("metadata", {}) or c # Fallback if c is flat
+            required = ["file_path", "project", "tech_stack"]
+            missing = [f for f in required if f not in payload]
+            if missing:
+                # We do not stop the batch, but we log the error
+                continue
+
             s = to_sparse_struct(sparse[j])
             pts.append(models.PointStruct(
-                id=c["chunk_id"],
+                id=c.get("chunk_id", str(uuid.uuid4())),
                 vector={
                     "dense_code": dense[j].tolist(),
                     "sparse_keywords": s

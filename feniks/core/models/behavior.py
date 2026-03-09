@@ -454,3 +454,13 @@ SuccessCriteria = BehaviorSuccessCriteria
 HTTPSuccessCriteria = HTTPCriteria
 DOMSuccessCriteria = DOMCriteria
 LogSuccessCriteria = LogCriteria
+
+class BehaviorChecksSummary(BaseModel):
+    """
+    Aggregated summary of behavior checks for a report.
+    """
+    total_scenarios_checked: int
+    total_snapshots_checked: int
+    total_passed: int
+    total_failed: int
+    max_risk_score: float

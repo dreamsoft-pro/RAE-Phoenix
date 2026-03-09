@@ -78,5 +78,17 @@ class ContractGenerator:
         )
 
     def _analyze_http_invariants(self, snapshots: List[BehaviorSnapshot]) -> Optional[HTTPContract]:
-        # TODO: Implement HTTP response analysis
-        return None
+        """Analyzes HTTP responses to find common patterns and required fields."""
+        status_codes = set()
+        for s in snapshots:
+            if s.observed_http:
+                status_codes.add(s.observed_http.status_code)
+        
+        if not status_codes:
+            return None
+            
+        return HTTPContract(
+            required_status_codes=list(status_codes),
+            allowed_status_codes=list(status_codes | {200, 201, 204}),
+            forbidden_status_codes=[500, 502, 503, 404, 403, 401]
+        )
