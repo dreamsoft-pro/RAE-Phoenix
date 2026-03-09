@@ -1,3 +1,4 @@
+from prometheus_client import CollectorRegistry
 # Copyright 2025 Grzegorz Leśniowski
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
