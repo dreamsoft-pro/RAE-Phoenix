@@ -1,66 +1,7 @@
-# Python
-.venv/
+venv/
 __pycache__/
 *.pyc
-*.py[cod]
-*$py.class
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.hypothesis/
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-.eggs/
-
-# Node
-node_modules/
-npm-debug.log*
-.yarn/
-.pnpm-store/
-
-# Logs
-**/*.log
-logs_51027744171/
-logs_*/
-
-# IDE and tools
-.claude/
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Temporary files
-*.tmp
-.~lock.*
-*.docx
-*.odt
-
-# Generated/output directories
-output/
+*.log
+archive/
 runs/
-data/
-kb/
-refactor_output/
-
-# Playwright debug artifacts
-debug_*.html
-debug_*.png
-
-# Local notes and descriptions
-zzz_descriptions/
-AUDIT_REPORT.md
-tree.txt
-requirements.txt
-
-# OS
-.DS_Store
-Thumbs.db
-venv/
+*.jsonl

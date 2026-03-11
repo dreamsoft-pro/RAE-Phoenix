@@ -1,0 +1,17 @@
+﻿W kontekście architektury RAE-Phoenix, o której rozmawialiśmy, „twarde kontrakty” (Hard Contracts) stanowią absolutny fundament bezpieczeństwa systemu. Ponieważ narzędzie to zarządza m.in. refaktoryzacją, migracją kodu (Legacy Behavior Guard) oraz współpracą z modelami AI (LLM), system musi opierać się na nienaruszalnych regułach, które zapobiegają halucynacjom i regresji.
+Z perspektywy architektonicznej, w tym repozytorium twarde kontrakty realizowane są na kilku przecinających się warstwach:
+1. Kontrakty Narzędziowe (Tooling & MCP Contracts)
+Z racji tego, że system komunikuje się z LLM poprzez udostępnione „skille”, obowiązują tu ścisłe interfejsy wymiany danych:
+    • Model Context Protocol (MCP) / OpenAPI Schemas: Każdy skill (np. feniks_transform_legacy czy feniks_capture_snapshot) ma twardo zdefiniowany kontrakt wejścia/wyjścia (zazwyczaj oparty na modelach Pydantic w FastAPI). AI musi dostarczyć dokładnie zwalidowany JSON (np. ze ścieżkami do plików i typem operacji). Jeśli model językowy się pomyli i wyśle nieprawidłową strukturę, kontrakt odrzuca żądanie (zwracając schemat błędu do poprawy).
+2. Kontrakty Behawioralne (Legacy Behavior Guard Contracts)
+To najważniejszy mechanizm ochronny przed „zepsuciem” działającego, starego kodu:
+    • API Snapshots: Zrzuty odpowiedzi HTTP (status kody, struktura nagłówków, dokładny payload JSON/XML). Jeśli zrefaktoryzowany kod zwraca choćby jeden dodatkowy lub brakujący atrybut, którego nie było w starym kontrakcie API, Behavior Guard blokuje wdrożenie.
+    • UI/Visual Contracts (Playwright): W przypadku weryfikacji front-endu/UI, system polega na twardych kontraktach wizualnych i DOM (np. konkretne selektory muszą istnieć, ścieżki przejść użytkownika muszą kończyć się sukcesem, a snapshoty DOM muszą zgadzać się z bazowymi z określoną tolerancją błędu).
+3. Kontrakty Wektorowe i Bazy Wiedzy (Knowledge Engine)
+    • Qdrant Payload Schemas: Baza wektorowa (Qdrant) wymaga rygorystycznego strukturyzowania metadanych. Oprócz samego embeddingu wektorowego (np. 1536 wymiarów), każdy zapis (chunk kodu) musi mieć przypisany twardy kontrakt metadanych (np. file_path, module_domain, tech_stack, commit_hash). Bez tych metadanych filtrowanie kontekstowe dla AI byłoby niemożliwe.
+4. Kontrakty Polityk Jakości (Policy & Guardrails)
+    • Security & Quality Gates: System utrzymuje twarde reguły w procesie (CI/CD / Pipeline). Obejmuje to np. limity cyklomatyczne, obowiązek obecności testów jednostkowych dla nowo wygenerowanego kodu, czy restrykcje dotyczące użycia niedozwolonych bibliotek. To "twarde kontrakty biznesowe", których AI nie ma prawa obejść, niezależnie od promptu.
+5. Kontrakty Integracyjne (System-to-System)
+    • Połączenia z bazami danych / szynami zdarzeń: Zdefiniowane interfejsy (często poprzez ORM, np. SQLAlchemy w Pythonie lub Prisma/TypeORM w TS) opisujące schemat bazy danych, w której system zapisuje chociażby logi audytowe z operacji wykonanych przez AI (Postmortem Analysis Logs).
+Jak możemy to optymalnie wykorzystać? Podczas projektowania integracji i promptów operacyjnych dla Agenta AI korzystającego z RAE-Phoenix, powinniśmy go jawnie poinstruować, aby przed każdą operacją transformacyjną pobierał aktualny twardy kontrakt (np. definicję Swagger/OpenAPI starego endpointu lub schemat Pydantic) i traktował go jako "Absolute Ground Truth". Model będzie wiedział, że jakakolwiek zmiana naruszająca te kontrakty zostanie automatycznie odbita przez Behavior Guard.
+

@@ -357,6 +357,15 @@ class LogContract(BaseModel):
     required_patterns: list[str] = Field(default_factory=list)
 
 
+class CLIContract(BaseModel):
+    """
+    Generalized CLI contract for Python/PHP/Batch execution.
+    """
+    expected_exit_codes: list[int] = Field(default_factory=lambda: [0])
+    required_stdout_patterns: list[str] = Field(default_factory=list)
+    forbidden_stderr_patterns: list[str] = Field(default_factory=lambda: ["Error", "Traceback", "Fatal"])
+
+
 class BehaviorContract(BaseModel):
     """
     Behavior contract for a scenario - derived from multiple snapshots.
@@ -370,7 +379,7 @@ class BehaviorContract(BaseModel):
     project_id: str
 
     # Contract scope
-    version: Optional[str] = None  # e.g., "1.0.0"
+    version: Optional[str] = "1.0.0"
     environment_scope: list[Literal["legacy", "candidate", "production", "staging", "test"]] = Field(
         default_factory=lambda: ["legacy", "candidate"]
     )
@@ -379,6 +388,7 @@ class BehaviorContract(BaseModel):
     http_contract: Optional[HTTPContract] = None
     dom_contract: Optional[DOMContract] = None
     log_contract: Optional[LogContract] = None
+    cli_contract: Optional[CLIContract] = None
 
     # Tolerance thresholds
     max_error_rate: Optional[float] = 0.0  # Allowed % of failed snapshots
@@ -444,3 +454,13 @@ SuccessCriteria = BehaviorSuccessCriteria
 HTTPSuccessCriteria = HTTPCriteria
 DOMSuccessCriteria = DOMCriteria
 LogSuccessCriteria = LogCriteria
+
+class BehaviorChecksSummary(BaseModel):
+    """
+    Aggregated summary of behavior checks for a report.
+    """
+    total_scenarios_checked: int
+    total_snapshots_checked: int
+    total_passed: int
+    total_failed: int
+    max_risk_score: float

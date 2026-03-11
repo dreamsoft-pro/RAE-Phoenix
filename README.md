@@ -1,11 +1,11 @@
-# 🦅 Phoenix: Meta-Reflective Code Analysis Engine
+# 🦅 Feniks: Meta-Reflective Code Analysis Engine
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![Architecture](https://img.shields.io/badge/architecture-hexagonal-orange)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
 
-**Phoenix** is an Enterprise-grade static code analysis system, enhanced with a unique **Meta-Reflection** layer. Unlike traditional linters, Feniks not only finds syntax errors but analyzes the *meaning* and *quality* of the development reasoning process, detects long-term code trends, and manages AI operational budgets.
+**Feniks** is an Enterprise-grade static code analysis system, enhanced with a unique **Meta-Reflection** layer. Unlike traditional linters, Feniks not only finds syntax errors but analyzes the *meaning* and *quality* of the development reasoning process, detects long-term code trends, and manages AI operational budgets.
 
 It was designed as an analytical layer over the **RAE (Reflective Agent Engine)**.
 
@@ -120,10 +120,10 @@ result = controller_recipe.execute(plan, chunks, dry_run=False)
 
 ## 🏛️ Architecture Overview
 
-Phoenix follows Clean Architecture / Hexagonal principles, separating business logic from infrastructure.
+Feniks follows Clean Architecture / Hexagonal principles, separating business logic from infrastructure.
 
 ```
-phoenix/
+feniks/
 ├── apps/           # Entry points (CLI, API, Workers)
 ├── core/           # Business logic (Reflection, Evaluation, Policies)
 ├── adapters/       # Integrations (Qdrant, RAE, LLM)
@@ -137,7 +137,7 @@ Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 📊 Metrics and Observability
 
-Phoenix natively supports structured logging (JSON) and business metrics.
+Feniks natively supports structured logging (JSON) and business metrics.
 
 *   **Trace ID**: Each operation has a unique trace identifier.
 *   **Metrics**:

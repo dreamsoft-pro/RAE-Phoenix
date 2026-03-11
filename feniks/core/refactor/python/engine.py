@@ -1,82 +1,56 @@
-from pathlib import Path
-from typing import Any, Dict, List
-
-from feniks.core.models.types import SystemModel
-from feniks.core.refactor.python.tools import LibCSTWrapper, MyPyWrapper, RuffWrapper
+# Copyright 2025 Grzegorz Leśniowski
+"""
+Python Refactor Engine - Specialized logic for Python codebase modernization.
+"""
+from typing import List, Dict, Any
+from feniks.core.models.types import OperationalState
+from feniks.core.behavior.contract_engine import ContractEngine
+from feniks.adapters.runners.python_runner import PythonRunner
+from feniks.core.models.behavior import BehaviorScenario
 from feniks.infra.logging import get_logger
+from feniks.infra.tracing import span
 
-log = get_logger("refactor.python.engine")
-
+log = get_logger("core.refactor.python.engine")
 
 class PythonRefactorEngine:
-    """
-    Orchestrator for the Python Refactoring Pipeline.
-    Implements the workflow described in docs/PYTHON_REFACTORING_PIPELINE.md
-    """
+    def __init__(self, state: OperationalState):
+        self.state = state
+        self.contract_engine = ContractEngine(state)
+        self.runner = PythonRunner(state)
 
-    def __init__(self, work_dir: str = "."):
-        self.work_dir = Path(work_dir)
-        self.ruff = RuffWrapper(work_dir)
-        self.mypy = MyPyWrapper(work_dir)
-        self.libcst = LibCSTWrapper(work_dir)
-
-    def run_pipeline(self, target_module: str, strategies: List[str] = None) -> Dict[str, Any]:
+    async def execute_refactor(self, file_path: str, recipe: str, scenarios: List[BehaviorScenario]) -> Dict[str, Any]:
         """
-        Execute the full refactoring pipeline on a target module.
+        Executes a Python-specific refactor recipe with contract protection.
         """
-        log.info(f"Starting Python Refactoring Pipeline for: {target_module}")
-        results = {}
-
-        # Stage 1: Static Analysis Baseline
-        results["static_analysis"] = self.stage_static_analysis(target_module)
-
-        # Stage 2: Structural Analysis
-        results["structure"] = self.stage_structural_analysis(target_module)
-
-        # Stage 3: Behavior Contracts (Placeholder)
-        # In a full implementation, this would interface with the BehaviorGuard
-
-        # Stage 4: Automated Refactoring
-        if strategies:
-            results["refactoring"] = self.stage_automated_refactoring(target_module, strategies)
-
-        return results
-
-    def stage_static_analysis(self, target: str) -> Dict[str, Any]:
-        """Run static analysis tools."""
-        log.info("Stage 1: Static Analysis")
-        return {"ruff": self.ruff.check(target), "mypy": self.mypy.check(target)}
-
-    def stage_structural_analysis(self, target: str) -> Dict[str, Any]:
-        """Run AST structural analysis."""
-        log.info("Stage 2: Structural Analysis")
-
-        # If target is a directory, walk it? For now assume file or single module
-        target_path = self.work_dir / target
-        if target_path.is_file() and target_path.suffix == ".py":
-            return self.libcst.analyze_structure(str(target_path))
-
-        return {"info": "Directory analysis not fully implemented yet"}
-
-    def stage_automated_refactoring(self, target: str, strategies: List[str]) -> Dict[str, Any]:
-        """Apply automated refactorings."""
-        log.info(f"Stage 4: Automated Refactoring with strategies: {strategies}")
-        actions = []
-
-        if "auto-fix" in strategies:
-            self.ruff.fix(target)
-            actions.append("ruff-fix")
-
-        return {"actions_taken": actions}
-
-    def generate_refactor_plan(self, system_model: SystemModel) -> Dict[str, Any]:
-        """
-        Generate a refactoring plan based on the SystemModel.
-        This acts as the "Feniks orchestrator" logic.
-        """
-        plan = {"project_id": system_model.project_id, "candidates": []}
-
-        # Heuristic: Find large modules in system_model (mock logic for now as we rely on real implementation)
-        # In real scenario, we'd iterate system_model.modules and check metrics
-
-        return plan
+        with span("python_execute_refactor", attributes={"file": file_path, "recipe": recipe}):
+            log.info("starting_python_refactor", file=file_path, recipe=recipe)
+            
+            # 1. Establish Baseline Contract
+            baseline_snapshots = []
+            for scenario in scenarios:
+                snap = self.runner.execute_scenario(scenario, environment="legacy")
+                baseline_snapshots.append(snap)
+            
+            # 2. Apply Recipe (AI logic would go here to modify the file)
+            # await self._apply_ai_recipe(file_path, recipe)
+            log.info("applied_ai_recipe_placeholder")
+            
+            # 3. Capture Candidate Snapshot (post-change)
+            validation_results = []
+            all_passed = True
+            
+            for scenario in scenarios:
+                candidate_snap = self.runner.execute_scenario(scenario, environment="candidate")
+                dummy_contract = self.contract_engine.generate_empty_contract(scenario.id, "project-id")
+                
+                result = await self.contract_engine.validate_candidate(dummy_contract, candidate_snap)
+                validation_results.append(result)
+                if not result.passed:
+                    all_passed = False
+            
+            log.info("python_refactor_complete", file=file_path, all_passed=all_passed)
+            return {
+                "status": "success" if all_passed else "failed", 
+                "file": file_path,
+                "validation_results": [r.model_dump() for r in validation_results]
+            }

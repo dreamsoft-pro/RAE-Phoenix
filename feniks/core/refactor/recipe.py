@@ -80,6 +80,11 @@ class RefactorResult:
     file_changes: List[FileChange] = field(default_factory=list)
     patch_path: Optional[Path] = None
     validation_results: Dict[str, Any] = field(default_factory=dict)
+    
+    # Behavioral validation
+    behavior_check_results: List[Dict[str, Any]] = field(default_factory=list)
+    behavior_risk_score: float = 0.0
+    
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)

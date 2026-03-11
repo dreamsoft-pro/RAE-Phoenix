@@ -1,0 +1,5 @@
+{
+  "source_file": "~/cloud/dreamsoft_factory/frontend/app/services/AddressService.js",
+  "target_path": "~/cloud/dreamsoft_factory/next-frontend/src/services/address.ts",
+  "instructions": "Ingest legacy AngularJS service into modern Fetch-based TypeScript service. Preserve all business logic rules."
+}

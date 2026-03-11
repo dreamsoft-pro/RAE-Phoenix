@@ -22,7 +22,7 @@ from pathlib import Path
 
 import uvicorn
 
-from feniks.adapters.ingest.jsonl_loader import load_jsonl_chunks
+from feniks.adapters.ingest.jsonl_loader import load_jsonl
 from feniks.adapters.llm.embedding import build_tfidf, create_dense_embeddings, get_embedding_model
 from feniks.adapters.storage.qdrant import ensure_collection, upsert_points
 from feniks.apps.cli.angular import register_angular_commands
@@ -72,7 +72,7 @@ def handle_ingest(args):
             raise FeniksError(f"JSONL file not found: {jsonl_path}")
 
         # Load chunks
-        chunks = list(load_jsonl_chunks(jsonl_path))  # Simplified
+        chunks = list(load_jsonl(jsonl_path))  # Simplified
         log.info(f"Loaded: {len(chunks)} chunks")
 
         # Embeddings
