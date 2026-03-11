@@ -6,6 +6,21 @@ from mcp.types import Tool, TextContent
 from mcp.server.sse import SseServerTransport
 import uvicorn
 
+# Import Enterprise Guard
+from rae_core.utils.enterprise_guard import RAE_Enterprise_Foundation, audited_operation
+
+class PhoenixArchitect:
+    def __init__(self):
+        self.enterprise_foundation = RAE_Enterprise_Foundation(module_name="rae-phoenix")
+
+    @audited_operation(operation_name="design_architecture", impact_level="high")
+    def run_design(self, context: str):
+        """Designs or refactors software architecture."""
+        # Logika Trinity v3.0 here
+        return "Architecture design initiated and audited."
+
+# Inicjalizacja usług
+architect = PhoenixArchitect()
 mcp_server = Server("rae-phoenix")
 
 @mcp_server.list_tools()
@@ -13,7 +28,7 @@ async def handle_list_tools():
     return [
         Tool(
             name="design_architecture",
-            description="Designs or refactors software architecture.",
+            description="Designs or refactors software architecture. Full audit trail generated.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -27,7 +42,9 @@ async def handle_list_tools():
 @mcp_server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
     if name == "design_architecture":
-        return [TextContent(type="text", text="Architecture design initiated.")]
+        ctx = arguments.get("context")
+        result_text = architect.run_design(ctx)
+        return [TextContent(type="text", text=result_text)]
     raise ValueError(f"Unknown tool: {name}")
 
 app = FastAPI()
