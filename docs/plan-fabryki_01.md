@@ -60,7 +60,7 @@ CZĘŚĆ 1: Plan Fazy 2.5 (Semantyczna Konsolidacja)
   CZĘŚĆ 3: Ustawienia na Node 1 (Lumina)
 
 
-   * Lokalizacja Silnika: /mnt/extra_storage/RAE-agentic-memory-agnostic-core/agent_hive/
+   * Lokalizacja Silnika: /mnt/extra_storage/RAE-agentic-memory/agent_hive/
    * Magazyn Wyników: .../work_dir/components/ (Tu lądują Twoje pliki .tsx).
    * Baza Wiedzy: Kontener rae-postgres (PostgreSQL + pgvector).
    * Monitoring:
