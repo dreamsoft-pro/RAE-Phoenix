@@ -6,6 +6,9 @@ from mcp.types import Tool, TextContent
 from mcp.server.sse import SseServerTransport
 import uvicorn
 
+# Import Bridge Handler
+from rae_core.bridge.handler import register_bridge
+
 # Import Enterprise Guard
 from rae_core.utils.enterprise_guard import RAE_Enterprise_Foundation, audited_operation
 
@@ -48,6 +51,7 @@ async def handle_call_tool(name: str, arguments: dict):
     raise ValueError(f"Unknown tool: {name}")
 
 app = FastAPI()
+register_bridge(app, "rae-phoenix")
 sse = SseServerTransport("/mcp/messages")
 
 @app.get("/mcp/sse")
