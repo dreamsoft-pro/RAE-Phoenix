@@ -1,124 +1,68 @@
-#!/usr/bin/env python3
+# scripts/python_indexer.py
 import ast
-import json
 import os
-import argparse
-from pathlib import Path
+from typing import Dict, List, Set
+from pydantic import BaseModel
 
-def get_complexity(node):
-    complexity = 1
-    for child in ast.walk(node):
-        if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor, ast.ExceptHandler, ast.With, ast.AsyncWith)):
-            complexity += 1
-        elif isinstance(child, ast.BoolOp):
-            complexity += len(child.values) - 1
-    return complexity
+class SymbolInfo(BaseModel):
+    name: str
+    type: str # 'class', 'function', 'import'
+    line: int
+    dependencies: Set[str] = set()
 
-def get_calls(node):
-    calls = []
-    for child in ast.walk(node):
-        if isinstance(child, ast.Call):
-            if isinstance(child.func, ast.Name):
-                calls.append(child.func.id)
-            elif isinstance(child.func, ast.Attribute):
-                calls.append(child.func.attr)
-    return list(set(calls))
+class ProjectGraph(BaseModel):
+    symbols: Dict[str, SymbolInfo] = {}
+    file_map: Dict[str, List[str]] = {}
 
-def get_imports(tree):
-    imports = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                imports.append(alias.name)
-        elif isinstance(node, ast.ImportFrom):
-            imports.append(f"{node.module}.{node.names[0].name}")
-    return list(set(imports))
+class PythonSymbolIndexer(ast.NodeVisitor):
+    """Advanced AST Indexer for Python (DeepMind level dependency analysis)."""
+    
+    def __init__(self):
+        self.current_symbols = []
+        self.graph = ProjectGraph()
 
-def parse_python_file(file_path, root_path):
-    rel_path = os.path.relpath(file_path, root_path).replace(os.sep, '/')
-    try:
+    def index_file(self, file_path: str):
         with open(file_path, "r", encoding="utf-8") as f:
-            code = f.read()
-        tree = ast.parse(code)
-    except Exception as e:
-        print(f"Error parsing {file_path}: {e}")
-        return []
+            tree = ast.parse(f.read())
+            self.current_file = file_path
+            self.file_symbols = []
+            self.visit(tree)
+            self.graph.file_map[file_path] = self.file_symbols
 
-    chunks = []
-    file_lines = code.splitlines()
+    def visit_ClassDef(self, node):
+        symbol = SymbolInfo(name=node.name, type="class", line=node.lineno)
+        self.graph.symbols[node.name] = symbol
+        self.file_symbols.append(node.name)
+        self.generic_visit(node)
 
-    # File-level chunk
-    chunks.append({
-        "id": f"{rel_path}:0-{len(file_lines)}:file:module",
-        "filePath": rel_path,
-        "name": os.path.basename(file_path),
-        "kind": "module",
-        "language": "python",
-        "nodeType": "Module",
-        "start": 1,
-        "end": len(file_lines),
-        "text": code,
-        "dependencies": [{"type": "import", "value": imp} for imp in get_imports(tree)],
-        "metadata": {
-            "calls_functions": get_calls(tree),
-            "cyclomatic_complexity": get_complexity(tree),
-            "api_endpoints": [],
-            "ui_routes": [],
-            "business_tags": []
-        }
-    })
+    def visit_FunctionDef(self, node):
+        symbol = SymbolInfo(name=node.name, type="function", line=node.lineno)
+        # Track calls as dependencies
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
+                symbol.dependencies.add(child.func.id)
+        
+        self.graph.symbols[node.name] = symbol
+        self.file_symbols.append(node.name)
+        self.generic_visit(node)
 
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            start_line = node.lineno
-            end_line = getattr(node, 'end_lineno', start_line + len(ast.dump(node).splitlines()))
-            
-            chunk_text = "\n".join(file_lines[start_line-1:end_line])
-            kind = "class" if isinstance(node, ast.ClassDef) else "function"
-            
-            chunks.append({
-                "id": f"{rel_path}:{start_line}-{end_line}:{kind}:{node.name}",
-                "filePath": rel_path,
-                "name": node.name,
-                "kind": kind,
-                "language": "python",
-                "nodeType": type(node).__name__,
-                "start": start_line,
-                "end": end_line,
-                "text": chunk_text,
-                "dependencies": [],
-                "metadata": {
-                    "calls_functions": get_calls(node),
-                    "cyclomatic_complexity": get_complexity(node),
-                    "api_endpoints": [],
-                    "ui_routes": [],
-                    "business_tags": []
-                }
-            })
-
-    return chunks
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--root", required=True)
-    parser.add_argument("--out", required=True)
-    args = parser.parse_args()
-
-    root = Path(args.root).resolve()
-    out_path = Path(args.out).resolve()
-    os.makedirs(out_path.parent, exist_ok=True)
-
-    all_chunks = []
-    for file_path in root.rglob("*.py"):
-        if ".venv" in str(file_path) or "__pycache__" in str(file_path) or ".git" in str(file_path):
-            continue
-        all_chunks.extend(parse_python_file(file_path, root))
-
-    with open(out_path, "w", encoding="utf-8") as f:
-        for chunk in all_chunks:
-            f.write(json.dumps(chunk) + "\n")
-
-    print(f"Indexed {len(all_chunks)} Python chunks to {out_path}")
+    def get_impact_zone(self, symbol_name: str) -> List[str]:
+        """Finds all symbols that depend on the given symbol."""
+        impacted = []
+        for name, info in self.graph.symbols.items():
+            if symbol_name in info.dependencies:
+                impacted.append(name)
+        return impacted
 
 if __name__ == "__main__":
-    main()
+    indexer = PythonSymbolIndexer()
+    # Przykład indeksowania rdzenia
+    for root, _, files in os.walk("feniks/core"):
+        for f in files:
+            if f.endswith(".py"):
+                indexer.index_file(os.path.join(root, f))
+    
+    print(f"✅ Indexed {len(indexer.graph.symbols)} symbols.")
+    # Przykład analizy wpływu: co zależy od 'RefactorEngine'?
+    impact = indexer.get_impact_zone("RefactorEngine")
+    print(f"⚠️ Impact Zone for 'RefactorEngine': {impact}")
