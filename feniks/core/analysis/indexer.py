@@ -27,42 +27,81 @@ class SystemIndexer:
         self.graph = ProjectGraph()
 
     def scan_project(self):
-        """Full project scan to build the dependency graph."""
+        """Full project scan to build the dependency graph (Python, TS, PHP)."""
         logger.info(f"Building system graph for: {self.project_root}")
-        # Focus on Python files for now, expandable via plugins
-        files = glob.glob(os.path.join(self.project_root, "**/*.py"), recursive=True)
+        
+        # Supported extensions for Silicon Oracle v3.2
+        extensions = ["*.py", "*.ts", "*.tsx", "*.php"]
+        files = []
+        for ext in extensions:
+            files.extend(glob.glob(os.path.join(self.project_root, f"**/{ext}"), recursive=True))
+            
         for f in files:
             try:
-                self._index_file(f)
+                # Dispatch indexing based on extension
+                if f.endswith(".py"):
+                    self._index_python_file(f)
+                elif f.endswith((".ts", ".tsx")):
+                    self._index_ts_file(f)
+                elif f.endswith(".php"):
+                    self._index_php_file(f)
             except Exception as e:
                 logger.warning(f"Failed to index {f}: {e}")
         logger.info(f"System graph ready. Indexed {len(self.graph.symbols)} symbols across {len(self.graph.file_map)} files.")
 
-    def _index_file(self, file_path: str):
+    def _index_python_file(self, file_path: str):
+        """Python-specific AST indexing."""
+        with open(file_path, "r", encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+            # ... existing logic ... (implementing call tracking)
+            self._generic_ast_visitor(tree, file_path)
+
+    def _index_ts_file(self, file_path: str):
+        """TS/TSX-specific indexing (DeepMind level: Regex-based symbol extraction for now)."""
+        # Note: In a full prod version, this would use tree-sitter or LSP.
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-            tree = ast.parse(content)
-            
+            # Simple regex discovery for TS classes and functions
+            import re
+            matches = re.finditer(r'(?:export\s+)?(?:const|class|function)\s+([a-zA-Z0-9_]+)', content)
             file_symbols = []
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-                    symbol_name = node.name
-                    symbol = SymbolInfo(
-                        name=symbol_name,
-                        type="class" if isinstance(node, ast.ClassDef) else "function",
-                        file_path=file_path,
-                        line=node.lineno
-                    )
-                    
-                    # Simple dependency tracking: what functions/classes are called within this node
-                    for child in ast.walk(node):
-                        if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
-                            symbol.dependencies.add(child.func.id)
-                    
-                    self.graph.symbols[symbol_name] = symbol
-                    file_symbols.append(symbol_name)
-            
+            for m in matches:
+                name = m.group(1)
+                self.graph.symbols[name] = SymbolInfo(name=name, type="ts_symbol", file_path=file_path, line=0)
+                file_symbols.append(name)
             self.graph.file_map[file_path] = file_symbols
+
+    def _index_php_file(self, file_path: str):
+        """PHP-specific indexing."""
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            import re
+            matches = re.finditer(r'(?:class|function)\s+([a-zA-Z0-9_]+)', content)
+            file_symbols = []
+            for m in matches:
+                name = m.group(1)
+                self.graph.symbols[name] = SymbolInfo(name=name, type="php_symbol", file_path=file_path, line=0)
+                file_symbols.append(name)
+            self.graph.file_map[file_path] = file_symbols
+
+    def _generic_ast_visitor(self, tree, file_path):
+        # Implementation of previous Python visitor logic
+        file_symbols = []
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+                symbol_name = node.name
+                symbol = SymbolInfo(
+                    name=symbol_name,
+                    type="class" if isinstance(node, ast.ClassDef) else "function",
+                    file_path=file_path,
+                    line=node.lineno
+                )
+                for child in ast.walk(node):
+                    if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
+                        symbol.dependencies.add(child.func.id)
+                self.graph.symbols[symbol_name] = symbol
+                file_symbols.append(symbol_name)
+        self.graph.file_map[file_path] = file_symbols
 
     def get_impact_zone(self, file_path: str) -> Dict[str, Any]:
         """Identifies which parts of the system are affected by changes in this file."""
