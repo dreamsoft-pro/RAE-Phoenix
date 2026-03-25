@@ -135,12 +135,12 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
 
     def _scenario_to_text(self, scenario: BehaviorScenario) -> str:
         """Convert scenario to searchable text."""
-        parts = [scenario.name, scenario.description or "", scenario.category, f"project:{scenario.project_id}"]
+        parts = [scenario.name, scenario.description or "", scenario.category, f"project:{scenario.project}"]
         return " ".join(parts)
 
     def _contract_to_text(self, contract: BehaviorContract) -> str:
         """Convert contract to searchable text."""
-        parts = [f"scenario:{contract.scenario_id}", f"version:{contract.version}", f"project:{contract.project_id}"]
+        parts = [f"scenario:{contract.scenario_id}", f"version:{contract.version}", f"project:{contract.project}"]
 
         # Add criteria info
         if contract.success_criteria.http:
@@ -166,7 +166,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
             vector=vector,
             payload={
                 "scenario_id": scenario.id,
-                "project_id": scenario.project_id,
+                "project": scenario.project,
                 "name": scenario.name,
                 "category": scenario.category,
                 "description": scenario.description,
@@ -192,11 +192,11 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
             return BehaviorScenario(**point.payload["data"])
         return None
 
-    def list_scenarios(self, project_id: Optional[str] = None) -> List[BehaviorScenario]:
+    def list_scenarios(self, project: Optional[str] = None) -> List[BehaviorScenario]:
         """List all scenarios, optionally filtered by project."""
         filter_conditions = []
-        if project_id:
-            filter_conditions.append(FieldCondition(key="project_id", match=MatchValue(value=project_id)))
+        if project:
+            filter_conditions.append(FieldCondition(key="project", match=MatchValue(value=project)))
 
         scroll_filter = Filter(must=filter_conditions) if filter_conditions else None
 
@@ -229,14 +229,14 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
     # ========================================================================
 
     def search_similar_scenarios(
-        self, query: str, limit: int = 10, project_id: Optional[str] = None
+        self, query: str, limit: int = 10, project: Optional[str] = None
     ) -> List[BehaviorScenario]:
         """Search for scenarios similar to query text."""
         vector = self._embed_text(query)
 
         filter_conditions = []
-        if project_id:
-            filter_conditions.append(FieldCondition(key="project_id", match=MatchValue(value=project_id)))
+        if project:
+            filter_conditions.append(FieldCondition(key="project", match=MatchValue(value=project)))
 
         search_filter = Filter(must=filter_conditions) if filter_conditions else None
 
@@ -283,7 +283,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
             payload={
                 "snapshot_id": snapshot.id,
                 "scenario_id": snapshot.scenario_id,
-                "project_id": snapshot.project_id,
+                "project": snapshot.project,
                 "environment": snapshot.environment,
                 "data": snapshot.model_dump(mode="json"),
                 "created_at": snapshot.created_at.isoformat(),
@@ -360,7 +360,7 @@ class QdrantBackend(BehaviorStorageBackend, SemanticSearchMixin, VersionedStorag
                 "contract_id": contract.id,
                 "version": contract.version,
                 "scenario_id": contract.scenario_id,
-                "project_id": contract.project_id,
+                "project": contract.project,
                 "data": contract.model_dump(mode="json"),
                 "version_notes": version_notes or contract.version_notes,
                 "created_at": contract.created_at.isoformat(),

@@ -103,7 +103,7 @@ class PHPRunner:
                 return BehaviorSnapshot(
                     id=f"snap-{scenario.id}-{uuid.uuid4().hex[:8]}",
                     scenario_id=scenario.id,
-                    project_id=scenario.project_id,
+                    project=scenario.project,
                     environment=environment,
                     observed_cli=observed_cli,
                     observed_logs=ObservedLogs(
@@ -121,7 +121,7 @@ class PHPRunner:
                 return BehaviorSnapshot(
                     id=f"snap-{scenario.id}-err-{uuid.uuid4().hex[:8]}",
                     scenario_id=scenario.id,
-                    project_id=scenario.project_id,
+                    project=scenario.project,
                     environment=environment,
                     success=False,
                     violations=[

@@ -50,7 +50,7 @@ class TestEnhancedRAEClient:
         return MetaReflection(
             id="test_refl_001",
             timestamp=datetime.now().isoformat(),
-            project_id="test_project",
+            project="test_project",
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.CODEBASE,
             impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -76,7 +76,7 @@ class TestEnhancedRAEClient:
 
         with patch.object(enhanced_client, "_make_request", return_value=mock_rae_response):
             results = enhanced_client.query_reflections(
-                project_id="test_project", query_text="test query", layer="semantic", top_k=10
+                project="test_project", query="test query", layer="semantic", top_k=10
             )
 
             assert len(results) == 2
@@ -87,8 +87,8 @@ class TestEnhancedRAEClient:
         """Test query reflections with filtering parameters."""
         with patch.object(enhanced_client, "_make_request", return_value={"results": []}) as mock_request:
             enhanced_client.query_reflections(
-                project_id="test_project",
-                query_text="authentication patterns",
+                project="test_project",
+                query="authentication patterns",
                 layer="semantic",
                 top_k=5,
                 min_similarity=0.8,
@@ -130,13 +130,13 @@ class TestEnhancedRAEClient:
                 {
                     "refactor_type": "extract-method",
                     "success_rate": 0.85,
-                    "project_id": "proj_1",
+                    "project": "proj_1",
                     "outcome": {"metrics": {}},
                 },
                 {
                     "refactor_type": "extract-method",
                     "success_rate": 0.78,
-                    "project_id": "proj_2",
+                    "project": "proj_2",
                     "outcome": {"metrics": {}},
                 },
             ]
@@ -160,7 +160,7 @@ class TestEnhancedRAEClient:
         with patch.object(enhanced_client, "query_reflections", return_value=mock_insights):
             with patch.object(enhanced_client, "get_historical_refactorings", return_value=[]):
                 enriched = enhanced_client.enrich_reflection(
-                    local_reflection=sample_reflection, context={"project_id": "test_project"}
+                    local_reflection=sample_reflection, context={"project": "test_project"}
                 )
 
                 # Check enrichment metadata
@@ -180,7 +180,7 @@ class TestEnhancedRAEClient:
         with patch.object(enhanced_client, "query_reflections", return_value=[]):
             with patch.object(enhanced_client, "get_historical_refactorings", return_value=mock_refactor_insights):
                 enriched = enhanced_client.enrich_reflection(
-                    local_reflection=sample_reflection, context={"project_id": "test_project"}
+                    local_reflection=sample_reflection, context={"project": "test_project"}
                 )
 
                 # Check refactor insights were added
@@ -194,7 +194,7 @@ class TestEnhancedRAEClient:
         """Test enrichment returns original reflection on error."""
         with patch.object(enhanced_client, "query_reflections", side_effect=RAEError("Connection failed")):
             enriched = enhanced_client.enrich_reflection(
-                local_reflection=sample_reflection, context={"project_id": "test_project"}
+                local_reflection=sample_reflection, context={"project": "test_project"}
             )
 
             # Should return original reflection unchanged
@@ -205,7 +205,7 @@ class TestEnhancedRAEClient:
         """Test storing refactor outcome for learning."""
         refactor_decision = {
             "refactor_id": "refactor_001",
-            "project_id": "test_project",
+            "project": "test_project",
             "refactor_type": "extract-method",
         }
 
@@ -223,7 +223,7 @@ class TestEnhancedRAEClient:
 
         with patch.object(enhanced_client, "enrich_reflection", return_value=sample_reflection) as mock_enrich:
             enriched_list = enhanced_client.batch_enrich_reflections(
-                reflections=reflections, context={"project_id": "test_project"}
+                reflections=reflections, context={"project": "test_project"}
             )
 
             assert len(enriched_list) == 3

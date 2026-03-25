@@ -57,7 +57,7 @@ class PatchGenerator:
 
         # Generate patch filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        patch_filename = f"{result.plan.recipe_name}_{result.plan.project_id}_{timestamp}.patch"
+        patch_filename = f"{result.plan.recipe_name}_{result.plan.project}_{timestamp}.patch"
         patch_path = output_dir / patch_filename
 
         # Generate patch content
@@ -65,7 +65,7 @@ class PatchGenerator:
 
         # Header
         patch_lines.append(f"# Refactoring Patch: {result.plan.recipe_name}")
-        patch_lines.append(f"# Project: {result.plan.project_id}")
+        patch_lines.append(f"# Project: {result.plan.project}")
         patch_lines.append(f"# Generated: {datetime.now().isoformat()}")
         patch_lines.append(f"# Risk Level: {result.plan.risk_level.value}")
         patch_lines.append("#")

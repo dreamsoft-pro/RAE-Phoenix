@@ -36,14 +36,14 @@ def test_feniks_report_full_structure():
     summary = SessionSummary(session_id="sess-1", duration=5.0, success=True, cost_profile=profile)
 
     report = FeniksReport(
-        project_id="proj-alpha",
+        project="proj-alpha",
         timestamp=datetime.now().isoformat(),
         summary=summary,
         metrics={"complexity": 10},
         recommendations=["Refactor X"],
     )
 
-    assert report.project_id == "proj-alpha"
+    assert report.project == "proj-alpha"
     assert report.summary.cost_profile.total_tokens == 100
     assert report.metrics["complexity"] == 10
 
@@ -56,7 +56,7 @@ def test_feniks_report_full_structure():
 def test_feniks_report_validation_error():
     # Missing required fields
     with pytest.raises(ValueError):
-        FeniksReport(project_id="fail")
+        FeniksReport(project="fail")
 
 
 def test_session_with_1000_reasoning_steps():

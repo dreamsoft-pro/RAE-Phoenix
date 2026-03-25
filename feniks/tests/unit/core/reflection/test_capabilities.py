@@ -34,7 +34,7 @@ def sample_chunks():
 
 @pytest.fixture
 def empty_system_model():
-    return SystemModel(project_id="test", timestamp="now")
+    return SystemModel(project="test", timestamp="now")
 
 
 def test_detect_capabilities_from_tags(empty_system_model, sample_chunks):

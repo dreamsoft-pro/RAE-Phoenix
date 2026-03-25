@@ -46,7 +46,7 @@ class ControllerToComponentRecipe(RefactorRecipe):
         
         return RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=[],
             target_files=target_files,
             rationale="AI-driven modular migration",

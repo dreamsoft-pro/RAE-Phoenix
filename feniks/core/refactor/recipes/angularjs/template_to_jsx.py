@@ -299,7 +299,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
         Returns:
             RefactorPlan or None
         """
-        log.info(f"Analyzing for AngularJS templates: {system_model.project_id}")
+        log.info(f"Analyzing for AngularJS templates: {system_model.project}")
 
         # Find HTML templates
         templates = self._find_templates(system_model, target)
@@ -334,7 +334,7 @@ class TemplateToJsxRecipe(RefactorRecipe):
         # Create refactoring plan
         plan = RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=[],
             target_files=list(set(target_files)),
             rationale=f"Convert {len(template_metadata)} AngularJS templates to JSX",

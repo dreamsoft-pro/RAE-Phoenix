@@ -28,14 +28,14 @@ log = get_logger("core.system_model_builder")
 class SystemModelBuilder:
     """Builds a SystemModel from a list of chunks."""
 
-    def __init__(self, project_id: str):
+    def __init__(self, project: str):
         """
         Initialize the builder.
 
         Args:
-            project_id: Unique identifier for the project
+            project: Unique identifier for the project
         """
-        self.project_id = project_id
+        self.project = project
         self.chunks: List[Chunk] = []
         self.modules: Dict[str, Module] = {}
         self.dependency_map: Dict[Tuple[str, str, str], ModuleDependency] = {}
@@ -226,7 +226,7 @@ class SystemModelBuilder:
         Returns:
             SystemModel: The constructed system model
         """
-        log.info(f"Building system model for project: {self.project_id}")
+        log.info(f"Building system model for project: {self.project}")
 
         # Step 1: Build modules
         self._build_modules()
@@ -258,7 +258,7 @@ class SystemModelBuilder:
 
         # Create SystemModel
         system_model = SystemModel(
-            project_id=self.project_id,
+            project=self.project,
             timestamp=datetime.utcnow().isoformat(),
             modules=self.modules,
             dependencies=list(self.dependency_map.values()),
@@ -283,17 +283,17 @@ class SystemModelBuilder:
         return system_model
 
 
-def build_system_model(chunks: List[Chunk], project_id: str) -> SystemModel:
+def build_system_model(chunks: List[Chunk], project: str) -> SystemModel:
     """
     Convenience function to build a system model from chunks.
 
     Args:
         chunks: List of code chunks
-        project_id: Project identifier
+        project: Project identifier
 
     Returns:
         SystemModel: The constructed system model
     """
-    builder = SystemModelBuilder(project_id)
+    builder = SystemModelBuilder(project)
     builder.add_chunks(chunks)
     return builder.build()

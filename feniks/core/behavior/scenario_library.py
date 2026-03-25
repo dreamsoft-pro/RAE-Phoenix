@@ -81,7 +81,7 @@ class ScenarioLibrary:
         # Create library version with metadata
         library_scenario = BehaviorScenario(
             id=f"lib-{scenario.id}",
-            project_id=self.library_project_id,
+            project=self.library_project_id,
             name=scenario.name,
             category=scenario.category,
             description=description or scenario.description,
@@ -89,7 +89,7 @@ class ScenarioLibrary:
             input=scenario.input,
             success_criteria=scenario.success_criteria,
             metadata={
-                "original_project": scenario.project_id,
+                "original_project": scenario.project,
                 "original_id": scenario.id,
                 "tags": tags or [],
                 "author": author,
@@ -117,7 +117,7 @@ class ScenarioLibrary:
         Returns:
             List of public scenarios
         """
-        all_scenarios = self.storage.list_scenarios(project_id=self.library_project_id)
+        all_scenarios = self.storage.list_scenarios(project=self.library_project_id)
 
         # Apply filters
         filtered = []
@@ -154,7 +154,7 @@ class ScenarioLibrary:
         # Check if semantic search is available
         if hasattr(self.storage, "search_similar_scenarios"):
             scenarios = self.storage.search_similar_scenarios(
-                query=query, limit=limit, project_id=self.library_project_id
+                query=query, limit=limit, project=self.library_project_id
             )
             log.info(f"Semantic search found {len(scenarios)} scenarios for: {query}")
             return scenarios
@@ -195,7 +195,7 @@ class ScenarioLibrary:
         # Create project scenario
         imported_scenario = BehaviorScenario(
             id=f"imported-{library_scenario.id}-{target_project_id}",
-            project_id=target_project_id,
+            project=target_project_id,
             name=customize.get("name") if customize else library_scenario.name,
             category=library_scenario.category,
             description=(customize.get("description") if customize else None) or library_scenario.description,

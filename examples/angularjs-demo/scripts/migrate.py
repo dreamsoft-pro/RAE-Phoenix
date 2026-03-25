@@ -123,7 +123,7 @@ def create_system_model(legacy_app_path: Path) -> SystemModel:
 
     # Create system model
     system_model = SystemModel(
-        project_id="angularjs-todo-demo",
+        project="angularjs-todo-demo",
         modules={"todo-app": module},
         total_lines=module.total_lines,
         total_chunks=len(chunks)

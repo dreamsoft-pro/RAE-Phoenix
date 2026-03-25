@@ -117,7 +117,7 @@ class MetricsCollector:
             },
         }
 
-    def get_project_metrics(self, project_id: str) -> Optional[Dict[str, Any]]:
+    def get_project_metrics(self, project: str) -> Optional[Dict[str, Any]]:
         """Placeholder for project-specific metrics."""
         return {"ingests": 0, "analyses": 0, "refactorings": 0, "chunks": 0, "meta_reflections": 0, "patches": 0}
 

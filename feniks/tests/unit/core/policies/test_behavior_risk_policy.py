@@ -32,7 +32,7 @@ from feniks.core.policies.behavior_risk_policy import (
 def base_report():
     """Base FeniksReport without behavior checks."""
     return FeniksReport(
-        project_id="test-project",
+        project="test-project",
         timestamp=datetime.now().isoformat(),
         summary=SessionSummary(session_id="test-session", duration=100.0, success=True, reasoning_traces=[]),
         metrics={},

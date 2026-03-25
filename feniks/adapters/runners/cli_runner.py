@@ -129,7 +129,7 @@ class CLIRunner:
             snapshot = BehaviorSnapshot(
                 id=f"snap-{scenario.id}-{uuid.uuid4().hex[:8]}",
                 scenario_id=scenario.id,
-                project_id=scenario.project_id,
+                project=scenario.project,
                 environment=environment,
                 observed_cli=observed_cli,
                 observed_logs=ObservedLogs(
@@ -274,7 +274,7 @@ class CLIRunner:
         return BehaviorSnapshot(
             id=f"snap-{scenario.id}-error-{uuid.uuid4().hex[:8]}",
             scenario_id=scenario.id,
-            project_id=scenario.project_id,
+            project=scenario.project,
             environment=environment,
             observed_logs=ObservedLogs(lines=[error_message]),
             duration_ms=duration_ms,

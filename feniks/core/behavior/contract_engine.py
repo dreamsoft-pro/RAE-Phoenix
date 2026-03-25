@@ -69,14 +69,14 @@ class ContractEngine:
             
             return result
 
-    def generate_empty_contract(self, scenario_id: str, project_id: str) -> BehaviorContract:
+    def generate_empty_contract(self, scenario_id: str, project: str) -> BehaviorContract:
         """
         Creates a skeleton contract for CREATE mode.
         """
         return BehaviorContract(
             id=str(uuid.uuid4()),
             scenario_id=scenario_id,
-            project_id=project_id,
+            project=project,
             created_at=datetime.now(),
             created_by=self.state.agent_id,
             version="1.0.0-draft"

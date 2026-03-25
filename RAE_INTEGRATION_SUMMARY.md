@@ -203,7 +203,7 @@ from feniks.core.memory.router import create_memory_router
 
 # Initialize
 rae_client = create_enhanced_rae_client()
-router = create_memory_router(qdrant_client, project_id="my-project")
+router = create_memory_router(qdrant_client, project="my-project")
 
 # Generate local reflection
 reflection = meta_reflection_engine.generate(system_model)

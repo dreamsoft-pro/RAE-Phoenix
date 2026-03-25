@@ -63,21 +63,21 @@ class PrometheusMetricsCollector:
             self.cost_total = Counter(
                 "feniks_cost_total",
                 "Total cost in USD for all operations",
-                ["project_id", "operation"],
+                ["project", "operation"],
                 registry=self.registry,
             )
 
             self.quality_score = Gauge(
                 "feniks_quality_score",
                 "Current quality score of the system (0.0 - 1.0)",
-                ["project_id"],
+                ["project"],
                 registry=self.registry,
             )
 
             self.recommendations_count = Counter(
                 "feniks_recommendations_count",
                 "Total number of recommendations generated",
-                ["project_id", "severity"],
+                ["project", "severity"],
                 registry=self.registry,
             )
 
@@ -110,20 +110,20 @@ class PrometheusMetricsCollector:
             log.error(f"Failed to initialize Prometheus metrics: {e}")
             self.enabled = False
 
-    def inc_cost(self, cost_usd: float, project_id: str = "default", operation: str = "general"):
+    def inc_cost(self, cost_usd: float, project: str = "default", operation: str = "general"):
         """Increment total cost."""
         if self.enabled:
-            self.cost_total.labels(project_id=project_id, operation=operation).inc(cost_usd)
+            self.cost_total.labels(project=project, operation=operation).inc(cost_usd)
 
-    def set_quality_score(self, score: float, project_id: str = "default"):
+    def set_quality_score(self, score: float, project: str = "default"):
         """Set current quality score (0.0 - 1.0)."""
         if self.enabled:
-            self.quality_score.labels(project_id=project_id).set(score)
+            self.quality_score.labels(project=project).set(score)
 
-    def inc_recommendations(self, count: int = 1, project_id: str = "default", severity: str = "info"):
+    def inc_recommendations(self, count: int = 1, project: str = "default", severity: str = "info"):
         """Increment recommendations count."""
         if self.enabled:
-            self.recommendations_count.labels(project_id=project_id, severity=severity).inc(count)
+            self.recommendations_count.labels(project=project, severity=severity).inc(count)
 
     def inc_operations(self, operation: str, status: str = "success"):
         """Increment operations count."""

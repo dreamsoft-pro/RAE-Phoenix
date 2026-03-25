@@ -15,7 +15,7 @@ from feniks.core.models.types import (
 @pytest.fixture
 def sample_system_model():
     model = SystemModel(
-        project_id="test-project",
+        project="test-project",
         timestamp="2025-11-26T10:00:00",
         total_modules=2,
         total_files=5,
@@ -49,7 +49,7 @@ def sample_reflections():
         MetaReflection(
             id="ref-1",
             timestamp="2025-11-26",
-            project_id="test-project",
+            project="test-project",
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.SYSTEM,
             impact=ReflectionImpact.CRITICAL,

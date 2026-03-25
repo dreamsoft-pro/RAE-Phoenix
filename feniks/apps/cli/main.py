@@ -99,7 +99,7 @@ def handle_ingest(args):
 def handle_analyze(args):
     """Handle the analyze command."""
     log.info("=== Feniks Analysis Pipeline ===")
-    log.info(f"Project ID: {args.project_id}")
+    log.info(f"Project ID: {args.project}")
     log.info(f"Collection: {args.collection}")
 
     # Override RAE setting if specified
@@ -115,7 +115,7 @@ def handle_analyze(args):
 
     # Run analysis
     system_model = run_analysis(
-        project_id=args.project_id,
+        project=args.project,
         collection_name=args.collection,
         output_path=output_path,
         meta_reflections_output=meta_reflections_output,
@@ -151,12 +151,12 @@ def handle_refactor(args):
         log.error("Recipe name required. Use --list-recipes to see available recipes.")
         return 1
 
-    if not args.project_id:
+    if not args.project:
         log.error("Project ID required (--project-id)")
         return 1
 
     log.info(f"Recipe: {args.recipe}")
-    log.info(f"Project ID: {args.project_id}")
+    log.info(f"Project ID: {args.project}")
     log.info(f"Collection: {args.collection}")
     log.info(f"Dry run: {args.dry_run}")
 
@@ -173,7 +173,7 @@ def handle_refactor(args):
         from feniks.core.reflection.capabilities import CapabilityDetector
         from feniks.core.reflection.system_model import build_system_model
 
-        system_model = build_system_model(chunks, args.project_id)
+        system_model = build_system_model(chunks, args.project)
         detector = CapabilityDetector()
         system_model = detector.enrich_system_model(system_model, chunks)
         log.info(f"Built system model: {system_model.total_modules} modules")
@@ -301,10 +301,10 @@ def handle_metrics(args):
     print()
 
     # Per-project breakdown
-    if args.project_id:
-        project_metrics = metrics_collector.get_project_metrics(args.project_id)
+    if args.project:
+        project_metrics = metrics_collector.get_project_metrics(args.project)
         if project_metrics:
-            print(f"Project: {args.project_id}")
+            print(f"Project: {args.project}")
             print(f"  Ingests: {project_metrics['ingests']}")
             print(f"  Analyses: {project_metrics['analyses']}")
             print(f"  Refactorings: {project_metrics['refactorings']}")
@@ -312,7 +312,7 @@ def handle_metrics(args):
             print(f"  Meta-Reflections: {project_metrics['meta_reflections']}")
             print(f"  Patches: {project_metrics['patches']}")
         else:
-            print(f"No metrics found for project: {args.project_id}")
+            print(f"No metrics found for project: {args.project}")
         print()
 
     # Export if requested
@@ -324,15 +324,15 @@ def handle_metrics(args):
     # Cost report if enabled
     if settings.cost_control_enabled:
         cost_controller = get_cost_controller()
-        cost_report = cost_controller.get_cost_report(args.project_id)
+        cost_report = cost_controller.get_cost_report(args.project)
         print("\nCost Report:")
-        if args.project_id and cost_report.get("budget"):
+        if args.project and cost_report.get("budget"):
             budget = cost_report["budget"]
             print(f"  Budget: {budget['total']:.2f}")
             print(f"  Spent: {budget['spent']:.2f}")
             print(f"  Remaining: {budget['remaining']:.2f}")
             print(f"  Utilization: {budget['utilization']:.1f}%")
-        elif not args.project_id:
+        elif not args.project:
             print(f"  Total Spent: {cost_report.get('total_spent', 0):.2f}")
             print(f"  Projects: {len(cost_report.get('projects', {}))}")
 

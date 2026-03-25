@@ -2,7 +2,7 @@
 # This file demonstrates how to define a behavior scenario for Legacy Behavior Guard
 
 id: login-scenario-v1
-project_id: my-legacy-app
+project: my-legacy-app
 category: ui
 name: User Login Flow - Valid Credentials
 description: |

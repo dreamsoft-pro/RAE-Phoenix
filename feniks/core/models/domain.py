@@ -49,7 +49,7 @@ class FeniksReport(BaseModel):
     - Recommendations and risk assessment
     """
 
-    project_id: str = Field(..., description="Project identifier")
+    project: str = Field(..., description="Project identifier")
     timestamp: str = Field(..., description="Timestamp of the report generation")
     summary: SessionSummary = Field(..., description="Summary of the analysis session")
     metrics: Dict[str, Any] = Field(default_factory=dict, description="Collected metrics")

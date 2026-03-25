@@ -78,7 +78,7 @@ Set `auth_enabled=false` in configuration to disable authentication (not recomme
 curl -X POST https://api.feniks.io/sessions/analyze \\
   -H "Authorization: Bearer $TOKEN" \\
   -H "Content-Type: application/json" \\
-  -d '{"project_id": "my-project", "session_summary": {...}}'
+  -d '{"project": "my-project", "session_summary": {...}}'
 
 # Get report
 curl https://api.feniks.io/report/rep-session-123 \\
@@ -184,7 +184,7 @@ def require_permission(permission: Permission):
 
 
 class AnalyzeSessionRequest(BaseModel):
-    project_id: str
+    project: str
     session_summary: SessionSummary
 
 
@@ -230,7 +230,7 @@ async def analyze_session(
     **Example**:
     ```json
     {
-      "project_id": "my-project",
+      "project": "my-project",
       "session_summary": {
         "session_id": "sess-123",
         "duration": 120.5,
@@ -244,13 +244,13 @@ async def analyze_session(
     }
     ```
     """
-    log.info(f"User {user.username} analyzing session for project {request.project_id}")
+    log.info(f"User {user.username} analyzing session for project {request.project}")
     report_id = f"rep-{request.session_summary.session_id}"
 
     # Run analysis synchronously for now (can be backgrounded)
     try:
         # 1. Post-Mortem Analysis
-        reflections = reflection_engine.run_post_mortem(request.session_summary, project_id=request.project_id)
+        reflections = reflection_engine.run_post_mortem(request.session_summary, project=request.project)
 
         # Store results
         _reflections_db[report_id] = reflections

@@ -149,7 +149,7 @@ class ScopeToHooksRecipe(RefactorRecipe):
         return RefactorRisk.HIGH
 
     def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
-        log.info(f"Analyzing for $scope/$rootScope usage: {system_model.project_id}")
+        log.info(f"Analyzing for $scope/$rootScope usage: {system_model.project}")
 
         scope_usage = self._analyze_scope_usage(system_model, target)
 
@@ -163,7 +163,7 @@ class ScopeToHooksRecipe(RefactorRecipe):
 
         plan = RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=[],
             target_files=[u.source_file for u in scope_usage],
             rationale=f"Migrate scope patterns to React hooks in {len(scope_usage)} locations",

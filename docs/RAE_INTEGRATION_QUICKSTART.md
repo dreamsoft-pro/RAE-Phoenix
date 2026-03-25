@@ -65,8 +65,8 @@ rae_client = create_enhanced_rae_client()
 
 # Query historical reflections
 results = rae_client.query_reflections(
-    project_id="my-project",
-    query_text="authentication patterns",
+    project="my-project",
+    query="authentication patterns",
     layer="semantic",
     top_k=10
 )
@@ -80,7 +80,7 @@ patterns = rae_client.get_cross_project_patterns(
 # Enrich local reflection
 enriched = rae_client.enrich_reflection(
     local_reflection=my_reflection,
-    context={"project_id": "my-project", "tags": ["python"]}
+    context={"project": "my-project", "tags": ["python"]}
 )
 
 # Store refactoring outcome (feedback loop)
@@ -100,7 +100,7 @@ from feniks.core.memory.router import create_memory_router, RoutingStrategy
 # Initialize
 router = create_memory_router(
     qdrant_client=my_qdrant_client,
-    project_id="my-project",
+    project="my-project",
     strategy=RoutingStrategy.HYBRID
 )
 
@@ -143,7 +143,7 @@ if rae_client:
     enriched_reflection = rae_client.enrich_reflection(
         local_reflection=local_reflection,
         context={
-            "project_id": project_id,
+            "project": project,
             "tags": ["python", "microservice"]
         }
     )
@@ -189,7 +189,7 @@ rae_client = create_enhanced_rae_client()
 # 1. Plan refactoring
 refactor_decision = {
     "refactor_id": generate_id(),
-    "project_id": project_id,
+    "project": project,
     "refactor_type": "extract-method",
     "target": "complex_function",
     "confidence": 0.85
@@ -226,7 +226,7 @@ from feniks.core.memory.router import create_memory_router
 
 router = create_memory_router(
     qdrant_client=qdrant_client,
-    project_id=project_id
+    project=project
 )
 
 # High-value data → Dual-write (local + global)

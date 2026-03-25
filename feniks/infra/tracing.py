@@ -25,7 +25,7 @@ from typing import Any, Dict, Optional
 # Context variables for storing trace state
 _trace_id_ctx = contextvars.ContextVar("trace_id", default=None)
 _span_id_ctx = contextvars.ContextVar("span_id", default=None)
-_project_id_ctx = contextvars.ContextVar("project_id", default=None)
+_project_id_ctx = contextvars.ContextVar("project", default=None)
 
 
 def get_trace_id() -> str:
@@ -47,9 +47,9 @@ def get_project_id() -> Optional[str]:
     return _project_id_ctx.get()
 
 
-def set_project_context(project_id: str):
+def set_project_context(project: str):
     """Set the project ID for the current context."""
-    _project_id_ctx.set(project_id)
+    _project_id_ctx.set(project)
 
 
 @contextmanager

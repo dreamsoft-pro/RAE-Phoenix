@@ -74,7 +74,7 @@ def main():
 
     chunks = client.search(
         collection_name=config.qdrant_collection,
-        query_text=args.query,
+        query=args.query,
         limit=args.limit,
         with_payload=True,
     )

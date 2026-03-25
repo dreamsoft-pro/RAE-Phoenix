@@ -31,7 +31,7 @@ class PhpEnterpriseRecipe(RefactorRecipe):
     def analyze(self, system_model: SystemModel, target: Optional[Dict[str, Any]] = None) -> Optional[RefactorPlan]:
         return RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=[],
             target_files=["src/"],
             rationale="Modernize PHP codebase using Rector and PHPStan",

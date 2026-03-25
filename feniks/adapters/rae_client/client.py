@@ -97,7 +97,9 @@ class RAEClient:
         log.info(f"Storing meta-reflection to RAE: {reflection_payload.get('id')}")
 
         try:
-            response = self._make_request(method="POST", endpoint="/memory/meta-reflection", data=reflection_payload)
+            # Map legacy payload to V2 format if needed
+            # For V2, we use /v2/memories/ for all storage
+            response = self._make_request(method="POST", endpoint="/v2/memories/", data=reflection_payload)
 
             log.info(f"Successfully stored meta-reflection: {reflection_payload.get('id')}")
             return response
@@ -118,12 +120,12 @@ class RAEClient:
         Raises:
             RAEError: If request fails
         """
-        log.info(f"Storing system capabilities to RAE: project_id={capabilities_payload.get('project_id')}")
+        log.info(f"Storing system capabilities to RAE: project={capabilities_payload.get('project')}")
 
         try:
-            response = self._make_request(method="POST", endpoint="/memory/semantic", data=capabilities_payload)
+            response = self._make_request(method="POST", endpoint="/v2/memories/", data=capabilities_payload)
 
-            log.info(f"Successfully stored system capabilities for project: {capabilities_payload.get('project_id')}")
+            log.info(f"Successfully stored system capabilities for project: {capabilities_payload.get('project')}")
             return response
 
         except Exception as e:
@@ -142,27 +144,27 @@ class RAEClient:
         Raises:
             RAEError: If request fails
         """
-        log.info(f"Storing system model to RAE: project_id={system_model_payload.get('project_id')}")
+        log.info(f"Storing system model to RAE: project={system_model_payload.get('project')}")
 
         try:
             response = self._make_request(
-                method="POST", endpoint="/memory/semantic/system-model", data=system_model_payload
+                method="POST", endpoint="/v2/memories/", data=system_model_payload
             )
 
-            log.info(f"Successfully stored system model for project: {system_model_payload.get('project_id')}")
+            log.info(f"Successfully stored system model for project: {system_model_payload.get('project')}")
             return response
 
         except Exception as e:
             raise RAEError(f"Failed to store system model: {e}") from e
 
     def get_memory_for_project(
-        self, project_id: str, memory_types: Optional[List[str]] = None, limit: int = 100
+        self, project: str, memory_types: Optional[List[str]] = None, limit: int = 100
     ) -> List[Dict[str, Any]]:
         """
-        Retrieve memory for a project from RAE (to be implemented in future iteration).
+        Retrieve memory for a project from RAE.
 
         Args:
-            project_id: Project identifier
+            project: Project identifier
             memory_types: Optional list of memory types to filter
             limit: Maximum number of memories to retrieve
 
@@ -172,17 +174,16 @@ class RAEClient:
         Raises:
             RAEError: If request fails
         """
-        log.info(f"Retrieving memory from RAE: project_id={project_id}")
+        log.info(f"Retrieving memory from RAE: project={project}")
 
         try:
-            params = {"project_id": project_id, "limit": limit}
-            if memory_types:
-                params["types"] = ",".join(memory_types)
+            params = {"project": project, "limit": limit}
+            # memory_types in V1 is replaced by layer or tags in V2
+            
+            response = self._make_request(method="GET", endpoint="/v2/memories/", params=params)
 
-            response = self._make_request(method="GET", endpoint="/memory/query", params=params)
-
-            memories = response.get("memories", [])
-            log.info(f"Retrieved {len(memories)} memories for project: {project_id}")
+            memories = response.get("results", [])
+            log.info(f"Retrieved {len(memories)} memories for project: {project}")
             return memories
 
         except Exception as e:

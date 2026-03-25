@@ -36,7 +36,7 @@ class PythonPipelineRecipe(RefactorRecipe):
 
         return RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=target_modules,
             target_files=[],  # populated during execution or more detailed analysis
             rationale="Standardize and refactor Python codebase",

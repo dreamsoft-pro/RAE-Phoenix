@@ -56,7 +56,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
         Returns:
             RefactorPlan or None
         """
-        log.info(f"Analyzing for function extraction: {system_model.project_id}")
+        log.info(f"Analyzing for function extraction: {system_model.project}")
 
         # Determine line threshold
         min_lines = target.get("min_lines", 50) if target else 50
@@ -83,7 +83,7 @@ class ExtractFunctionRecipe(RefactorRecipe):
         # Create refactoring plan
         plan = RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=candidate_modules,
             target_files=list(set(target_files)),
             rationale=f"Extract functions from {len(candidate_modules)} modules to improve modularity",

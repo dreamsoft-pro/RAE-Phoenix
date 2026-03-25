@@ -56,7 +56,7 @@ class RefactorPlan:
     """
 
     recipe_name: str
-    project_id: str
+    project: str
     target_modules: List[str]
     target_files: List[str]
     rationale: str  # Why this refactoring?
@@ -207,7 +207,7 @@ class RefactorRecipe(ABC):
         return {
             "timestamp": datetime.now().isoformat(),
             "recipe": self.name,
-            "project_id": result.plan.project_id,
+            "project": result.plan.project,
             "success": result.success,
             "rationale": result.plan.rationale,
             "risks": result.plan.risks,

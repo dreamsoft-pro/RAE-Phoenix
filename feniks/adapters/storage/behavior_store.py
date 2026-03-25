@@ -83,7 +83,7 @@ class BehaviorStore(BehaviorStorageBackend):
 
         return BehaviorScenario(**data)
 
-    def list_scenarios(self, project_id: Optional[str] = None) -> List[BehaviorScenario]:
+    def list_scenarios(self, project: Optional[str] = None) -> List[BehaviorScenario]:
         """List all scenarios, optionally filtered by project."""
         scenarios = []
 
@@ -93,7 +93,7 @@ class BehaviorStore(BehaviorStorageBackend):
 
             scenario = BehaviorScenario(**data)
 
-            if project_id is None or scenario.project_id == project_id:
+            if project is None or scenario.project == project:
                 scenarios.append(scenario)
 
         return scenarios

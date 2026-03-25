@@ -163,7 +163,7 @@ class MaxBehaviorRiskPolicy:
             reflection = MetaReflection(
                 id=str(uuid.uuid4()),
                 timestamp=datetime.now().isoformat(),
-                project_id=report.project_id,
+                project=report.project,
                 level=ReflectionLevel.META_REFLECTION,
                 scope=ReflectionScope.SYSTEM,
                 title="Behavior Risk Policy Violation",

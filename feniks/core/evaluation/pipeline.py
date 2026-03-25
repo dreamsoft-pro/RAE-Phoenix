@@ -223,7 +223,7 @@ class AnalysisPipeline:
     @trace("run_analysis_pipeline")
     def run(
         self,
-        project_id: str,
+        project: str,
         collection_name: str = "code_chunks",
         output_path: Optional[Path] = None,
         meta_reflections_output: Optional[Path] = None,
@@ -232,11 +232,11 @@ class AnalysisPipeline:
         """
         Run the complete analysis pipeline.
         """
-        set_project_context(project_id)
+        set_project_context(project)
         self.metrics.inc("feniks_operations_total")
 
         stats = {
-            "project_id": project_id,
+            "project": project,
             "collection": collection_name,
             "chunks_loaded": 0,
             "modules": 0,
@@ -260,7 +260,7 @@ class AnalysisPipeline:
             # Step 2: Build system model
             log.info("Step 2/5: Building system model...")
             with span("build_system_model"):
-                system_model = build_system_model(chunks, project_id)
+                system_model = build_system_model(chunks, project)
             stats["modules"] = system_model.total_modules
             stats["dependencies"] = len(system_model.dependencies)
             log.info(f"Built system model with {system_model.total_modules} modules")
@@ -313,7 +313,7 @@ class AnalysisPipeline:
             duration = end_time - start_time
 
             summary = SessionSummary(
-                session_id=f"{project_id}-{int(start_time)}",
+                session_id=f"{project}-{int(start_time)}",
                 duration=duration,
                 success=True,
                 reasoning_traces=[],
@@ -324,7 +324,7 @@ class AnalysisPipeline:
             recommendations_list = [r["title"] for r in recommendations_data]
 
             feniks_report = FeniksReport(
-                project_id=project_id,
+                project=project,
                 timestamp=datetime.now().isoformat(),
                 summary=summary,
                 metrics=stats,
@@ -339,7 +339,7 @@ class AnalysisPipeline:
 
             # Step 7: Statistics
             log.info("Step 7/7: Analysis complete")
-            log.info(f"  Project: {stats['project_id']}")
+            log.info(f"  Project: {stats['project']}")
             log.info(f"  Chunks: {stats['chunks_loaded']}")
             log.info(f"  Modules: {stats['modules']}")
             log.info(f"  Dependencies: {stats['dependencies']}")
@@ -354,7 +354,7 @@ class AnalysisPipeline:
 
 
 def run_analysis(
-    project_id: str,
+    project: str,
     collection_name: str = "code_chunks",
     output_path: Optional[Path] = None,
     meta_reflections_output: Optional[Path] = None,
@@ -364,7 +364,7 @@ def run_analysis(
     Convenience function to run the analysis pipeline.
 
     Args:
-        project_id: Project identifier
+        project: Project identifier
         collection_name: Qdrant collection name
         output_path: Optional path to save report
         meta_reflections_output: Optional path to save meta-reflections JSONL
@@ -375,7 +375,7 @@ def run_analysis(
     """
     pipeline = AnalysisPipeline()
     return pipeline.run(
-        project_id=project_id,
+        project=project,
         collection_name=collection_name,
         output_path=output_path,
         meta_reflections_output=meta_reflections_output,

@@ -293,7 +293,7 @@ class RefactorEngine:
         lines = []
         lines.append(f"# Refactoring Report: {result.plan.recipe_name}")
         lines.append("")
-        lines.append(f"**Project:** {result.plan.project_id}")
+        lines.append(f"**Project:** {result.plan.project}")
         lines.append(f"**Status:** {'✓ Success' if result.success else '✗ Failed'}")
         lines.append(f"**Risk Level:** {result.plan.risk_level.value.upper()}")
         lines.append("")

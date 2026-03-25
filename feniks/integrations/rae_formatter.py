@@ -41,7 +41,7 @@ class RAEFormatter:
             reflection: MetaReflection instance
 
         Returns:
-            Dict formatted for RAE /memory/meta-reflection endpoint
+            Dict formatted for RAE /v2/memories/ endpoint
         """
         # Map reflection scope to RAE domain
         domain_mapping = {
@@ -57,7 +57,7 @@ class RAEFormatter:
         payload = {
             "memory_type": "meta_reflection",
             "domain": domain,
-            "project_id": reflection.project_id,
+            "project": reflection.project,
             "timestamp": reflection.timestamp,
             "id": reflection.id,
             "level": reflection.level.value,
@@ -108,7 +108,7 @@ class RAEFormatter:
             system_model: SystemModel instance
 
         Returns:
-            Dict formatted for RAE /memory/semantic endpoint
+            Dict formatted for RAE /v2/memories/ endpoint
         """
         # Build semantic statements about capabilities
         semantic_statements = []
@@ -130,7 +130,7 @@ class RAEFormatter:
         payload = {
             "memory_type": "semantic",
             "domain": "system_capabilities",
-            "project_id": system_model.project_id,
+            "project": system_model.project,
             "timestamp": system_model.timestamp,
             "capabilities": semantic_statements,
             "metadata": {
@@ -150,7 +150,7 @@ class RAEFormatter:
             system_model: SystemModel instance
 
         Returns:
-            Dict formatted for RAE /memory/semantic/system-model endpoint
+            Dict formatted for RAE /v2/memories//system-model endpoint
         """
         # Convert modules to semantic format
         modules_data = []
@@ -185,7 +185,7 @@ class RAEFormatter:
         payload = {
             "memory_type": "semantic",
             "domain": "system_model",
-            "project_id": system_model.project_id,
+            "project": system_model.project,
             "timestamp": system_model.timestamp,
             "system_model": {
                 "modules": modules_data,
@@ -270,7 +270,7 @@ class RAEFormatter:
         }
 
         payload = {
-            "project_id": system_model.project_id,
+            "project": system_model.project,
             "timestamp": system_model.timestamp,
             "self_model": {
                 "capabilities": capability_summary,

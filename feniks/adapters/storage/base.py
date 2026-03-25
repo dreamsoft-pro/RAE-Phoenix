@@ -49,7 +49,7 @@ class BehaviorStorageBackend(ABC):
         pass
 
     @abstractmethod
-    def list_scenarios(self, project_id: Optional[str] = None) -> List[BehaviorScenario]:
+    def list_scenarios(self, project: Optional[str] = None) -> List[BehaviorScenario]:
         """List all scenarios, optionally filtered by project."""
         pass
 
@@ -149,7 +149,7 @@ class SemanticSearchMixin(ABC):
 
     @abstractmethod
     def search_similar_scenarios(
-        self, query: str, limit: int = 10, project_id: Optional[str] = None
+        self, query: str, limit: int = 10, project: Optional[str] = None
     ) -> List[BehaviorScenario]:
         """
         Search for scenarios similar to query text.
@@ -157,7 +157,7 @@ class SemanticSearchMixin(ABC):
         Args:
             query: Natural language query
             limit: Maximum number of results
-            project_id: Optional project filter
+            project: Optional project filter
 
         Returns:
             List of scenarios ranked by similarity

@@ -173,7 +173,7 @@ class Capability:
 class SystemModel:
     """Complete model of the analyzed system."""
 
-    project_id: str
+    project: str
     timestamp: str
 
     # Core components
@@ -254,7 +254,7 @@ class MetaReflection:
 
     id: str
     timestamp: str
-    project_id: str
+    project: str
     level: ReflectionLevel
     scope: ReflectionScope
     impact: ReflectionImpact

@@ -56,7 +56,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
         Returns:
             RefactorPlan or None
         """
-        log.info(f"Analyzing complexity for project: {system_model.project_id}")
+        log.info(f"Analyzing complexity for project: {system_model.project}")
 
         # Determine complexity threshold
         if target and "complexity_threshold" in target:
@@ -86,7 +86,7 @@ class ReduceComplexityRecipe(RefactorRecipe):
         # Create refactoring plan
         plan = RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=high_complexity_modules,
             target_files=list(set(target_files)),
             rationale=f"Reduce complexity in {len(high_complexity_modules)} modules with complexity > {threshold:.1f}",

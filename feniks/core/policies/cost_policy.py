@@ -67,7 +67,7 @@ class CostPolicyEnforcer:
                 MetaReflection(
                     id=f"policy-cost-max-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="policy-enforcer",
+                    project="policy-enforcer",
                     level=ReflectionLevel.META_REFLECTION,
                     scope=ReflectionScope.SYSTEM,
                     impact=ReflectionImpact.CRITICAL,
@@ -87,12 +87,12 @@ class CostPolicyEnforcer:
 
         return reflections
 
-    def check_budget_health(self, project_id: str) -> List[MetaReflection]:
+    def check_budget_health(self, project: str) -> List[MetaReflection]:
         """
         Check overall budget health for a project.
         """
         reflections = []
-        budget = self.controller.get_budget(project_id)
+        budget = self.controller.get_budget(project)
 
         if not budget:
             return reflections
@@ -104,7 +104,7 @@ class CostPolicyEnforcer:
                 MetaReflection(
                     id=f"policy-budget-alert-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id=project_id,
+                    project=project,
                     level=ReflectionLevel.META_REFLECTION,
                     scope=ReflectionScope.SYSTEM,
                     impact=impact,

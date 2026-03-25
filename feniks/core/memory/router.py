@@ -63,7 +63,7 @@ class FeniksMemoryRouter:
         qdrant_client: Any,  # QdrantClient instance
         rae_client: Optional[EnhancedRAEClient] = None,
         default_strategy: RoutingStrategy = RoutingStrategy.HYBRID,
-        project_id: str = "default",
+        project: str = "default",
     ):
         """
         Initialize memory router.
@@ -72,12 +72,12 @@ class FeniksMemoryRouter:
             qdrant_client: Local Qdrant client for fast storage
             rae_client: Enhanced RAE client for global storage (optional)
             default_strategy: Default routing strategy
-            project_id: Project identifier for context
+            project: Project identifier for context
         """
         self.qdrant = qdrant_client
         self.rae = rae_client or create_enhanced_rae_client()
         self.default_strategy = default_strategy
-        self.project_id = project_id
+        self.project = project
 
         log.info(f"FeniksMemoryRouter initialized: strategy={default_strategy}, rae_enabled={self.rae is not None}")
 
@@ -245,11 +245,11 @@ class FeniksMemoryRouter:
 
         try:
             # Build query from local result
-            query_text = self._build_enrichment_query(local_result)
+            query = self._build_enrichment_query(local_result)
 
             # Query RAE for context
             rae_context = self.rae.query_reflections(
-                project_id=self.project_id, query_text=query_text, layer="semantic", top_k=3, min_similarity=0.7
+                project=self.project, query=query, layer="semantic", top_k=3, min_similarity=0.7
             )
 
             # Merge context
@@ -346,7 +346,7 @@ class FeniksMemoryRouter:
         else:
             # Generic storage via semantic memory
             payload = {
-                "project_id": self.project_id,
+                "project": self.project,
                 "content": str(data),
                 "data_type": data_type,
                 "metadata": metadata or {},
@@ -370,7 +370,7 @@ class FeniksMemoryRouter:
             return []
 
         results = self.rae.query_reflections(
-            project_id=self.project_id, query_text=query, layer="semantic", top_k=top_k, min_similarity=0.6
+            project=self.project, query=query, layer="semantic", top_k=top_k, min_similarity=0.6
         )
 
         # Format results
@@ -403,7 +403,7 @@ class FeniksMemoryRouter:
     def _format_reflection_for_rae(self, data: Any, metadata: Optional[Dict]) -> Dict[str, Any]:
         """Format reflection data for RAE storage."""
         return {
-            "project_id": self.project_id,
+            "project": self.project,
             "reflection_id": getattr(data, "reflection_id", "unknown"),
             "content": str(data),
             "metadata": metadata or {},
@@ -411,18 +411,18 @@ class FeniksMemoryRouter:
 
     def _format_system_model_for_rae(self, data: Any, metadata: Optional[Dict]) -> Dict[str, Any]:
         """Format system model data for RAE storage."""
-        return {"project_id": self.project_id, "model": data, "metadata": metadata or {}}
+        return {"project": self.project, "model": data, "metadata": metadata or {}}
 
 
 def create_memory_router(
-    qdrant_client: Any, project_id: str = "default", strategy: RoutingStrategy = RoutingStrategy.HYBRID
+    qdrant_client: Any, project: str = "default", strategy: RoutingStrategy = RoutingStrategy.HYBRID
 ) -> FeniksMemoryRouter:
     """
     Factory function to create memory router with RAE integration.
 
     Args:
         qdrant_client: Local Qdrant client instance
-        project_id: Project identifier
+        project: Project identifier
         strategy: Default routing strategy
 
     Returns:
@@ -431,8 +431,8 @@ def create_memory_router(
     rae_client = create_enhanced_rae_client()
 
     router = FeniksMemoryRouter(
-        qdrant_client=qdrant_client, rae_client=rae_client, default_strategy=strategy, project_id=project_id
+        qdrant_client=qdrant_client, rae_client=rae_client, default_strategy=strategy, project=project
     )
 
-    log.info(f"Memory router created: project={project_id}, strategy={strategy}")
+    log.info(f"Memory router created: project={project}, strategy={strategy}")
     return router

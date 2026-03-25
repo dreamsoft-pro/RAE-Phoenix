@@ -35,13 +35,13 @@ from feniks.infra.logging import get_logger
 log = get_logger("cli.angular")
 
 
-def _create_system_model_from_directory(source_dir: Path, project_id: str) -> SystemModel:
+def _create_system_model_from_directory(source_dir: Path, project: str) -> SystemModel:
     """
     Create a SystemModel by scanning a directory for AngularJS files.
 
     Args:
         source_dir: Source directory containing AngularJS application
-        project_id: Project identifier
+        project: Project identifier
 
     Returns:
         SystemModel with chunks for all relevant files
@@ -93,7 +93,7 @@ def _create_system_model_from_directory(source_dir: Path, project_id: str) -> Sy
 
     # Create module
     module = Module(
-        name=project_id,
+        name=project,
         file_paths=[c.file_path for c in chunks],
         chunks=chunks,
         total_lines=sum(c.end_line - c.start_line + 1 for c in chunks),
@@ -102,7 +102,7 @@ def _create_system_model_from_directory(source_dir: Path, project_id: str) -> Sy
 
     # Create system model
     system_model = SystemModel(
-        project_id=project_id, modules={project_id: module}, total_lines=module.total_lines, total_chunks=len(chunks)
+        project=project, modules={project: module}, total_lines=module.total_lines, total_chunks=len(chunks)
     )
 
     return system_model
@@ -193,7 +193,7 @@ def handle_angular_migrate(args):
     log.info("📊 Step 1/6: Building system model...")
     try:
         system_model = _create_system_model_from_directory(
-            source_dir, args.project_id if hasattr(args, "project_id") and args.project_id else source_dir.name
+            source_dir, args.project if hasattr(args, "project") and args.project else source_dir.name
         )
         log.info(
             f"✅ System model created: {len(system_model.modules[list(system_model.modules.keys())[0]].chunks)} chunks"

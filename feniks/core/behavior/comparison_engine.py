@@ -117,7 +117,7 @@ class BehaviorComparisonEngine:
             snapshot_id=snapshot.id,
             contract_id=contract.id,
             scenario_id=snapshot.scenario_id,
-            project_id=snapshot.project_id,
+            project=snapshot.project,
             passed=len(violations) == 0,
             violations=violations,
             risk_score=risk_score,

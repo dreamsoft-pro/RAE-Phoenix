@@ -13,7 +13,7 @@ def test_governance_check_stub():
     engine = GovernanceEngine()
     # Mock system model
     model = SystemModel(
-        project_id="test",
+        project="test",
         timestamp=datetime.now().isoformat(),
         modules={},
         dependencies=[],

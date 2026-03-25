@@ -26,7 +26,7 @@ class ContractGenerator:
 
     def generate_from_snapshots(
         self, 
-        project_id: str, 
+        project: str, 
         scenario_id: str, 
         snapshots: List[BehaviorSnapshot]
     ) -> BehaviorContract:
@@ -36,7 +36,7 @@ class ContractGenerator:
         if not snapshots:
             raise ValueError("Cannot generate contract from empty snapshots")
 
-        log.info("generating_contract", project_id=project_id, scenario_id=scenario_id, snapshot_count=len(snapshots))
+        log.info("generating_contract", project=project, scenario_id=scenario_id, snapshot_count=len(snapshots))
 
         # 1. Analyze CLI Invariants
         cli_contract = self._analyze_cli_invariants(snapshots)
@@ -50,7 +50,7 @@ class ContractGenerator:
         return BehaviorContract(
             id=f"cnt-{scenario_id}-{uuid.uuid4().hex[:8]}",
             scenario_id=scenario_id,
-            project_id=project_id,
+            project=project,
             version="1.0.0",
             cli_contract=cli_contract,
             log_contract=log_contract,

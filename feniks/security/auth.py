@@ -223,14 +223,14 @@ class AuthManager:
         # Try API key
         return self.validate_api_key(credentials)
 
-    def check_permission(self, user: User, operation: str, project_id: Optional[str] = None) -> bool:
+    def check_permission(self, user: User, operation: str, project: Optional[str] = None) -> bool:
         """
         Check if user has permission for operation.
 
         Args:
             user: User to check
             operation: Operation name (e.g., 'ingest', 'analyze', 'refactor')
-            project_id: Optional project ID
+            project: Optional project ID
 
         Returns:
             bool: True if user has permission
@@ -243,8 +243,8 @@ class AuthManager:
             return True
 
         # Check project access if specified
-        if project_id and project_id not in user.projects:
-            raise AuthorizationError(f"User {user.username} has no access to project {project_id}")
+        if project and project not in user.projects:
+            raise AuthorizationError(f"User {user.username} has no access to project {project}")
 
         # Role-based permissions
         if operation in ["ingest", "analyze"]:

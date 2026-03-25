@@ -182,7 +182,7 @@ class BehaviorScenario(BaseModel):
     """
 
     id: str
-    project_id: str
+    project: str
 
     # Scenario classification
     category: Literal["ui", "api", "cli", "batch", "mixed"]
@@ -294,7 +294,7 @@ class BehaviorSnapshot(BaseModel):
 
     id: str
     scenario_id: str
-    project_id: str
+    project: str
 
     environment: Literal["legacy", "candidate", "production", "staging", "test"]
 
@@ -376,7 +376,7 @@ class BehaviorContract(BaseModel):
 
     id: str
     scenario_id: str
-    project_id: str
+    project: str
 
     # Contract scope
     version: Optional[str] = "1.0.0"
@@ -416,7 +416,7 @@ class BehaviorCheckResult(BaseModel):
 
     snapshot_id: str
     contract_id: str
-    project_id: str
+    project: str
 
     passed: bool
     violations: list[BehaviorViolation] = Field(default_factory=list)

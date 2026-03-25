@@ -40,7 +40,7 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
             "trace_id": get_trace_id(),
             "span_id": get_span_id(),
-            "project_id": get_project_id(),
+            "project": get_project_id(),
             "module": record.module,
             "line": record.lineno,
         }

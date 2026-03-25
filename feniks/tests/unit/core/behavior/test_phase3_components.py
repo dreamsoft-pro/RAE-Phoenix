@@ -62,7 +62,7 @@ class TestScenarioLibrary:
         """Create sample scenario."""
         return BehaviorScenario(
             id="test-scenario-1",
-            project_id="test-project",
+            project="test-project",
             name="Test Scenario",
             category="api",
             description="Test scenario description",
@@ -83,7 +83,7 @@ class TestScenarioLibrary:
         # Verify published
         published = library.storage.load_scenario(library_id)
         assert published is not None
-        assert published.project_id == "shared_library"
+        assert published.project == "shared_library"
         assert published.metadata["tags"] == ["http", "test"]
         assert published.metadata["author"] == "Test Author"
         assert published.metadata["usage_count"] == 0
@@ -95,7 +95,7 @@ class TestScenarioLibrary:
 
         scenario2 = BehaviorScenario(
             id="test-scenario-2",
-            project_id="test-project",
+            project="test-project",
             name="CLI Scenario",
             category="cli",
             description="CLI test",
@@ -131,7 +131,7 @@ class TestScenarioLibrary:
             customize={"name": "Imported Test Scenario"},
         )
 
-        assert imported.project_id == "target-project"
+        assert imported.project == "target-project"
         assert imported.name == "Imported Test Scenario"
         assert imported.metadata["imported_from"] == library_id
 
@@ -144,7 +144,7 @@ class TestScenarioLibrary:
         # Publish scenarios
         sample_scenario_2 = BehaviorScenario(
             id="test-scenario-2",
-            project_id="test-project",
+            project="test-project",
             name="Test Scenario 2",
             category="cli",
             description="Test scenario 2 description",
@@ -231,7 +231,7 @@ class TestStorageAbstraction:
             # Create scenario
             scenario = BehaviorScenario(
                 id="test-1",
-                project_id="test",
+                project="test",
                 name="Test",
                 category="api",
                 description="Test desc",
@@ -250,7 +250,7 @@ class TestStorageAbstraction:
             assert loaded.id == "test-1"
 
             # List
-            scenarios = backend.list_scenarios(project_id="test")
+            scenarios = backend.list_scenarios(project="test")
             assert len(scenarios) == 1
 
             # Delete
@@ -268,7 +268,7 @@ class TestStorageAbstraction:
             # Create scenario
             scenario = BehaviorScenario(
                 id="scenario-1",
-                project_id="test",
+                project="test",
                 name="Test",
                 category="api",
                 description="Test desc",
@@ -284,7 +284,7 @@ class TestStorageAbstraction:
                 snapshot = BehaviorSnapshot(
                     id=f"snap-{i}",
                     scenario_id="scenario-1",
-                    project_id="test",
+                    project="test",
                     environment="candidate",
                     success=True,
                     created_at=datetime.now(),
@@ -307,7 +307,7 @@ class TestStorageAbstraction:
             # Create scenario
             scenario = BehaviorScenario(
                 id="scenario-1",
-                project_id="test",
+                project="test",
                 name="Test",
                 category="api",
                 description="Test desc",
@@ -324,7 +324,7 @@ class TestStorageAbstraction:
                     id=f"contract-1-{version}",
                     version=version,
                     scenario_id="scenario-1",
-                    project_id="test",
+                    project="test",
                     success_criteria=SuccessCriteria(),
                     created_at=datetime.now(),
                 )
@@ -360,7 +360,7 @@ class TestPhase3Integration:
             # Publish scenario
             scenario = BehaviorScenario(
                 id="test-1",
-                project_id="test",
+                project="test",
                 name="Test",
                 category="api",
                 description="Test desc",

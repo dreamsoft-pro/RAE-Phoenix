@@ -134,7 +134,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
         Returns:
             RefactorPlan or None
         """
-        log.info(f"Analyzing for AngularJS directives: {system_model.project_id}")
+        log.info(f"Analyzing for AngularJS directives: {system_model.project}")
 
         # Find directives
         directives = self._find_directives(system_model, target)
@@ -164,7 +164,7 @@ class DirectiveToComponentRecipe(RefactorRecipe):
         # Create refactoring plan
         plan = RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=[m.name for m in directive_metadata],
             target_files=list(set(target_files)),
             rationale=f"Migrate {len(directive_metadata)} AngularJS directives to React components/hooks",

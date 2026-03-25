@@ -45,7 +45,7 @@ def test_template_parser_ng_model():
 
         plan = RefactorPlan(
             recipe_name="angularjs.template-to-jsx",
-            project_id="test",
+            project="test",
             target_modules=[],
             target_files=["test.html"],
             rationale="test",

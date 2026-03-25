@@ -43,7 +43,7 @@ class BehaviorScenario(BaseModel):
     Opis scenariusza zachowania systemu legacy (flow użytkownika lub ścieżka API/CLI).
     """
     id: str
-    project_id: str
+    project: str
 
     # Kategoria i typ scenariusza
     category: Literal["ui", "api", "cli", "batch", "mixed"]
@@ -165,7 +165,7 @@ class BehaviorSnapshot(BaseModel):
     """
     id: str
     scenario_id: str
-    project_id: str
+    project: str
 
     environment: Literal["legacy", "candidate", "production", "staging", "test"]
 
@@ -228,7 +228,7 @@ class BehaviorContract(BaseModel):
     """
     id: str
     scenario_id: str
-    project_id: str
+    project: str
 
     # Zakres obowiązywania kontraktu
     version: str | None = None               # np. "1.0.0"
@@ -310,7 +310,7 @@ class BehaviorCheckResult(BaseModel):
     """
     snapshot_id: str
     contract_id: str
-    project_id: str
+    project: str
 
     passed: bool
     violations: list[BehaviorViolation] = []

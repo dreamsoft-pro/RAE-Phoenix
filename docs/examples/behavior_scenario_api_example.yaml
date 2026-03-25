@@ -2,7 +2,7 @@
 # This file demonstrates how to define a behavior scenario for REST API testing
 
 id: api-create-order-v1
-project_id: my-legacy-api
+project: my-legacy-api
 category: api
 name: Create Order - Valid Product
 description: |

@@ -224,12 +224,12 @@ class ReflectionRuleSet:
             "Review and eliminate unnecessary cross-module dependencies",
         ]
 
-        reflection_id = hashlib.sha256(f"god_modules_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"god_modules_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.MODULE,
             impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -283,12 +283,12 @@ class ReflectionRuleSet:
             "Document complex business logic and edge cases",
         ]
 
-        reflection_id = hashlib.sha256(f"hotspots_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"hotspots_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.MODULE,
             impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -335,12 +335,12 @@ class ReflectionRuleSet:
             "Set complexity thresholds in CI/CD to prevent further degradation",
         ]
 
-        reflection_id = hashlib.sha256(f"complexity_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"complexity_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.CODEBASE,
             impact=ReflectionImpact.MONITOR,
@@ -389,12 +389,12 @@ class ReflectionRuleSet:
             "Monitor changes to central modules carefully via code review",
         ]
 
-        reflection_id = hashlib.sha256(f"centralization_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"centralization_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.META_REFLECTION,
             scope=ReflectionScope.SYSTEM,
             impact=ReflectionImpact.MONITOR,
@@ -437,12 +437,12 @@ class ReflectionRuleSet:
             "Review and eliminate unnecessary cross-module dependencies",
         ]
 
-        reflection_id = hashlib.sha256(f"coupling_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"coupling_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.SYSTEM,
             impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -485,12 +485,12 @@ class ReflectionRuleSet:
             "Review if module has grown beyond its intended responsibility",
         ]
 
-        reflection_id = hashlib.sha256(f"large_modules_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"large_modules_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.OBSERVATION,
             scope=ReflectionScope.MODULE,
             impact=ReflectionImpact.MONITOR,
@@ -539,12 +539,12 @@ class ReflectionRuleSet:
             "Consider capability mapping for architecture documentation",
         ]
 
-        reflection_id = hashlib.sha256(f"capabilities_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"capabilities_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.OBSERVATION,
             scope=ReflectionScope.SYSTEM,
             impact=ReflectionImpact.INFORMATIONAL,
@@ -617,12 +617,12 @@ class ReflectionRuleSet:
         if not recommendations:
             recommendations.append("Maintain current architectural quality through code reviews and standards")
 
-        reflection_id = hashlib.sha256(f"arch_quality_{sm.project_id}_{sm.timestamp}".encode()).hexdigest()[:16]
+        reflection_id = hashlib.sha256(f"arch_quality_{sm.project}_{sm.timestamp}".encode()).hexdigest()[:16]
 
         return MetaReflection(
             id=reflection_id,
             timestamp=datetime.utcnow().isoformat(),
-            project_id=sm.project_id,
+            project=sm.project,
             level=ReflectionLevel.META_REFLECTION,
             scope=ReflectionScope.SYSTEM,
             impact=impact,

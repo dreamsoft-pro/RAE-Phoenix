@@ -37,7 +37,7 @@ def test_golden_success_session(engine):
     Verify that a successful session generates no critical alerts.
     """
     session = load_golden_session("success")
-    reflections = engine.run_post_mortem(session, project_id="golden-test")
+    reflections = engine.run_post_mortem(session, project="golden-test")
 
     # Should be 0 critical alerts
     criticals = [r for r in reflections if r.impact.value == "critical"]
@@ -50,7 +50,7 @@ def test_golden_failure_loop_session(engine):
     Snaphost testing against expected report.
     """
     session = load_golden_session("failure_loop")
-    reflections = engine.run_post_mortem(session, project_id="golden-test")
+    reflections = engine.run_post_mortem(session, project="golden-test")
 
     expected = load_expected_report("expected_failure_report")
 
@@ -73,7 +73,7 @@ def test_golden_high_cost_session(engine):
     Verify that a high-cost session triggers cost alert.
     """
     session = load_golden_session("high_cost")
-    reflections = engine.run_post_mortem(session, project_id="golden-test")
+    reflections = engine.run_post_mortem(session, project="golden-test")
 
     # Should detect high cost (2.5 USD > default threshold)
     titles = [r.title for r in reflections]
@@ -88,7 +88,7 @@ def test_golden_warning_quality_session(engine):
     Verify that a session with quality warnings is detected correctly.
     """
     session = load_golden_session("warning_quality")
-    reflections = engine.run_post_mortem(session, project_id="golden-test")
+    reflections = engine.run_post_mortem(session, project="golden-test")
 
     # Should detect short thoughts
     titles = [r.title for r in reflections]
@@ -104,7 +104,7 @@ def test_golden_perfect_session(engine):
     Verify that a perfect session generates no alerts (no false positives).
     """
     session = load_golden_session("perfect")
-    reflections = engine.run_post_mortem(session, project_id="golden-test")
+    reflections = engine.run_post_mortem(session, project="golden-test")
 
     # Should generate ZERO reflections (perfect quality, good cost, no loops, success)
     assert (

@@ -85,7 +85,7 @@ class LongitudinalAnalyzer:
             return MetaReflection(
                 id=f"long-success-{uuid.uuid4()}",
                 timestamp=datetime.now().isoformat(),
-                project_id="longitudinal",
+                project="longitudinal",
                 level=ReflectionLevel.META_REFLECTION,
                 scope=ReflectionScope.SYSTEM,
                 impact=ReflectionImpact.CRITICAL,
@@ -110,7 +110,7 @@ class LongitudinalAnalyzer:
             return MetaReflection(
                 id=f"long-cost-inc-{uuid.uuid4()}",
                 timestamp=datetime.now().isoformat(),
-                project_id="longitudinal",
+                project="longitudinal",
                 level=ReflectionLevel.REFLECTION,
                 scope=ReflectionScope.TECHNICAL_DEBT,
                 impact=ReflectionImpact.MONITOR,
@@ -152,7 +152,7 @@ class LongitudinalAnalyzer:
                 MetaReflection(
                     id=f"long-behavior-decline-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="longitudinal",
+                    project="longitudinal",
                     level=ReflectionLevel.META_REFLECTION,
                     scope=ReflectionScope.SYSTEM,
                     impact=ReflectionImpact.CRITICAL,
@@ -177,7 +177,7 @@ class LongitudinalAnalyzer:
                 MetaReflection(
                     id=f"long-behavior-risk-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="longitudinal",
+                    project="longitudinal",
                     level=ReflectionLevel.REFLECTION,
                     scope=ReflectionScope.TECHNICAL_DEBT,
                     impact=ReflectionImpact.CRITICAL,
@@ -211,7 +211,7 @@ class LongitudinalAnalyzer:
                     MetaReflection(
                         id=f"long-behavior-emerging-{uuid.uuid4()}",
                         timestamp=datetime.now().isoformat(),
-                        project_id="longitudinal",
+                        project="longitudinal",
                         level=ReflectionLevel.REFLECTION,
                         scope=ReflectionScope.PATTERN,
                         impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -242,7 +242,7 @@ class LongitudinalAnalyzer:
                     MetaReflection(
                         id=f"long-behavior-escalate-{uuid.uuid4()}",
                         timestamp=datetime.now().isoformat(),
-                        project_id="longitudinal",
+                        project="longitudinal",
                         level=ReflectionLevel.REFLECTION,
                         scope=ReflectionScope.PATTERN,
                         impact=ReflectionImpact.REFACTOR_RECOMMENDED,

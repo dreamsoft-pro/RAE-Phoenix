@@ -72,8 +72,8 @@ class RAEIntegrationDemo:
         # Initialize Memory Router (with mock Qdrant for demo)
         self.memory_router = self._create_demo_router()
 
-        self.project_id = "feniks-demo-project"
-        log.info(f"Initialized for project: {self.project_id}")
+        self.project = "feniks-demo-project"
+        log.info(f"Initialized for project: {self.project}")
 
     def _create_demo_router(self) -> FeniksMemoryRouter:
         """Create demo memory router with mock Qdrant client."""
@@ -90,7 +90,7 @@ class RAEIntegrationDemo:
                 return True
 
         return create_memory_router(
-            qdrant_client=MockQdrantClient(), project_id=self.project_id, strategy=RoutingStrategy.HYBRID
+            qdrant_client=MockQdrantClient(), project=self.project, strategy=RoutingStrategy.HYBRID
         )
 
     def demo_1_basic_reflection_storage(self):
@@ -101,7 +101,7 @@ class RAEIntegrationDemo:
         reflection = MetaReflection(
             id="demo_refl_001",
             timestamp=datetime.now().isoformat(),
-            project_id=self.project_id,
+            project=self.project,
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.MODULE,
             impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -123,7 +123,7 @@ class RAEIntegrationDemo:
 
         # Store with memory router - it will intelligently decide where to store
         result = self.memory_router.store(
-            data=reflection, data_type="reflection", metadata={"severity": "high", "project_id": self.project_id}
+            data=reflection, data_type="reflection", metadata={"severity": "high", "project": self.project}
         )
 
         log.info(f"Storage result: {result['routing_decision'].reason}")
@@ -145,7 +145,7 @@ class RAEIntegrationDemo:
         local_reflection = MetaReflection(
             id="demo_refl_002",
             timestamp=datetime.now().isoformat(),
-            project_id=self.project_id,
+            project=self.project,
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.PATTERN,
             impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -163,7 +163,7 @@ class RAEIntegrationDemo:
         try:
             enriched_reflection = self.rae_client.enrich_reflection(
                 local_reflection=local_reflection,
-                context={"project_id": self.project_id, "tags": ["python", "e-commerce"]},
+                context={"project": self.project, "tags": ["python", "e-commerce"]},
             )
 
             log.info(f"\nEnriched reflection: {enriched_reflection.title}")
@@ -212,7 +212,7 @@ class RAEIntegrationDemo:
                 log.info(f"\nRefactoring {idx}:")
                 log.info(f"  Type: {refactor.get('refactor_type', 'unknown')}")
                 log.info(f"  Success rate: {refactor.get('success_rate', 0):.0%}")
-                log.info(f"  Project: {refactor.get('project_id', 'unknown')}")
+                log.info(f"  Project: {refactor.get('project', 'unknown')}")
 
         except Exception as e:
             log.error(f"Cross-project learning failed: {e}")
@@ -228,7 +228,7 @@ class RAEIntegrationDemo:
         # Simulate a refactoring decision
         refactor_decision = {
             "refactor_id": "demo_refactor_001",
-            "project_id": self.project_id,
+            "project": self.project,
             "refactor_type": "extract-method",
             "target": "process_order function",
             "reasoning": "High complexity, low cohesion",

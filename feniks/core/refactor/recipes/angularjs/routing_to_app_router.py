@@ -119,7 +119,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
         Returns:
             RefactorPlan or None
         """
-        log.info(f"Analyzing for AngularJS routing: {system_model.project_id}")
+        log.info(f"Analyzing for AngularJS routing: {system_model.project}")
 
         # Find routing configuration
         routing_chunks = self._find_routing_config(system_model)
@@ -142,7 +142,7 @@ class RoutingToAppRouterRecipe(RefactorRecipe):
         # Create refactoring plan
         plan = RefactorPlan(
             recipe_name=self.name,
-            project_id=system_model.project_id,
+            project=system_model.project,
             target_modules=[],
             target_files=[chunk.file_path for chunk in routing_chunks],
             rationale=f"Migrate {len(routing_metadata.routes)} routes to Next.js App Router",

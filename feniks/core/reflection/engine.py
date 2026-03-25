@@ -46,7 +46,7 @@ class MetaReflectionEngine:
         self.policy_manager = PolicyManager()
         log.info("MetaReflectionEngine initialized")
 
-    def run_post_mortem(self, session_summary: SessionSummary, project_id: str = "unknown") -> List[MetaReflection]:
+    def run_post_mortem(self, session_summary: SessionSummary, project: str = "unknown") -> List[MetaReflection]:
         """
         Run post-mortem analysis on a session, including policy checks.
         """
@@ -54,7 +54,7 @@ class MetaReflectionEngine:
         reflections = self.post_mortem.analyze_session(session_summary)
 
         # Policy compliance checks
-        policy_violations = self.policy_manager.check_session_compliance(session_summary, project_id)
+        policy_violations = self.policy_manager.check_session_compliance(session_summary, project)
         reflections.extend(policy_violations)
 
         return reflections
@@ -77,7 +77,7 @@ class MetaReflectionEngine:
         Returns:
             List[MetaReflection]: Generated meta-reflections
         """
-        log.info(f"Generating meta-reflections for project: {system_model.project_id}")
+        log.info(f"Generating meta-reflections for project: {system_model.project}")
 
         # Evaluate all rules
         reflections = self.rule_set.evaluate(system_model)
@@ -123,7 +123,7 @@ class MetaReflectionEngine:
                 data = {
                     "id": reflection.id,
                     "timestamp": reflection.timestamp,
-                    "project_id": reflection.project_id,
+                    "project": reflection.project,
                     "level": reflection.level.value,
                     "level_name": reflection.level.name,
                     "scope": reflection.scope.value,
@@ -189,7 +189,7 @@ class MetaReflectionEngine:
                     reflection = MetaReflection(
                         id=data["id"],
                         timestamp=data["timestamp"],
-                        project_id=data["project_id"],
+                        project=data["project"],
                         level=level,
                         scope=scope,
                         impact=impact,

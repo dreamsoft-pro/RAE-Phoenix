@@ -80,7 +80,7 @@ class PostMortemAnalyzer:
         return MetaReflection(
             id=f"pm-fail-{uuid.uuid4()}",
             timestamp=datetime.now().isoformat(),
-            project_id="post-mortem",  # Context dependent, maybe passed in
+            project="post-mortem",  # Context dependent, maybe passed in
             level=ReflectionLevel.REFLECTION,
             scope=ReflectionScope.TECHNICAL_DEBT,  # Or PROCESS
             impact=ReflectionImpact.CRITICAL,
@@ -97,7 +97,7 @@ class PostMortemAnalyzer:
             return MetaReflection(
                 id=f"pm-cost-{uuid.uuid4()}",
                 timestamp=datetime.now().isoformat(),
-                project_id="post-mortem",
+                project="post-mortem",
                 level=ReflectionLevel.OBSERVATION,
                 scope=ReflectionScope.TECHNICAL_DEBT,
                 impact=ReflectionImpact.MONITOR,
@@ -123,7 +123,7 @@ class PostMortemAnalyzer:
                 MetaReflection(
                     id=f"pm-empty-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="post-mortem",
+                    project="post-mortem",
                     level=ReflectionLevel.REFLECTION,
                     scope=ReflectionScope.PATTERN,
                     impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -140,7 +140,7 @@ class PostMortemAnalyzer:
                     MetaReflection(
                         id=f"pm-loop-{uuid.uuid4()}",
                         timestamp=datetime.now().isoformat(),
-                        project_id="post-mortem",
+                        project="post-mortem",
                         level=ReflectionLevel.META_REFLECTION,
                         scope=ReflectionScope.PATTERN,
                         impact=ReflectionImpact.CRITICAL,
@@ -186,7 +186,7 @@ class PostMortemAnalyzer:
                 MetaReflection(
                     id=f"pm-behavior-fail-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="post-mortem",
+                    project="post-mortem",
                     level=ReflectionLevel.REFLECTION,
                     scope=ReflectionScope.TECHNICAL_DEBT,
                     impact=ReflectionImpact.CRITICAL if avg_risk >= 0.7 else ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -217,7 +217,7 @@ class PostMortemAnalyzer:
                     MetaReflection(
                         id=f"pm-behavior-pattern-{uuid.uuid4()}",
                         timestamp=datetime.now().isoformat(),
-                        project_id="post-mortem",
+                        project="post-mortem",
                         level=ReflectionLevel.META_REFLECTION,
                         scope=ReflectionScope.PATTERN,
                         impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -245,7 +245,7 @@ class PostMortemAnalyzer:
                     MetaReflection(
                         id=f"pm-behavior-risk-{uuid.uuid4()}",
                         timestamp=datetime.now().isoformat(),
-                        project_id="post-mortem",
+                        project="post-mortem",
                         level=ReflectionLevel.REFLECTION,
                         scope=ReflectionScope.TECHNICAL_DEBT,
                         impact=ReflectionImpact.CRITICAL,

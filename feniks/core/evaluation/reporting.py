@@ -47,7 +47,7 @@ class ReportGenerator:
         """
         lines = []
         lines.append("=" * 80)
-        lines.append(f"System Model Report: {self.system_model.project_id}")
+        lines.append(f"System Model Report: {self.system_model.project}")
         lines.append("=" * 80)
         lines.append(f"Generated: {self.system_model.timestamp}")
         lines.append("")

@@ -177,7 +177,7 @@ def test_behavior_scenario_ui():
     """Test BehaviorScenario for UI category."""
     scenario = BehaviorScenario(
         id="scenario-login",
-        project_id="legacy-app",
+        project="legacy-app",
         category="ui",
         name="User Login Flow",
         description="Test user login with valid credentials",
@@ -202,7 +202,7 @@ def test_behavior_scenario_api():
     """Test BehaviorScenario for API category."""
     scenario = BehaviorScenario(
         id="scenario-create-order",
-        project_id="legacy-api",
+        project="legacy-api",
         category="api",
         name="Create Order API",
         description="Test order creation endpoint",
@@ -279,7 +279,7 @@ def test_behavior_snapshot_success():
     snapshot = BehaviorSnapshot(
         id="snapshot-123",
         scenario_id="scenario-login",
-        project_id="legacy-app",
+        project="legacy-app",
         environment="legacy",
         observed_http=ObservedHTTP(status_code=200, headers={}, body={"success": True}),
         duration_ms=150,
@@ -305,7 +305,7 @@ def test_behavior_snapshot_with_violations():
     snapshot = BehaviorSnapshot(
         id="snapshot-456",
         scenario_id="scenario-checkout",
-        project_id="legacy-app",
+        project="legacy-app",
         environment="candidate",
         observed_dom=ObservedDOM(present_selectors=["#cart"], missing_selectors=["#success-message"]),
         success=False,
@@ -354,7 +354,7 @@ def test_behavior_contract():
     contract = BehaviorContract(
         id="contract-login",
         scenario_id="scenario-login",
-        project_id="legacy-app",
+        project="legacy-app",
         version="1.0.0",
         environment_scope=["legacy", "candidate"],
         http_contract=HTTPContract(required_status_codes=[200]),
@@ -379,7 +379,7 @@ def test_behavior_check_result_passed():
     result = BehaviorCheckResult(
         snapshot_id="snap-123",
         contract_id="contract-login",
-        project_id="legacy-app",
+        project="legacy-app",
         passed=True,
         violations=[],
         risk_score=0.0,
@@ -401,7 +401,7 @@ def test_behavior_check_result_failed():
     result = BehaviorCheckResult(
         snapshot_id="snap-456",
         contract_id="contract-checkout",
-        project_id="legacy-app",
+        project="legacy-app",
         passed=False,
         violations=violations,
         risk_score=0.85,
@@ -441,7 +441,7 @@ def test_complete_scenario_execution_flow():
     # 1. Define scenario
     scenario = BehaviorScenario(
         id="test-scenario",
-        project_id="test-project",
+        project="test-project",
         category="api",
         name="Health Check",
         description="Test health endpoint",
@@ -455,7 +455,7 @@ def test_complete_scenario_execution_flow():
     snapshot = BehaviorSnapshot(
         id="test-snapshot",
         scenario_id=scenario.id,
-        project_id=scenario.project_id,
+        project=scenario.project,
         environment="legacy",
         observed_http=ObservedHTTP(
             status_code=200, headers={"Content-Type": "application/json"}, body={"status": "healthy"}
@@ -469,7 +469,7 @@ def test_complete_scenario_execution_flow():
     contract = BehaviorContract(
         id="test-contract",
         scenario_id=scenario.id,
-        project_id=scenario.project_id,
+        project=scenario.project,
         http_contract=HTTPContract(required_status_codes=[200]),
         derived_from_snapshot_ids=[snapshot.id],
         created_at=datetime.now(),
@@ -479,7 +479,7 @@ def test_complete_scenario_execution_flow():
     check_result = BehaviorCheckResult(
         snapshot_id=snapshot.id,
         contract_id=contract.id,
-        project_id=scenario.project_id,
+        project=scenario.project,
         passed=True,
         violations=[],
         risk_score=0.0,
@@ -501,7 +501,7 @@ def test_regression_detection_flow():
     legacy_snapshot = BehaviorSnapshot(
         id="legacy-snap",
         scenario_id=scenario_id,
-        project_id="test-project",
+        project="test-project",
         environment="legacy",
         observed_http=ObservedHTTP(status_code=200, headers={}, body={"ok": True}),
         success=True,
@@ -512,7 +512,7 @@ def test_regression_detection_flow():
     contract = BehaviorContract(
         id="test-contract",
         scenario_id=scenario_id,
-        project_id="test-project",
+        project="test-project",
         http_contract=HTTPContract(required_status_codes=[200]),
         derived_from_snapshot_ids=[legacy_snapshot.id],
         created_at=datetime.now(),
@@ -522,7 +522,7 @@ def test_regression_detection_flow():
     candidate_snapshot = BehaviorSnapshot(
         id="candidate-snap",
         scenario_id=scenario_id,
-        project_id="test-project",
+        project="test-project",
         environment="candidate",
         observed_http=ObservedHTTP(status_code=500, headers={}, body={"error": "Internal Server Error"}),
         success=False,
@@ -541,7 +541,7 @@ def test_regression_detection_flow():
     check_result = BehaviorCheckResult(
         snapshot_id=candidate_snapshot.id,
         contract_id=contract.id,
-        project_id="test-project",
+        project="test-project",
         passed=False,
         violations=candidate_snapshot.violations,
         risk_score=0.9,  # High risk - critical regression

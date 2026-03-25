@@ -66,7 +66,7 @@ class TestFeniksMemoryRouter:
             qdrant_client=mock_qdrant,
             rae_client=mock_rae_client,
             default_strategy=RoutingStrategy.HYBRID,
-            project_id="test_project",
+            project="test_project",
         )
 
     @pytest.fixture
@@ -76,7 +76,7 @@ class TestFeniksMemoryRouter:
             qdrant_client=mock_qdrant,
             rae_client=None,
             default_strategy=RoutingStrategy.HYBRID,
-            project_id="test_project",
+            project="test_project",
         )
 
     def test_router_initialization(self, router):
@@ -84,7 +84,7 @@ class TestFeniksMemoryRouter:
         assert router.qdrant is not None
         assert router.rae is not None
         assert router.default_strategy == RoutingStrategy.HYBRID
-        assert router.project_id == "test_project"
+        assert router.project == "test_project"
 
     def test_route_system_model_dual_write(self, router):
         """Test system models route to dual-write."""
@@ -321,11 +321,11 @@ class TestFeniksMemoryRouter:
     def test_factory_function_creates_router(self, mock_qdrant):
         """Test factory function creates router successfully."""
         with patch("feniks.core.memory.router.create_enhanced_rae_client", return_value=Mock()):
-            router = create_memory_router(qdrant_client=mock_qdrant, project_id="test_project")
+            router = create_memory_router(qdrant_client=mock_qdrant, project="test_project")
 
             assert router is not None
             assert isinstance(router, FeniksMemoryRouter)
-            assert router.project_id == "test_project"
+            assert router.project == "test_project"
 
 
 if __name__ == "__main__":

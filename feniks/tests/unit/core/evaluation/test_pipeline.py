@@ -59,7 +59,7 @@ def test_sync_with_rae_success(mock_create_client, pipeline):
     mock_client = MagicMock()
     mock_create_client.return_value = mock_client
 
-    model = SystemModel(project_id="p1", timestamp="now")
+    model = SystemModel(project="p1", timestamp="now")
     reflections = [MagicMock()]
 
     result = pipeline._sync_with_rae(model, reflections)
@@ -73,7 +73,7 @@ def test_sync_with_rae_success(mock_create_client, pipeline):
 def test_sync_with_rae_disabled(mock_create_client, pipeline):
     mock_create_client.return_value = None  # RAE disabled
 
-    result = pipeline._sync_with_rae(SystemModel(project_id="p1", timestamp="now"), [])
+    result = pipeline._sync_with_rae(SystemModel(project="p1", timestamp="now"), [])
 
     assert result is False
 

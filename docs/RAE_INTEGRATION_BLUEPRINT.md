@@ -374,8 +374,8 @@ class FeniksMemoryRouter:
             return []
 
         results = self.rae.query_reflections(
-            project_id=self.rae.settings.rae_project_id,
-            query_text=query,
+            project=self.rae.settings.rae_project_id,
+            query=query,
             layer="semantic",
             top_k=top_k
         )
@@ -482,7 +482,7 @@ class MetaReflectionEngine:
         Returns:
             List[MetaReflection]: Generated meta-reflections
         """
-        log.info(f"Generating meta-reflections for project: {system_model.project_id}")
+        log.info(f"Generating meta-reflections for project: {system_model.project}")
 
         # Step 1: Generate local reflections (existing logic)
         reflections = self.rule_set.evaluate(system_model)
@@ -534,7 +534,7 @@ class MetaReflectionEngine:
                 enriched_reflection = self.rae_client.enrich_reflection(
                     local_reflection=reflection,
                     context={
-                        "project_id": system_model.project_id,
+                        "project": system_model.project,
                         "project_tags": system_model.tags,
                         "module_count": len(system_model.modules),
                         "complexity_avg": system_model.average_complexity
@@ -686,7 +686,7 @@ class RefactorEngine:
             refactor_decision = RefactorDecision(
                 id=result.id,
                 type=recipe.type,
-                project_id=target.project_id,
+                project=target.project,
                 recipe_name=recipe.name,
                 timestamp=result.timestamp
             )
@@ -817,8 +817,8 @@ def test_query_reflections(mock_rae_client):
 
     # Execute
     results = client.query_reflections(
-        project_id="test-project",
-        query_text="complexity issues",
+        project="test-project",
+        query="complexity issues",
         layer="semantic",
         top_k=2
     )
@@ -835,7 +835,7 @@ def test_enrich_reflection(mock_rae_client):
     # Create local reflection
     local_reflection = MetaReflection(
         id="local-1",
-        project_id="test-project",
+        project="test-project",
         content="High complexity in auth module",
         recommendations=["Refactor into smaller functions"],
         confidence=0.7,
@@ -875,7 +875,7 @@ def test_store_refactor_outcome(mock_rae_client):
     decision = RefactorDecision(
         id="refactor-1",
         type="extract_method",
-        project_id="test-project"
+        project="test-project"
     )
 
     outcome = {
@@ -955,7 +955,7 @@ rae_query_duration_seconds = Histogram(
 rae_enrichment_count = Counter(
     'feniks_rae_enrichment_count',
     'Reflections enriched with RAE',
-    ['project_id']
+    ['project']
 )
 
 rae_confidence_boost = Histogram(
@@ -1040,9 +1040,10 @@ Krok po kroku setup:
 
 - [ ] 7. **Verify RAE Storage**
   ```bash
-  curl http://localhost:8000/v1/memory/query \
+  curl http://localhost:8000/v2/memories/query \
     -H "Content-Type: application/json" \
-    -d '{"query_text":"my-project","k":5}'
+    -H "X-Tenant-Id: default-tenant" \
+    -d '{"query":"my-project","top_k":5}'
   ```
 
 ---

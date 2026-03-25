@@ -423,7 +423,7 @@ Feniks can automatically run any combination of the above.
 
 feniks_python_pipeline.yml:
 
-project_id: billboard_splitter
+project: billboard_splitter
 language: python
 root: ./billboard_splitter
 

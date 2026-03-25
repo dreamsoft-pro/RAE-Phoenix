@@ -55,7 +55,7 @@ class SelfModelAnalyzer:
                 MetaReflection(
                     id=f"self-fatigue-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="self-model",
+                    project="self-model",
                     level=ReflectionLevel.META_REFLECTION,
                     scope=ReflectionScope.SYSTEM,
                     impact=ReflectionImpact.REFACTOR_RECOMMENDED,

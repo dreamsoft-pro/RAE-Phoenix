@@ -30,7 +30,7 @@ log = get_logger("governance.cost_controller")
 class Budget:
     """Budget for a project or operation."""
 
-    project_id: str
+    project: str
     total_budget: float  # Total budget in cost units
     spent: float = 0.0
     operations: Dict[str, int] = field(default_factory=dict)  # operation_type -> count
@@ -82,43 +82,43 @@ class CostController:
         self.operation_costs = self.DEFAULT_COSTS.copy()
         log.info("CostController initialized")
 
-    def set_budget(self, project_id: str, total_budget: float):
+    def set_budget(self, project: str, total_budget: float):
         """
         Set budget for a project.
 
         Args:
-            project_id: Project identifier
+            project: Project identifier
             total_budget: Total budget in cost units
         """
-        if project_id in self.budgets:
+        if project in self.budgets:
             # Update existing budget
-            budget = self.budgets[project_id]
+            budget = self.budgets[project]
             budget.total_budget = total_budget
-            log.info(f"Updated budget for project {project_id}: {total_budget}")
+            log.info(f"Updated budget for project {project}: {total_budget}")
         else:
             # Create new budget
-            budget = Budget(project_id=project_id, total_budget=total_budget)
-            self.budgets[project_id] = budget
-            log.info(f"Created budget for project {project_id}: {total_budget}")
+            budget = Budget(project=project, total_budget=total_budget)
+            self.budgets[project] = budget
+            log.info(f"Created budget for project {project}: {total_budget}")
 
-    def get_budget(self, project_id: str) -> Optional[Budget]:
+    def get_budget(self, project: str) -> Optional[Budget]:
         """
         Get budget for a project.
 
         Args:
-            project_id: Project identifier
+            project: Project identifier
 
         Returns:
             Budget or None if no budget set
         """
-        return self.budgets.get(project_id)
+        return self.budgets.get(project)
 
-    def check_budget(self, project_id: str, operation: str, quantity: int = 1) -> tuple[bool, float]:
+    def check_budget(self, project: str, operation: str, quantity: int = 1) -> tuple[bool, float]:
         """
         Check if operation is within budget.
 
         Args:
-            project_id: Project identifier
+            project: Project identifier
             operation: Operation type
             quantity: Operation quantity (e.g., number of chunks)
 
@@ -128,7 +128,7 @@ class CostController:
         Raises:
             BudgetExceededError: If budget would be exceeded
         """
-        budget = self.budgets.get(project_id)
+        budget = self.budgets.get(project)
 
         # No budget set - allow operation
         if not budget:
@@ -143,23 +143,23 @@ class CostController:
 
         if not can_afford:
             raise BudgetExceededError(
-                f"Budget exceeded for project {project_id}. "
+                f"Budget exceeded for project {project}. "
                 f"Remaining: {budget.remaining:.2f}, Required: {estimated_cost:.2f}"
             )
 
         return can_afford, estimated_cost
 
-    def charge_operation(self, project_id: str, operation: str, quantity: int = 1, actual_cost: Optional[float] = None):
+    def charge_operation(self, project: str, operation: str, quantity: int = 1, actual_cost: Optional[float] = None):
         """
         Charge budget for an operation.
 
         Args:
-            project_id: Project identifier
+            project: Project identifier
             operation: Operation type
             quantity: Operation quantity
             actual_cost: Actual cost (if different from estimate)
         """
-        budget = self.budgets.get(project_id)
+        budget = self.budgets.get(project)
 
         # No budget set - nothing to charge
         if not budget:
@@ -181,30 +181,30 @@ class CostController:
         budget.operations[operation] += quantity
 
         log.info(
-            f"Charged {cost:.2f} to project {project_id} for {operation} " f"(utilization: {budget.utilization:.1f}%)"
+            f"Charged {cost:.2f} to project {project} for {operation} " f"(utilization: {budget.utilization:.1f}%)"
         )
 
         # Alert if budget is running low
         if budget.utilization > 90:
-            log.warning(f"Budget alert: Project {project_id} has used {budget.utilization:.1f}% of budget")
+            log.warning(f"Budget alert: Project {project} has used {budget.utilization:.1f}% of budget")
 
-    def get_cost_report(self, project_id: Optional[str] = None) -> Dict[str, any]:
+    def get_cost_report(self, project: Optional[str] = None) -> Dict[str, any]:
         """
         Get cost report.
 
         Args:
-            project_id: Optional project ID to filter by
+            project: Optional project ID to filter by
 
         Returns:
             Dict with cost information
         """
-        if project_id:
-            budget = self.budgets.get(project_id)
+        if project:
+            budget = self.budgets.get(project)
             if not budget:
-                return {"project_id": project_id, "budget": None}
+                return {"project": project, "budget": None}
 
             return {
-                "project_id": project_id,
+                "project": project,
                 "budget": {
                     "total": budget.total_budget,
                     "spent": budget.spent,

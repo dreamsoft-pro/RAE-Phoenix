@@ -47,7 +47,7 @@ SCHEMA_SQL = """
 -- Scenarios table
 CREATE TABLE IF NOT EXISTS behavior_scenarios (
     id VARCHAR(255) PRIMARY KEY,
-    project_id VARCHAR(255) NOT NULL,
+    project VARCHAR(255) NOT NULL,
     name VARCHAR(500) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description TEXT,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS behavior_scenarios (
     metadata JSONB,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_project_id (project_id),
+    INDEX idx_project_id (project),
     INDEX idx_category (category)
 );
 
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS behavior_scenarios (
 CREATE TABLE IF NOT EXISTS behavior_snapshots (
     id VARCHAR(255) PRIMARY KEY,
     scenario_id VARCHAR(255) NOT NULL REFERENCES behavior_scenarios(id) ON DELETE CASCADE,
-    project_id VARCHAR(255) NOT NULL,
+    project VARCHAR(255) NOT NULL,
     environment VARCHAR(50) NOT NULL,
     observed_http JSONB,
     observed_cli JSONB,
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS behavior_contracts (
     id VARCHAR(255) NOT NULL,
     version VARCHAR(50) NOT NULL,
     scenario_id VARCHAR(255) NOT NULL REFERENCES behavior_scenarios(id) ON DELETE CASCADE,
-    project_id VARCHAR(255) NOT NULL,
+    project VARCHAR(255) NOT NULL,
     success_criteria JSONB NOT NULL,
     max_duration_ms INTEGER,
     created_from_snapshots INTEGER,
@@ -186,7 +186,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 cur.execute(
                     """
                     INSERT INTO behavior_scenarios
-                    (id, project_id, name, category, description, input, success_criteria, metadata, created_at)
+                    (id, project, name, category, description, input, success_criteria, metadata, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id) DO UPDATE SET
                         name = EXCLUDED.name,
@@ -198,7 +198,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 """,
                     (
                         scenario.id,
-                        scenario.project_id,
+                        scenario.project,
                         scenario.name,
                         scenario.category,
                         scenario.description,
@@ -232,18 +232,18 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         finally:
             conn.close()
 
-    def list_scenarios(self, project_id: Optional[str] = None) -> List[BehaviorScenario]:
+    def list_scenarios(self, project: Optional[str] = None) -> List[BehaviorScenario]:
         """List all scenarios, optionally filtered by project."""
         conn = self._get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                if project_id:
+                if project:
                     cur.execute(
                         """
-                        SELECT * FROM behavior_scenarios WHERE project_id = %s
+                        SELECT * FROM behavior_scenarios WHERE project = %s
                         ORDER BY created_at DESC
                     """,
-                        (project_id,),
+                        (project,),
                     )
                 else:
                     cur.execute(
@@ -289,7 +289,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 cur.execute(
                     """
                     INSERT INTO behavior_snapshots
-                    (id, scenario_id, project_id, environment, observed_http, observed_cli,
+                    (id, scenario_id, project, environment, observed_http, observed_cli,
                      observed_dom, observed_logs, duration_ms, success, violations,
                      error_count, metadata, created_at, recorded_by)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -307,7 +307,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                     (
                         snapshot.id,
                         snapshot.scenario_id,
-                        snapshot.project_id,
+                        snapshot.project,
                         snapshot.environment,
                         Json(snapshot.observed_http.model_dump(mode="json")) if snapshot.observed_http else None,
                         Json(snapshot.observed_cli.model_dump(mode="json")) if snapshot.observed_cli else None,
@@ -399,7 +399,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 cur.execute(
                     """
                     INSERT INTO behavior_contracts
-                    (id, version, scenario_id, project_id, success_criteria, max_duration_ms,
+                    (id, version, scenario_id, project, success_criteria, max_duration_ms,
                      created_from_snapshots, confidence_score, created_at, version_notes)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id, version) DO UPDATE SET
@@ -413,7 +413,7 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                         contract.id,
                         contract.version,
                         contract.scenario_id,
-                        contract.project_id,
+                        contract.project,
                         Json(contract.success_criteria.model_dump(mode="json")),
                         contract.max_duration_ms,
                         contract.created_from_snapshots,

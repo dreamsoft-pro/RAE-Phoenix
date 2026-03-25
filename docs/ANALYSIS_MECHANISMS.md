@@ -352,9 +352,9 @@ class CostPolicyEnforcer:
 
         return violations
 
-    def check_budget_health(self, project_id: str) -> List[MetaReflection]:
-        budget = get_project_budget(project_id)
-        spent = get_project_spent(project_id)
+    def check_budget_health(self, project: str) -> List[MetaReflection]:
+        budget = get_project_budget(project)
+        spent = get_project_spent(project)
 
         if spent / budget > self.BUDGET_WARNING_THRESHOLD:
             return [MetaReflection(
@@ -643,13 +643,13 @@ def sync_with_rae(system_model: SystemModel, meta_reflections: List[MetaReflecti
     # 1. Store reflections in RAE
     for reflection in meta_reflections:
         rae_client.store_reflection(
-            project_id=system_model.project_id,
+            project=system_model.project,
             reflection_data=reflection.to_dict()
         )
 
     # 2. Retrieve historical context
     historical_reflections = rae_client.get_reflections(
-        project_id=system_model.project_id,
+        project=system_model.project,
         limit=100
     )
 
@@ -720,19 +720,19 @@ reflections = rules.evaluate(system_model)
 
 # 5. Enforce policies (GUARDRAILS)
 policy_manager = PolicyManager()
-violations = policy_manager.check_session_compliance(session, project_id)
+violations = policy_manager.check_session_compliance(session, project)
 # Output: [
 #   "Max Session Cost Exceeded: $1.25 > $1.00",
 #   "Reasoning Steps Too Short: 3 steps <10 chars"
 # ]
 
 # 6. Sync with RAE (META-LEARNING)
-rae_client.store_reflections(project_id, reflections)
+rae_client.store_reflections(project, reflections)
 # Next analysis will have access to these insights
 
 # 7. Generate final report
 report = FeniksReport(
-    project_id=project_id,
+    project=project,
     summary=session_summary,
     metrics={"complexity": 67.5, "centrality_max": 0.45},
     recommendations=[

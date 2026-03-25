@@ -70,7 +70,7 @@ class QualityPolicyEnforcer:
                 MetaReflection(
                     id=f"policy-quality-len-{uuid.uuid4()}",
                     timestamp=datetime.now().isoformat(),
-                    project_id="quality-policy",
+                    project="quality-policy",
                     level=ReflectionLevel.REFLECTION,
                     scope=ReflectionScope.PATTERN,
                     impact=ReflectionImpact.REFACTOR_RECOMMENDED,
@@ -89,7 +89,7 @@ class QualityPolicyEnforcer:
                     MetaReflection(
                         id=f"policy-quality-pattern-{uuid.uuid4()}",
                         timestamp=datetime.now().isoformat(),
-                        project_id="quality-policy",
+                        project="quality-policy",
                         level=ReflectionLevel.META_REFLECTION,
                         scope=ReflectionScope.PATTERN,
                         impact=ReflectionImpact.CRITICAL,

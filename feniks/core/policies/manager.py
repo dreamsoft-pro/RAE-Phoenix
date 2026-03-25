@@ -36,13 +36,13 @@ class PolicyManager:
         self.quality_enforcer = QualityPolicyEnforcer()
         log.info("PolicyManager initialized")
 
-    def check_session_compliance(self, session: SessionSummary, project_id: str) -> List[MetaReflection]:
+    def check_session_compliance(self, session: SessionSummary, project: str) -> List[MetaReflection]:
         """
         Run all policy checks for a completed session.
 
         Args:
             session: The session summary to check.
-            project_id: The project ID associated with the session.
+            project: The project ID associated with the session.
 
         Returns:
             List[MetaReflection]: List of policy violations (as meta-reflections).
@@ -54,7 +54,7 @@ class PolicyManager:
         violations.extend(self.cost_enforcer.check_session_cost(session))
 
         # 2. Check Cost Policies (Budget health)
-        violations.extend(self.cost_enforcer.check_budget_health(project_id))
+        violations.extend(self.cost_enforcer.check_budget_health(project))
 
         # 3. Check Quality Policies
         violations.extend(self.quality_enforcer.check_trace_quality(session))

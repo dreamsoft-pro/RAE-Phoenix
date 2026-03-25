@@ -41,7 +41,7 @@ def test_routing_layout_generation():
 
     plan = RefactorPlan(
         recipe_name="test",
-        project_id="test",
+        project="test",
         target_modules=[],
         target_files=[],
         rationale="test",

@@ -2,7 +2,7 @@
 # This file demonstrates how to define a behavior scenario for CLI/batch jobs
 
 id: cli-calc-stats-v1
-project_id: my-legacy-batch
+project: my-legacy-batch
 category: cli
 name: Calculate Daily Statistics
 description: |

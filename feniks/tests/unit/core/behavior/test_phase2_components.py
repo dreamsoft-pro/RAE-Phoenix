@@ -57,7 +57,7 @@ class TestContractGenerator:
             snapshot = BehaviorSnapshot(
                 id=f"snap-{i}",
                 scenario_id="test-scenario",
-                project_id="test-project",
+                project="test-project",
                 environment="legacy",
                 observed_http=ObservedHTTP(
                     status_code=200,
@@ -74,7 +74,7 @@ class TestContractGenerator:
 
         # Validate contract
         assert contract.scenario_id == "test-scenario"
-        assert contract.project_id == "test-project"
+        assert contract.project == "test-project"
         assert len(contract.derived_from_snapshot_ids) == 5
         assert contract.confidence_score > 0.0
 
@@ -94,7 +94,7 @@ class TestContractGenerator:
             BehaviorSnapshot(
                 id="snap-1",
                 scenario_id="test",
-                project_id="test",
+                project="test",
                 environment="legacy",
                 success=True,
                 created_at=datetime.now(),
@@ -112,7 +112,7 @@ class TestContractGenerator:
             BehaviorSnapshot(
                 id="snap-1",
                 scenario_id="scenario-1",
-                project_id="test",
+                project="test",
                 environment="legacy",
                 success=True,
                 created_at=datetime.now(),
@@ -120,7 +120,7 @@ class TestContractGenerator:
             BehaviorSnapshot(
                 id="snap-2",
                 scenario_id="scenario-2",  # Different scenario!
-                project_id="test",
+                project="test",
                 environment="legacy",
                 success=True,
                 created_at=datetime.now(),
@@ -128,7 +128,7 @@ class TestContractGenerator:
             BehaviorSnapshot(
                 id="snap-3",
                 scenario_id="scenario-1",
-                project_id="test",
+                project="test",
                 environment="legacy",
                 success=True,
                 created_at=datetime.now(),
@@ -147,7 +147,7 @@ class TestContractGenerator:
             snapshot = BehaviorSnapshot(
                 id=f"snap-{i}",
                 scenario_id="cli-test",
-                project_id="test",
+                project="test",
                 environment="legacy",
                 observed_cli=ObservedCLI(command="echo test", exit_code=0, stdout="test output\n", stderr=""),
                 duration_ms=50,
@@ -179,7 +179,7 @@ class TestBehaviorComparisonEngine:
         contract = BehaviorContract(
             id="contract-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             version="1.0.0",
             http_contract=HTTPContract(
                 required_status_codes=[200, 201],
@@ -193,7 +193,7 @@ class TestBehaviorComparisonEngine:
         snapshot = BehaviorSnapshot(
             id="snap-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             environment="candidate",
             observed_http=ObservedHTTP(status_code=200, headers={}, body={"status": "ok"}),
             duration_ms=150,
@@ -214,7 +214,7 @@ class TestBehaviorComparisonEngine:
         contract = BehaviorContract(
             id="contract-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             version="1.0.0",
             http_contract=HTTPContract(required_status_codes=[200]),
             created_at=datetime.now(),
@@ -223,7 +223,7 @@ class TestBehaviorComparisonEngine:
         snapshot = BehaviorSnapshot(
             id="snap-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             environment="candidate",
             observed_http=ObservedHTTP(status_code=500, headers={}, body={}),  # Unexpected!
             success=False,
@@ -243,7 +243,7 @@ class TestBehaviorComparisonEngine:
         contract = BehaviorContract(
             id="contract-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             version="1.0.0",
             http_contract=HTTPContract(),
             max_duration_ms_p95=100,
@@ -253,7 +253,7 @@ class TestBehaviorComparisonEngine:
         snapshot = BehaviorSnapshot(
             id="snap-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             environment="candidate",
             duration_ms=250,  # Exceeds threshold!
             success=True,
@@ -272,7 +272,7 @@ class TestBehaviorComparisonEngine:
         contract = BehaviorContract(
             id="contract-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             version="1.0.0",
             http_contract=HTTPContract(
                 required_status_codes=[200],
@@ -284,7 +284,7 @@ class TestBehaviorComparisonEngine:
         snapshot = BehaviorSnapshot(
             id="snap-1",
             scenario_id="test-scenario",
-            project_id="test",
+            project="test",
             environment="candidate",
             observed_http=ObservedHTTP(
                 status_code=500, headers={}, body={"error": "fail"}  # Critical: status violation  # High: missing paths
@@ -327,7 +327,7 @@ class TestPostMortemBehaviorIntegration:
                 snapshot_id="snap-1",
                 contract_id="contract-1",
                 scenario_id="scenario-1",
-                project_id="test",
+                project="test",
                 passed=False,
                 violations=[
                     BehaviorViolation(code="HTTP_STATUS_UNEXPECTED", message="Status changed", severity="high")
@@ -339,7 +339,7 @@ class TestPostMortemBehaviorIntegration:
                 snapshot_id="snap-2",
                 contract_id="contract-2",
                 scenario_id="scenario-2",
-                project_id="test",
+                project="test",
                 passed=False,
                 violations=[
                     BehaviorViolation(code="HTTP_STATUS_UNEXPECTED", message="Status changed", severity="critical")
@@ -383,7 +383,7 @@ class TestLongitudinalBehaviorIntegration:
                     snapshot_id=f"snap-{i}",
                     contract_id="contract",
                     scenario_id="scenario",
-                    project_id="test",
+                    project="test",
                     passed=True,
                     violations=[],
                     risk_score=0.0,
@@ -398,7 +398,7 @@ class TestLongitudinalBehaviorIntegration:
                     snapshot_id=f"snap-{i}",
                     contract_id="contract",
                     scenario_id="scenario",
-                    project_id="test",
+                    project="test",
                     passed=False,
                     violations=[BehaviorViolation(code="FAIL", message="fail", severity="high")],
                     risk_score=0.8,

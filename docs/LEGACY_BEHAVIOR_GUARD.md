@@ -455,7 +455,7 @@ Create a scenario YAML file (`scenarios/login.yaml`):
 
 ```yaml
 id: login-scenario
-project_id: my-app
+project: my-app
 category: ui
 name: User Login Flow
 description: Test successful user login with valid credentials
