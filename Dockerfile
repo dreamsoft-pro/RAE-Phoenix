@@ -20,7 +20,7 @@ WORKDIR /app
 RUN python3.14 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY requirements.txt .
+COPY packages/rae-phoenix/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir fastapi uvicorn httpx structlog
 
@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
-COPY . .
+COPY packages/rae-phoenix .
 
 EXPOSE 8000
 CMD ["python", "main.py"]
