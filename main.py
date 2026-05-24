@@ -42,7 +42,7 @@ class PhoenixRefactorer:
 
     @audited_operation(operation_name="autonomous_fix", impact_level="high")
     async def process_repair_request(self, project: str, code: str, reason: str, file_path: str = "unknown.py") -> Dict[str, Any]:
-        """Autonomously analyzes, fixes, and re-verifies code using RAE-First strategy."""
+        """Autonomously analyzes, fixes, and re-verifies code using RAE-First closed-loop strategy."""
         
         # 0. RAE-FIRST
         history = await self._fetch_file_history(project, file_path)
@@ -62,40 +62,103 @@ class PhoenixRefactorer:
         if impact["total_dependents"] > 0:
             logger.warning(f"phoenix_impact_alert: Modifying {file_path} affects {impact['total_dependents']} dependents.")
 
-        # 2. Route to Plugin
-        plugin = self.plugin_manager.get_plugin_for_file(file_path)
-        self.bridge.log_decision(
-            action="plugin_selected",
-            reasoning=f"Routing {file_path} to {plugin.name if plugin else 'fallback_llm'}",
-            payload={"plugin": plugin.name if plugin else "fallback_llm", "file": file_path}
-        )
-
-        if not plugin:
-            fixed_code = await self._fallback_llm_fix(code, reason, project, impact)
-        else:
-            intention = RefactorIntention(
-                objective=reason,
-                target_files=[file_path],
-                context={"project": project, "impact_zone": impact}
+        # Closed-Loop Repair Parameters
+        max_attempts = 5
+        max_token_budget = 10000
+        tokens_used = 0
+        current_code = code
+        current_reason = reason
+        initial_code = code  # Used for rollback
+        
+        attempt = 0
+        success = False
+        final_verdict = None
+        
+        while attempt < max_attempts and tokens_used < max_token_budget:
+            attempt += 1
+            logger.info(f"phoenix_repair_loop: Attempt {attempt} of {max_attempts}. Tokens used: {tokens_used}/{max_token_budget}")
+            
+            # 2. Route to Plugin
+            plugin = self.plugin_manager.get_plugin_for_file(file_path)
+            self.bridge.log_decision(
+                action="plugin_selected",
+                reasoning=f"Routing {file_path} to {plugin.name if plugin else 'fallback_llm'} (Attempt {attempt})",
+                payload={"plugin": plugin.name if plugin else "fallback_llm", "file": file_path, "attempt": attempt}
             )
-            fixed_code = await plugin.execute_refactor(code, intention)
-        
-        # 3. SELF-VERIFY
-        verdict = await self._request_quality_re_audit(fixed_code, project)
-        
-        self.bridge.log_decision(
-            action="quality_verdict_received",
-            reasoning=f"Tribunal Verdict: {verdict.get('verdict')} (Level: {verdict.get('seniority_attained')})",
-            payload=verdict
-        )
 
-        # HARD CONTRACT: Must be PASSED and reach ADVANCED_SENIOR seniority
-        if verdict.get("verdict") == "PASSED" and verdict.get("seniority_attained") == "advanced_senior":
-            logger.info("phoenix_fix_verified: Advanced Senior Standard Reached.", project=project)
-            return {"status": "SUCCESS", "code": fixed_code, "reasoning": "Self-corrected and verified to Advanced Senior standard."}
+            # Estimate token usage for the prompt/interaction
+            prompt_estimate = 1000  # Default baseline
+            
+            if not plugin:
+                # Fallback LLM repair
+                fixed_code = await self._fallback_llm_fix(current_code, current_reason, project, impact)
+                tokens_used += prompt_estimate
+            else:
+                intention = RefactorIntention(
+                    objective=current_reason,
+                    target_files=[file_path],
+                    context={"project": project, "impact_zone": impact, "attempt": attempt}
+                )
+                fixed_code = await plugin.execute_refactor(current_code, intention)
+                # Plugin-based repairs also count towards resource budget
+                tokens_used += 500  
+
+            # 3. SELF-VERIFY (Quality Gate / Tribunal audit)
+            verdict = await self._request_quality_re_audit(fixed_code, project)
+            final_verdict = verdict
+            
+            self.bridge.log_decision(
+                action="quality_verdict_received",
+                reasoning=f"Attempt {attempt} Verdict: {verdict.get('verdict')} (Level: {verdict.get('seniority_attained')})",
+                payload=verdict
+            )
+
+            # HARD CONTRACT: Must be PASSED and reach ADVANCED_SENIOR seniority
+            if verdict.get("verdict") == "PASSED" and verdict.get("seniority_attained") == "advanced_senior":
+                logger.info(f"phoenix_fix_verified: Advanced Senior Standard Reached on attempt {attempt}.", project=project)
+                success = True
+                current_code = fixed_code
+                break
+            else:
+                # Update current code and failure reason for the next loop iteration
+                current_code = fixed_code
+                current_reason = verdict.get("reasoning", "Quality standards not met.")
+                logger.warning(f"phoenix_repair_attempt_failed: Attempt {attempt} failed. Reasons: {current_reason}")
+
+        if success:
+            return {
+                "status": "SUCCESS",
+                "code": current_code,
+                "reasoning": f"Self-corrected and verified to Advanced Senior standard after {attempt} attempts.",
+                "attempts_made": attempt,
+                "tokens_consumed": tokens_used
+            }
         else:
-            seniority = verdict.get("seniority_attained", "unknown")
-            return {"status": "FAILED", "reason": f"Tribunal verdict: {verdict.get('reasoning')} (Level: {seniority})"}
+            # STOP CONDITION & ROLLBACK
+            # Restore the initial state (rollback)
+            rollback_code = initial_code
+            logger.error(f"phoenix_loop_hard_stop: Closed-loop repair failed after {attempt} attempts. Initiating rollback.")
+            
+            self.bridge.log_decision(
+                action="repair_loop_failed_rollback",
+                reasoning=f"Repair failed after {attempt} attempts. Hard stop trigger. Token budget: {tokens_used}/{max_token_budget}",
+                payload={
+                    "attempts": attempt,
+                    "tokens_used": tokens_used,
+                    "max_attempts": max_attempts,
+                    "max_token_budget": max_token_budget
+                }
+            )
+            
+            return {
+                "status": "FAILED_ESCALATED",
+                "code": rollback_code,
+                "reason": f"Closed-loop repair failed to reach Advanced Senior standard within constraints. Ticket FAILED_ESCALATED generated.",
+                "attempts_made": attempt,
+                "tokens_consumed": tokens_used,
+                "last_verdict": final_verdict
+            }
+
 
     async def _fetch_file_history(self, project: str, file_path: str) -> List[Dict[str, Any]]:
         """Retrieves past audit results for a specific file to inform current planning (RAE-First)."""
