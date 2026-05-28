@@ -54,9 +54,10 @@ def get_file_churn(repo_root: Path, file_path: str) -> int:
   if not file_path:
     return 0
   try:
-    cmd = f'git -C {repo_root} log --since="90 days ago" --follow --format=oneline -- "{file_path}" | wc -l'
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
-    return int(result.stdout.strip())
+    cmd = ["git", "-C", str(repo_root), "log", "--since=90 days ago", "--follow", "--format=oneline", "--", file_path]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    lines = result.stdout.strip().splitlines()
+    return len(lines)
   except (subprocess.CalledProcessError, ValueError):
     return 0
 
