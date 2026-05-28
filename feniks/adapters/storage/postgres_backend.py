@@ -34,7 +34,7 @@ log = get_logger("adapters.storage.postgres")
 # Postgres import with graceful fallback
 try:
     import psycopg2
-    from psycopg2.extras import Json, RealDictCursor
+    from psycopg2.extras import Json, RealDictCursor, execute_values
 
     POSTGRES_AVAILABLE = True
 except ImportError:
@@ -105,13 +105,16 @@ CREATE TABLE IF NOT EXISTS behavior_check_results (
     contract_id VARCHAR(255) NOT NULL,
     contract_version VARCHAR(50) NOT NULL,
     scenario_id VARCHAR(255) NOT NULL,
+    project VARCHAR(255) NOT NULL,
     passed BOOLEAN NOT NULL,
     violations JSONB,
     risk_score REAL NOT NULL,
     checked_at TIMESTAMP NOT NULL,
     FOREIGN KEY (contract_id, contract_version) REFERENCES behavior_contracts(id, version) ON DELETE CASCADE,
     INDEX idx_scenario_checked (scenario_id, checked_at DESC),
-    INDEX idx_passed (passed)
+    INDEX idx_passed (passed),
+    INDEX idx_project_results (project),
+    UNIQUE (snapshot_id, contract_id, contract_version)
 );
 """
 
@@ -377,8 +380,55 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 if line.strip():
                     data = json.loads(line)
                     snapshot = BehaviorSnapshot(**data)
-                    self.save_snapshot(snapshot)
                     snapshots.append(snapshot)
+
+        if snapshots:
+            conn = self._get_connection()
+            try:
+                with conn.cursor() as cur:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO behavior_snapshots
+                        (id, scenario_id, project, environment, observed_http, observed_cli,
+                         observed_dom, observed_logs, duration_ms, success, violations,
+                         error_count, metadata, created_at, recorded_by)
+                        VALUES %s
+                        ON CONFLICT (id) DO UPDATE SET
+                            observed_http = EXCLUDED.observed_http,
+                            observed_cli = EXCLUDED.observed_cli,
+                            observed_dom = EXCLUDED.observed_dom,
+                            observed_logs = EXCLUDED.observed_logs,
+                            duration_ms = EXCLUDED.duration_ms,
+                            success = EXCLUDED.success,
+                            violations = EXCLUDED.violations,
+                            error_count = EXCLUDED.error_count,
+                            metadata = EXCLUDED.metadata
+                        """,
+                        [
+                            (
+                                s.id,
+                                s.scenario_id,
+                                s.project,
+                                s.environment,
+                                Json(s.observed_http.model_dump(mode="json")) if s.observed_http else None,
+                                Json(s.observed_cli.model_dump(mode="json")) if s.observed_cli else None,
+                                Json(s.observed_dom.model_dump(mode="json")) if s.observed_dom else None,
+                                Json(s.observed_logs.model_dump(mode="json")) if s.observed_logs else None,
+                                s.duration_ms,
+                                s.success,
+                                Json([v.model_dump(mode="json") for v in s.violations]),
+                                s.error_count,
+                                Json(s.metadata or {}),
+                                s.created_at,
+                                s.recorded_by,
+                            )
+                            for s in snapshots
+                        ],
+                    )
+                conn.commit()
+            finally:
+                conn.close()
 
         log.info(f"Imported {len(snapshots)} snapshots from {input_path}")
         return snapshots
@@ -534,8 +584,45 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 if line.strip():
                     data = json.loads(line)
                     contract = BehaviorContract(**data)
-                    self.save_contract(contract)
                     contracts.append(contract)
+
+        if contracts:
+            conn = self._get_connection()
+            try:
+                with conn.cursor() as cur:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO behavior_contracts
+                        (id, version, scenario_id, project, success_criteria, max_duration_ms,
+                         created_from_snapshots, confidence_score, created_at, version_notes)
+                        VALUES %s
+                        ON CONFLICT (id, version) DO UPDATE SET
+                            success_criteria = EXCLUDED.success_criteria,
+                            max_duration_ms = EXCLUDED.max_duration_ms,
+                            created_from_snapshots = EXCLUDED.created_from_snapshots,
+                            confidence_score = EXCLUDED.confidence_score,
+                            version_notes = EXCLUDED.version_notes
+                        """,
+                        [
+                            (
+                                c.id,
+                                c.version,
+                                c.scenario_id,
+                                c.project,
+                                Json(c.success_criteria.model_dump(mode="json")),
+                                c.max_duration_ms,
+                                c.created_from_snapshots,
+                                c.confidence_score,
+                                c.created_at,
+                                c.version_notes,
+                            )
+                            for c in contracts
+                        ],
+                    )
+                conn.commit()
+            finally:
+                conn.close()
 
         log.info(f"Imported {len(contracts)} contracts from {input_path}")
         return contracts
@@ -552,15 +639,21 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 cur.execute(
                     """
                     INSERT INTO behavior_check_results
-                    (snapshot_id, contract_id, contract_version, scenario_id, passed,
+                    (snapshot_id, contract_id, contract_version, scenario_id, project, passed,
                      violations, risk_score, checked_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (snapshot_id, contract_id, contract_version) DO UPDATE SET
+                        passed = EXCLUDED.passed,
+                        violations = EXCLUDED.violations,
+                        risk_score = EXCLUDED.risk_score,
+                        checked_at = EXCLUDED.checked_at
                 """,
                     (
                         result.snapshot_id,
                         result.contract_id,
-                        "1.0.0",  # Default version if not specified
-                        result.scenario_id,
+                        getattr(result, "contract_version", "1.0.0"),
+                        getattr(result, "scenario_id", "unknown"),
+                        result.project,
                         result.passed,
                         Json([v.model_dump(mode="json") for v in result.violations]),
                         result.risk_score,
@@ -619,8 +712,43 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 if line.strip():
                     data = json.loads(line)
                     result = BehaviorCheckResult(**data)
-                    self.save_check_result(result)
                     results.append(result)
+
+        if results:
+            conn = self._get_connection()
+            try:
+                with conn.cursor() as cur:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO behavior_check_results
+                        (snapshot_id, contract_id, contract_version, scenario_id, project, passed,
+                         violations, risk_score, checked_at)
+                        VALUES %s
+                        ON CONFLICT (snapshot_id, contract_id, contract_version) DO UPDATE SET
+                            passed = EXCLUDED.passed,
+                            violations = EXCLUDED.violations,
+                            risk_score = EXCLUDED.risk_score,
+                            checked_at = EXCLUDED.checked_at
+                        """,
+                        [
+                            (
+                                r.snapshot_id,
+                                r.contract_id,
+                                getattr(r, "contract_version", "1.0.0"),
+                                getattr(r, "scenario_id", "unknown"),
+                                r.project,
+                                r.passed,
+                                Json([v.model_dump(mode="json") for v in r.violations]),
+                                r.risk_score,
+                                r.checked_at,
+                            )
+                            for r in results
+                        ],
+                    )
+                conn.commit()
+            finally:
+                conn.close()
 
         log.info(f"Imported {len(results)} check results from {input_path}")
         return results
