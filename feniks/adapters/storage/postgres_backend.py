@@ -34,7 +34,7 @@ log = get_logger("adapters.storage.postgres")
 # Postgres import with graceful fallback
 try:
     import psycopg2
-    from psycopg2.extras import Json, RealDictCursor
+    from psycopg2.extras import Json, RealDictCursor, execute_values
 
     POSTGRES_AVAILABLE = True
 except ImportError:
@@ -327,6 +327,61 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
         finally:
             conn.close()
 
+    def _save_snapshots_bulk(self, snapshots: List[BehaviorSnapshot]) -> None:
+        """Save behavior snapshots in bulk."""
+        if not snapshots:
+            return
+
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                data = [
+                    (
+                        snapshot.id,
+                        snapshot.scenario_id,
+                        snapshot.project,
+                        snapshot.environment,
+                        Json(snapshot.observed_http.model_dump(mode="json")) if snapshot.observed_http else None,
+                        Json(snapshot.observed_cli.model_dump(mode="json")) if snapshot.observed_cli else None,
+                        Json(snapshot.observed_dom.model_dump(mode="json")) if snapshot.observed_dom else None,
+                        Json(snapshot.observed_logs.model_dump(mode="json")) if snapshot.observed_logs else None,
+                        snapshot.duration_ms,
+                        snapshot.success,
+                        Json([v.model_dump(mode="json") for v in snapshot.violations]),
+                        snapshot.error_count,
+                        Json(snapshot.metadata or {}),
+                        snapshot.created_at,
+                        snapshot.recorded_by,
+                    )
+                    for snapshot in snapshots
+                ]
+
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO behavior_snapshots
+                    (id, scenario_id, project, environment, observed_http, observed_cli,
+                     observed_dom, observed_logs, duration_ms, success, violations,
+                     error_count, metadata, created_at, recorded_by)
+                    VALUES %s
+                    ON CONFLICT (id) DO UPDATE SET
+                        observed_http = EXCLUDED.observed_http,
+                        observed_cli = EXCLUDED.observed_cli,
+                        observed_dom = EXCLUDED.observed_dom,
+                        observed_logs = EXCLUDED.observed_logs,
+                        duration_ms = EXCLUDED.duration_ms,
+                        success = EXCLUDED.success,
+                        violations = EXCLUDED.violations,
+                        error_count = EXCLUDED.error_count,
+                        metadata = EXCLUDED.metadata
+                """,
+                    data,
+                )
+            conn.commit()
+            log.info(f"Saved {len(snapshots)} snapshots in bulk")
+        finally:
+            conn.close()
+
     def load_snapshots(
         self, scenario_id: str, environment: Optional[str] = None, limit: Optional[int] = None
     ) -> List[BehaviorSnapshot]:
@@ -376,10 +431,9 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
             for line in f:
                 if line.strip():
                     data = json.loads(line)
-                    snapshot = BehaviorSnapshot(**data)
-                    self.save_snapshot(snapshot)
-                    snapshots.append(snapshot)
+                    snapshots.append(BehaviorSnapshot(**data))
 
+        self._save_snapshots_bulk(snapshots)
         log.info(f"Imported {len(snapshots)} snapshots from {input_path}")
         return snapshots
 
@@ -425,6 +479,51 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
             conn.commit()
             log.info(f"Saved contract version: {contract.id} v{contract.version}")
             return contract.version
+        finally:
+            conn.close()
+
+    def _save_contracts_bulk(self, contracts: List[BehaviorContract]) -> None:
+        """Save behavior contracts in bulk."""
+        if not contracts:
+            return
+
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                data = [
+                    (
+                        contract.id,
+                        contract.version,
+                        contract.scenario_id,
+                        contract.project,
+                        Json(contract.success_criteria.model_dump(mode="json")),
+                        contract.max_duration_ms,
+                        contract.created_from_snapshots,
+                        contract.confidence_score,
+                        contract.created_at,
+                        contract.version_notes,
+                    )
+                    for contract in contracts
+                ]
+
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO behavior_contracts
+                    (id, version, scenario_id, project, success_criteria, max_duration_ms,
+                     created_from_snapshots, confidence_score, created_at, version_notes)
+                    VALUES %s
+                    ON CONFLICT (id, version) DO UPDATE SET
+                        success_criteria = EXCLUDED.success_criteria,
+                        max_duration_ms = EXCLUDED.max_duration_ms,
+                        created_from_snapshots = EXCLUDED.created_from_snapshots,
+                        confidence_score = EXCLUDED.confidence_score,
+                        version_notes = EXCLUDED.version_notes
+                """,
+                    data,
+                )
+            conn.commit()
+            log.info(f"Saved {len(contracts)} contracts in bulk")
         finally:
             conn.close()
 
@@ -533,10 +632,9 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
             for line in f:
                 if line.strip():
                     data = json.loads(line)
-                    contract = BehaviorContract(**data)
-                    self.save_contract(contract)
-                    contracts.append(contract)
+                    contracts.append(BehaviorContract(**data))
 
+        self._save_contracts_bulk(contracts)
         log.info(f"Imported {len(contracts)} contracts from {input_path}")
         return contracts
 
@@ -569,6 +667,43 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
                 )
             conn.commit()
             log.info(f"Saved check result for snapshot: {result.snapshot_id}")
+        finally:
+            conn.close()
+
+    def _save_check_results_bulk(self, results: List[BehaviorCheckResult]) -> None:
+        """Save check results in bulk."""
+        if not results:
+            return
+
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                data = [
+                    (
+                        result.snapshot_id,
+                        result.contract_id,
+                        "1.0.0",  # Default version if not specified
+                        result.scenario_id,
+                        result.passed,
+                        Json([v.model_dump(mode="json") for v in result.violations]),
+                        result.risk_score,
+                        result.checked_at,
+                    )
+                    for result in results
+                ]
+
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO behavior_check_results
+                    (snapshot_id, contract_id, contract_version, scenario_id, passed,
+                     violations, risk_score, checked_at)
+                    VALUES %s
+                """,
+                    data,
+                )
+            conn.commit()
+            log.info(f"Saved {len(results)} check results in bulk")
         finally:
             conn.close()
 
@@ -618,10 +753,9 @@ class PostgresBackend(BehaviorStorageBackend, VersionedStorageMixin):
             for line in f:
                 if line.strip():
                     data = json.loads(line)
-                    result = BehaviorCheckResult(**data)
-                    self.save_check_result(result)
-                    results.append(result)
+                    results.append(BehaviorCheckResult(**data))
 
+        self._save_check_results_bulk(results)
         log.info(f"Imported {len(results)} check results from {input_path}")
         return results
 
