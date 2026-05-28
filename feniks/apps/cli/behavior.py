@@ -27,6 +27,7 @@ from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
 from feniks.core.models.behavior import BehaviorScenario, BehaviorInput, CLICommand, BehaviorSuccessCriteria, CLISuccessCriteria
 from feniks.core.models.types import OperationalState, OperationalMode, TargetLanguage, ComplianceLevel
+from feniks.adapters.storage.behavior_store import get_behavior_store
 
 # Import runners
 from feniks.adapters.runners.cli_runner import CLIRunner
@@ -304,18 +305,28 @@ def handle_behavior_define_scenario(args):
     with file_path.open("r") as f:
         scenario_data = yaml.safe_load(f)
 
-    # TODO: Validate against BehaviorScenario model
-    # TODO: Store in database/file system
+    # Ensure created_at exists
+    if "created_at" not in scenario_data:
+        scenario_data["created_at"] = datetime.now()
 
-    log.info(f"Scenario: {scenario_data.get('name', 'unnamed')}")
-    log.info(f"Category: {scenario_data.get('category', 'unknown')}")
-    log.info(f"Environment: {scenario_data.get('environment', 'unknown')}")
+    # Override project if provided via CLI
+    if args.project:
+        scenario_data["project"] = args.project
 
-    log.warning("Scenario storage not yet implemented - this is a placeholder")
-    log.info("To implement:")
-    log.info("  1. Validate scenario_data against BehaviorScenario model")
-    log.info("  2. Store in database (Postgres) or file system")
-    log.info("  3. Return scenario ID")
+    # Validate and instantiate
+    try:
+        scenario = BehaviorScenario(**scenario_data)
+    except Exception as e:
+        log.error(f"Validation failed for scenario: {e}")
+        raise FeniksError(f"Invalid scenario definition: {e}")
+
+    # Store in database/file system
+    store = get_behavior_store()
+    store.save_scenario(scenario)
+
+    log.info(f"Scenario '{scenario.name}' (ID: {scenario.id}) validated and saved.")
+    log.info(f"Category: {scenario.category}")
+    log.info(f"Environment: {scenario.environment}")
 
     log.info("=== Define Scenario Complete ===")
 
@@ -337,13 +348,13 @@ def register_behavior_commands(subparsers):
     define_parser = behavior_subparsers.add_parser(
         "define-scenario", help="Define a new behavior scenario from YAML file"
     )
-    define_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    define_parser.add_argument("--project-id", dest="project", type=str, required=True, help="Project identifier")
     define_parser.add_argument("--from-file", type=str, required=True, help="Path to scenario YAML file")
     define_parser.set_defaults(func=handle_behavior_define_scenario)
 
     # behavior record
     record_parser = behavior_subparsers.add_parser("record", help="Record behavior snapshots by executing scenarios")
-    record_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    record_parser.add_argument("--project-id", dest="project", type=str, required=True, help="Project identifier")
     record_parser.add_argument("--scenario-id", type=str, required=True, help="Scenario ID to execute")
     record_parser.add_argument(
         "--environment",
@@ -368,7 +379,7 @@ def register_behavior_commands(subparsers):
     build_parser = behavior_subparsers.add_parser(
         "build-contracts", help="Build behavior contracts from recorded snapshots"
     )
-    build_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    build_parser.add_argument("--project-id", dest="project", type=str, required=True, help="Project identifier")
     build_parser.add_argument("--input", type=str, required=True, help="Input JSONL file with snapshots")
     build_parser.add_argument("--output", type=str, required=True, help="Output JSONL file for contracts")
     build_parser.add_argument(
@@ -378,7 +389,7 @@ def register_behavior_commands(subparsers):
 
     # behavior check
     check_parser = behavior_subparsers.add_parser("check", help="Check candidate system behavior against contracts")
-    check_parser.add_argument("--project-id", type=str, required=True, help="Project identifier")
+    check_parser.add_argument("--project-id", dest="project", type=str, required=True, help="Project identifier")
     check_parser.add_argument("--contracts", type=str, required=True, help="Input JSONL file with behavior contracts")
     check_parser.add_argument("--snapshots", type=str, required=True, help="Input JSONL file with candidate snapshots")
     check_parser.add_argument("--output", type=str, required=True, help="Output JSONL file for check results")
