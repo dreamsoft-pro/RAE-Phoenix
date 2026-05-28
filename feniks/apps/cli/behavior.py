@@ -22,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 import yaml
 import uuid
+from pydantic import ValidationError
 
 from feniks.exceptions import FeniksError
 from feniks.infra.logging import get_logger
@@ -32,6 +33,7 @@ from feniks.core.models.types import OperationalState, OperationalMode, TargetLa
 from feniks.adapters.runners.cli_runner import CLIRunner
 from feniks.adapters.runners.python_runner import PythonRunner
 from feniks.adapters.runners.php_runner import PHPRunner
+from feniks.adapters.storage.behavior_store import get_behavior_store
 
 log = get_logger("cli.behavior")
 
@@ -42,7 +44,7 @@ def handle_behavior_record(args):
     Executes a behavior scenario and captures snapshots.
     """
     log.info("=== Behavior Record ===")
-    log.info(f"Project: {args.project}")
+    log.info(f"Project: {args.project_id}")
     log.info(f"Scenario: {args.scenario_id}")
     log.info(f"Environment: {args.environment}")
     log.info(f"Output: {args.output}")
@@ -71,7 +73,7 @@ def handle_behavior_record(args):
     # For now, we construct a generic scenario from CLI args if it's missing.
     scenario = BehaviorScenario(
         id=args.scenario_id,
-        project=args.project,
+        project=args.project_id,
         category="cli",
         name=f"Auto-generated for {args.scenario_id}",
         description="CLI execution test",
@@ -116,7 +118,7 @@ def handle_behavior_build_contracts(args):
     BehaviorContracts that define expected system behavior.
     """
     log.info("=== Build Behavior Contracts ===")
-    log.info(f"Project: {args.project}")
+    log.info(f"Project: {args.project_id}")
     log.info(f"Input: {args.input}")
     log.info(f"Output: {args.output}")
     log.info(f"Min snapshots: {args.min_snapshots}")
@@ -159,7 +161,7 @@ def handle_behavior_build_contracts(args):
         log.info(f"Building contract for scenario {scenario_id} from {len(scenario_snapshots)} snapshot(s)")
         
         contract = generator.generate_from_snapshots(
-            project=args.project,
+            project=args.project_id,
             scenario_id=scenario_id,
             snapshots=scenario_snapshots
         )
@@ -189,7 +191,7 @@ async def handle_behavior_check(args):
     BehaviorContracts to detect regressions.
     """
     log.info("=== Behavior Check ===")
-    log.info(f"Project: {args.project}")
+    log.info(f"Project: {args.project_id}")
     log.info(f"Contracts: {args.contracts}")
     log.info(f"Snapshots: {args.snapshots}")
     log.info(f"Output: {args.output}")
@@ -290,10 +292,10 @@ def handle_behavior_define_scenario(args):
 
     Args:
         args.from_file: Path to scenario YAML file
-        args.project: Project identifier
+        args.project_id: Project identifier
     """
     log.info("=== Define Behavior Scenario ===")
-    log.info(f"Project: {args.project}")
+    log.info(f"Project: {args.project_id}")
     log.info(f"From file: {args.from_file}")
 
     file_path = Path(args.from_file)
@@ -304,18 +306,23 @@ def handle_behavior_define_scenario(args):
     with file_path.open("r") as f:
         scenario_data = yaml.safe_load(f)
 
-    # TODO: Validate against BehaviorScenario model
-    # TODO: Store in database/file system
+    # Validate against BehaviorScenario model
+    try:
+        scenario = BehaviorScenario.model_validate(scenario_data)
+        log.info(f"Scenario data validated successfully: {scenario.id}")
+    except ValidationError as e:
+        raise FeniksError(f"Invalid scenario data (validation error): {e}")
+    except Exception as e:
+        raise FeniksError(f"Failed to load or validate scenario: {e}")
 
-    log.info(f"Scenario: {scenario_data.get('name', 'unnamed')}")
-    log.info(f"Category: {scenario_data.get('category', 'unknown')}")
-    log.info(f"Environment: {scenario_data.get('environment', 'unknown')}")
+    # Store in database/file system
+    store = get_behavior_store()
+    store.save_scenario(scenario)
 
-    log.warning("Scenario storage not yet implemented - this is a placeholder")
-    log.info("To implement:")
-    log.info("  1. Validate scenario_data against BehaviorScenario model")
-    log.info("  2. Store in database (Postgres) or file system")
-    log.info("  3. Return scenario ID")
+    log.info(f"Scenario: {scenario.name}")
+    log.info(f"Category: {scenario.category}")
+    log.info(f"Environment: {scenario.environment}")
+    log.info(f"Scenario {scenario.id} stored successfully")
 
     log.info("=== Define Scenario Complete ===")
 
