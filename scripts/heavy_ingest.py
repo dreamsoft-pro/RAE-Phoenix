@@ -1,10 +1,27 @@
 import os, json, psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
 
 COMP_DIR = '/home/operator/RAE-Suite-Modular/packages/rae-hive/work_dir/components/'
 DREAMSOFT_TENANT = 'd7ea3501-de04-4e11-894a-d80ca08de7e8'
 
 def run_ingest():
-    conn = psycopg2.connect("host=localhost dbname=rae user=rae password=rae_password")
+    db_host = os.getenv("RAE_DB_HOST")
+    db_name = os.getenv("RAE_DB_NAME")
+    db_user = os.getenv("RAE_DB_USER")
+    db_pass = os.getenv("RAE_DB_PASSWORD")
+
+    if not all([db_host, db_name, db_user, db_pass]):
+        print("❌ ERROR: Database environment variables (RAE_DB_HOST, RAE_DB_NAME, RAE_DB_USER, RAE_DB_PASSWORD) are not set.")
+        return
+
+    conn = psycopg2.connect(
+        host=db_host,
+        dbname=db_name,
+        user=db_user,
+        password=db_pass
+    )
     conn.autocommit = True
     cur = conn.cursor()
 
