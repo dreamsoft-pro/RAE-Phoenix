@@ -33,6 +33,7 @@ class PhoenixRefactorer:
         self.quality_url = os.getenv("QUALITY_API_URL", "http://rae-quality:8000")
         self.plugin_manager = PluginManager()
         self.bridge = RAEMemoryBridge(project_name="rae-phoenix")
+        self.llm_agent = os.getenv("PHOENIX_LLM_AGENT", "rae-oracle-gemini")
         
         # System-wide Intelligence
         self.indexer = SystemIndexer(project_root=".")
@@ -217,7 +218,7 @@ class PhoenixRefactorer:
         async with httpx.AsyncClient() as client:
             resp = await client.post(f"{self.api_url}/v2/bridge/interact", json={
                 "intent": "CODE_REFACTORING_REQUEST",
-                "target_agent": "rae-oracle-gemini",
+                "target_agent": self.llm_agent,
                 "payload": {"prompt": prompt}
             })
             return resp.json().get("payload", {}).get("interaction_data", {}).get("code", code) if resp.status_code == 200 else code

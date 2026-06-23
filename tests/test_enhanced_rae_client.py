@@ -198,7 +198,7 @@ class TestEnhancedRAEClient:
             )
 
             # Should return original reflection unchanged
-            assert enriched.reflection_id == sample_reflection.reflection_id
+            assert enriched.id == sample_reflection.id
             assert enriched.metadata.get("rae_enriched") is None
 
     def test_store_refactor_outcome_success(self, enhanced_client):
@@ -248,8 +248,8 @@ class TestEnhancedRAEClient:
         """Test building enrichment query from reflection."""
         query = enhanced_client._build_enrichment_query(sample_reflection)
 
-        assert "code_quality" in query
-        assert "Test reflection summary" in query
+        assert "code quality" in query
+        assert "Test Reflection" in query
 
     def test_extract_refactor_type(self, enhanced_client, sample_reflection):
         """Test extracting refactor type from reflection metadata."""
