@@ -103,7 +103,7 @@ class TestEnhancedRAEClient:
     def test_get_cross_project_patterns_success(self, enhanced_client):
         """Test retrieving cross-project patterns."""
         mock_patterns = {
-            "patterns": [
+            "results": [
                 {
                     "pattern_type": "refactoring",
                     "confidence": 0.85,
@@ -126,7 +126,7 @@ class TestEnhancedRAEClient:
     def test_get_historical_refactorings_success(self, enhanced_client):
         """Test retrieving historical refactorings."""
         mock_refactorings = {
-            "refactorings": [
+            "results": [
                 {
                     "refactor_type": "extract-method",
                     "success_rate": 0.85,
@@ -249,6 +249,7 @@ class TestEnhancedRAEClient:
         query = enhanced_client._build_enrichment_query(sample_reflection)
 
         assert "code quality" in query
+        assert "codebase" in query
         assert "Test Reflection" in query
 
     def test_extract_refactor_type(self, enhanced_client, sample_reflection):
@@ -259,7 +260,7 @@ class TestEnhancedRAEClient:
 
     def test_factory_function_with_disabled_rae(self):
         """Test factory function returns None when RAE disabled."""
-        with patch("feniks.adapters.rae_client.enhanced_client.settings") as mock_settings:
+        with patch("feniks.config.settings.settings") as mock_settings:
             mock_settings.rae_enabled = False
 
             client = create_enhanced_rae_client()
@@ -268,7 +269,7 @@ class TestEnhancedRAEClient:
 
     def test_factory_function_success(self):
         """Test factory function creates client successfully."""
-        with patch("feniks.adapters.rae_client.enhanced_client.settings") as mock_settings:
+        with patch("feniks.config.settings.settings") as mock_settings:
             mock_settings.rae_enabled = True
             mock_settings.rae_base_url = "http://localhost:8000"
             mock_settings.rae_api_key = "test-key"

@@ -154,8 +154,6 @@ class FeniksMemoryRouter:
                 metadata={"scope": "cross_project"},
             )
 
-
-
         # Default hybrid strategy
         return self._hybrid_routing_decision(data_type, metadata)
 

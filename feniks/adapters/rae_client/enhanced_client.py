@@ -230,8 +230,8 @@ class EnhancedRAEClient(RAEClient):
             refactor_type = self._extract_refactor_type(local_reflection)
             is_refactor = refactor_type is not None or any(
                 "refactor" in str(field).lower()
-                for field in [local_reflection.content, local_reflection.title, local_reflection.tags]
-            )
+                for field in [local_reflection.content, local_reflection.title, local_reflection.tags, getattr(local_reflection, "impact", "")]
+            ) or (hasattr(local_reflection, "metadata") and local_reflection.metadata and "refactor_type" in local_reflection.metadata)
             if is_refactor:
                 type_to_query = refactor_type or "generic"
                 refactor_insights = self.get_historical_refactorings(
