@@ -26,8 +26,48 @@ class PhpPlugin(LanguagePlugin):
 
     async def execute_refactor(self, code: str, intention: RefactorIntention) -> str:
         logger.info(f"Executing PHP Refactor: {intention.objective}")
-        # DeepMind Architecture: Generate php-parser NodeVisitor script and run via PHP CLI
-        return f"<?php\n// [RAE-Phoenix PHP Plugin Refactored]\n?>\n{code}"
+        import httpx
+        import os
+        
+        api_url = os.getenv("RAE_API_URL", "http://rae-memory:8000")
+        llm_agent = os.getenv("PHOENIX_LLM_AGENT", "rae-oracle-gemini")
+        project = intention.context.get("project", "default")
+        impact = intention.context.get("impact_zone", {})
+        
+        prompt = f"""
+        Jesteś RAE Phoenix (Ekspert Refaktoryzacji PHP). 
+        KOD DO NAPRAWY:
+        {code}
+        
+        POWÓD ODRZUCENIA / WYMAGANIE:
+        {intention.objective}
+        
+        PROJEKT: {project}
+        IMPACT ZONE (ZALEŻNOŚCI): {impact}
+        
+        Zastosuj poprawki PHP, które spełnią te wymagania. Zadbaj o standardy SOLID, czysty kod i kompatybilność z PHP 8.5.
+        Zachowaj pełną funkcjonalność istniejącego kodu.
+        Zwróć TYLKO I WYŁĄCZNIE poprawiony kod źródłowy PHP (bez żadnego dodatkowego tekstu, bez znaczników ```php i ```).
+        """
+        
+        from rae_core.llm.runtime import resolve_llm_runtime
+        
+        try:
+            provider = await resolve_llm_runtime(requirements={"requires_reasoning": True}, target_agent=llm_agent)
+            fixed_code = await provider.generate(prompt)
+            
+            fixed_code = fixed_code.strip()
+            if fixed_code.startswith("```php"):
+                fixed_code = fixed_code[6:]
+            if fixed_code.startswith("```"):
+                fixed_code = fixed_code[3:]
+            if fixed_code.endswith("```"):
+                fixed_code = fixed_code[:-3]
+            return fixed_code.strip()
+        except Exception as e:
+            logger.error(f"Error in PHP refactoring LLM call: {e}")
+            return code
+
 
     async def execute_create(self, spec: CreationSpec) -> str:
         logger.info(f"Executing PHP Create: {spec.objective} at {spec.target_path}")

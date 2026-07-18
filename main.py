@@ -45,6 +45,31 @@ class PhoenixRefactorer:
     async def process_repair_request(self, project: str, code: str, reason: str, file_path: str = "unknown.py") -> Dict[str, Any]:
         """Autonomously analyzes, fixes, and re-verifies code using RAE-First closed-loop strategy."""
         
+        # Security Guard: Strictly block modification of policies, test files, and SonarQube configs
+        protected_patterns = [
+            "quality_policy.yaml",
+            "sonar-project.properties",
+            "tests/",
+            "test_"
+        ]
+        
+        is_protected = False
+        filename = os.path.basename(file_path)
+        for pattern in protected_patterns:
+            if pattern in file_path or file_path.startswith("tests/") or "test_" in filename:
+                is_protected = True
+                break
+                
+        if is_protected:
+            logger.critical(f"phoenix_security_violation: Modification of protected file '{file_path}' is strictly blocked.")
+            return {
+                "status": "FAILED_BLOCKED",
+                "code": code,
+                "reason": f"Modyfikacja chronionego pliku '{file_path}' (polityka/testy/konfiguracja SonarQube) jest zabroniona.",
+                "attempts_made": 0,
+                "tokens_consumed": 0
+            }
+
         # 0. RAE-FIRST
         history = await self._fetch_file_history(project, file_path)
         if history:
@@ -64,7 +89,7 @@ class PhoenixRefactorer:
             logger.warning(f"phoenix_impact_alert: Modifying {file_path} affects {impact['total_dependents']} dependents.")
 
         # Closed-Loop Repair Parameters
-        max_attempts = 5
+        max_attempts = 3
         max_token_budget = 10000
         tokens_used = 0
         current_code = code
@@ -74,6 +99,8 @@ class PhoenixRefactorer:
         attempt = 0
         success = False
         final_verdict = None
+        
+        trajectory = []
         
         while attempt < max_attempts and tokens_used < max_token_budget:
             attempt += 1
@@ -86,6 +113,15 @@ class PhoenixRefactorer:
                 reasoning=f"Routing {file_path} to {plugin.name if plugin else 'fallback_llm'} (Attempt {attempt})",
                 payload={"plugin": plugin.name if plugin else "fallback_llm", "file": file_path, "attempt": attempt}
             )
+
+            # Record current state in trajectory
+            trajectory_step = {
+                "attempt": attempt,
+                "input_code": current_code,
+                "reason": current_reason,
+                "plugin_used": plugin.name if plugin else "fallback_llm",
+                "timestamp": datetime.utcnow().isoformat()
+            }
 
             # Estimate token usage for the prompt/interaction
             prompt_estimate = 1000  # Default baseline
@@ -114,9 +150,21 @@ class PhoenixRefactorer:
                 payload=verdict
             )
 
+            # Record outcome in trajectory
+            trajectory_step["fixed_code"] = fixed_code
+            trajectory_step["verdict"] = verdict
+            trajectory.append(trajectory_step)
+
             # HARD CONTRACT: Must be PASSED and reach ADVANCED_SENIOR seniority
-            if verdict.get("verdict") == "PASSED" and verdict.get("seniority_attained") == "advanced_senior":
-                logger.info(f"phoenix_fix_verified: Advanced Senior Standard Reached on attempt {attempt}.", project=project)
+            level = verdict.get("seniority_attained") or (verdict.get("metadata", {}).get("seniority_level") if verdict.get("metadata") else None)
+            is_advanced_senior = False
+            if level:
+                level_str = str(level).lower().replace(" ", "_").replace("developer", "").strip("_")
+                if level_str == "advanced_senior":
+                    is_advanced_senior = True
+
+            if verdict.get("verdict") == "PASSED" and is_advanced_senior:
+                logger.info(f"phoenix_fix_verified: Advanced Senior Standard Reached on attempt {attempt}.", extra={"project": project})
                 success = True
                 current_code = fixed_code
                 break
@@ -140,6 +188,19 @@ class PhoenixRefactorer:
             rollback_code = initial_code
             logger.error(f"phoenix_loop_hard_stop: Closed-loop repair failed after {attempt} attempts. Initiating rollback.")
             
+            # CIRCUIT BREAKER: Dump full trajectory to JSONL for offline replay
+            os.makedirs("runs", exist_ok=True)
+            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            trajectory_file = f"runs/trajectory_{project}_{timestamp_str}.jsonl"
+            try:
+                import json
+                with open(trajectory_file, "w", encoding="utf-8") as f:
+                    for step in trajectory:
+                        f.write(json.dumps(step) + "\n")
+                logger.info(f"phoenix_circuit_breaker: Dumped trajectory to {trajectory_file}")
+            except Exception as e:
+                logger.error(f"Failed to dump trajectory to {trajectory_file}: {e}")
+
             self.bridge.log_decision(
                 action="repair_loop_failed_rollback",
                 reasoning=f"Repair failed after {attempt} attempts. Hard stop trigger. Token budget: {tokens_used}/{max_token_budget}",
@@ -147,14 +208,15 @@ class PhoenixRefactorer:
                     "attempts": attempt,
                     "tokens_used": tokens_used,
                     "max_attempts": max_attempts,
-                    "max_token_budget": max_token_budget
+                    "max_token_budget": max_token_budget,
+                    "trajectory_file": trajectory_file
                 }
             )
             
             return {
                 "status": "FAILED_ESCALATED",
                 "code": rollback_code,
-                "reason": f"Closed-loop repair failed to reach Advanced Senior standard within constraints. Ticket FAILED_ESCALATED generated.",
+                "reason": f"Closed-loop repair failed to reach Advanced Senior standard within constraints. Ticket FAILED_ESCALATED generated. Trajectory saved to {trajectory_file}",
                 "attempts_made": attempt,
                 "tokens_consumed": tokens_used,
                 "last_verdict": final_verdict
@@ -227,7 +289,7 @@ class PhoenixRefactorer:
         """Asks RAE-Quality (Tribunal) directly for a new semantic audit (Direct A2A)."""
         url = f"{self.quality_url}/v2/quality/audit"
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 resp = await client.post(url, json={
                     "code": code,
                     "project": project,
